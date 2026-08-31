@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content" />
+  <meta name="theme-color" content="#f7f8f3" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-title" content="Return" />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <title>Personal Workbench</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="app">
+
+  <div id="homeView" class="view active">
+    <header>
+      <div>
+        <div class="eyebrow" id="homeDate"></div>
+        <h1 id="homeGreeting">Personal Workbench</h1>
+        <div class="sub" id="homeSub">Only what is useful right now. The rest can stay quiet.</div>
+      </div>
+      <button class="icon-btn" id="settingsBtn" aria-label="Open settings">⚙️</button>
+    </header>
+    <div class="backup-nudge" id="backupNudge"><div class="backup-nudge-icon">☁️</div><div class="backup-nudge-copy"><div class="backup-nudge-title">Keep a copy of your Workbench</div><div class="backup-nudge-note">A quick backup protects what you’ve added on this device.</div></div><div class="backup-nudge-actions"><button id="backupLaterBtn">Later</button><button id="backupNowBtn">Back up</button></div></div>
+    <div class="home-now" id="homeNow"></div>
+    <div class="home-section-title">Quick actions</div>
+    <div class="home-action-dock">
+      <button class="dock-action" id="quickHabitBtn">🌱 Check in<span>Open today’s habits</span></button>
+      <button class="dock-action" id="quickContactBtn">💬 Log contact<span>A quick record, then leave</span></button>
+    </div>
+    <div class="home-section-title">Your spaces</div>
+    <div class="space-list">
+      <button class="space-row" data-jump="todayView">
+        <span class="space-icon">🌱</span><span class="space-copy"><span class="space-title">Habit Practice</span><span class="space-meta" id="habitHomeMeta">Loading…</span><span class="mini-track"><span class="mini-fill" id="habitHomeProgress"></span></span></span><span class="space-arrow">→</span>
+      </button>
+      <button class="space-row" data-jump="circleView">
+        <span class="space-icon">💛</span><span class="space-copy"><span class="space-title">Main Circle</span><span class="space-meta" id="circleHomeMeta">Loading…</span></span><span class="space-arrow">→</span>
+      </button>
+    </div>
+    <div class="home-rule">This should reduce friction, not become another system to maintain.</div>
+  </div>
+
+  <div id="todayView" class="view">
+    <header>
+      <div>
+        <div class="eyebrow" id="todayDate"></div>
+        <h1>🌱 Today</h1>
+        <div class="sub">Connection, not perfection.</div>
+      </div>
+      <button class="icon-btn" id="manageBtn" aria-label="Manage habits">⚙️</button>
+    </header>
+
+    <div class="habit-overview" id="habitOverview">
+      <div class="overview-top">
+        <div><div class="overview-label" id="habitOverviewLabel">Today</div><div class="overview-value" id="habitProgressText">Loading…</div></div>
+        <button class="gentle-toggle" id="gentleModeBtn">🌿 Gentle day</button>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="habitProgressBar"></div></div>
+      <div class="gentle-help">Smaller valid versions move to the front. Doing less still preserves the connection.</div>
+    </div>
+
+    <div class="habit-control-row">
+      <div class="scope-control" id="habitScope" aria-label="Habit timeframe"></div>
+      <button class="filter-btn" id="habitFilterBtn">☰ Filter</button>
+    </div>
+    <div class="active-filter-note" id="activeFilterNote" style="display:none"></div>
+    <div id="habitFocus"></div>
+    <div class="section-head"><h2 id="habitListTitle">Later</h2><button class="link-btn" id="addHabitBtn">+ Add</button></div>
+    <div id="habitList" class="habit-stack"></div>
+
+    <div class="footer-rule">
+      <strong>🔒 One miss is not evidence the system is broken.</strong><br>
+      Return first. Review the system only after the same problem repeats 3+ times.
+    </div>
+  </div>
+
+  <div id="weekView" class="view">
+    <header>
+      <div>
+        <div class="eyebrow">Last 7 days</div>
+        <h1>📈 Review</h1>
+        <div class="sub">Context from the last 7 days—not a scorecard.</div>
+      </div>
+    </header>
+    <div class="trend-insight"><div class="trend-kicker">What this week says</div><div class="trend-headline" id="trendHeadline">Loading…</div><div class="trend-copy" id="trendCopy"></div></div>
+    <div class="section-head"><h2>Your rhythm</h2></div>
+    <div class="rhythm-card"><div id="weekGrid" class="rhythm-grid"></div><div class="rhythm-help">A filled day means you made contact with at least one habit. Purple marks a return.</div></div>
+    <div class="section-head"><h2>What matters</h2></div>
+    <div class="stat-list">
+      <div class="stat-row"><span class="stat-icon">🌱</span><span class="stat-copy"><span class="stat-label">Valid check-ins</span><span class="stat-help">Normal, smaller, and returned versions</span></span><span class="stat-value" id="engagementMetric">—</span></div>
+      <div class="stat-row"><span class="stat-icon">↩</span><span class="stat-copy"><span class="stat-label">Returns</span><span class="stat-help">Coming back is the practiced skill</span></span><span class="stat-value" id="returnsMetric">0</span></div>
+      <div class="stat-row"><span class="stat-icon">⏱</span><span class="stat-copy"><span class="stat-label">Time to return</span><span class="stat-help">Only shown when there is enough data</span></span><span class="stat-value" id="returnTimeMetric">—</span></div>
+    </div>
+    <div class="pattern-card"><div class="pattern-label">A useful pattern</div><div class="pattern-text" id="trendPattern">We’re still gathering a little context.</div></div>
+    <section class="review-history" aria-labelledby="reviewHistoryTitle">
+      <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div><details class="review-filter"><summary>Filter</summary><div class="review-filter-menu"><button type="button" class="active" data-review-filter="all">All activity</button><button type="button" data-review-filter="habits">Habits</button><button type="button" data-review-filter="circle">Circle</button></div></details></div>
+      <div class="history-list" id="reviewHistory"></div>
+    </section>
+    <div class="home-rule">No streaks. One quiet day cannot erase what you practiced before it.</div>
+  </div>
+
+
+  <div id="circleView" class="view">
+    <header>
+      <div>
+        <div class="eyebrow">People you want to keep close</div>
+        <h1>💛 Main Circle</h1>
+        <div class="sub">Keep people in view without turning love into administration.</div>
+      </div>
+      <button class="icon-btn" id="managePeopleBtn" aria-label="Manage people">⚙️</button>
+    </header>
+    <div class="circle-summary"><div class="circle-summary-label">Your Main Circle</div><div class="circle-summary-value" id="circleSummary">Loading…</div></div>
+    <div id="circleFocus"></div>
+    <div class="section-head" id="circlePeopleHead"><h2 id="circlePeopleTitle">Your people</h2><button class="link-btn" id="addPersonBtn">+ Add</button></div>
+    <div id="circleList" class="people-list"></div>
+    <div class="home-rule">A reminder is an invitation to connect—not evidence that you failed someone.</div>
+  </div>
+
+  <div id="aboutView" class="view">
+    <header>
+      <div>
+        <div class="eyebrow">Your rules</div>
+        <h1>🧠 How this works</h1>
+        <div class="sub">The tracker is intentionally designed not to punish imperfect days.</div>
+      </div>
+    </header>
+
+    <div class="habit-card">
+      <div class="habit-name">✓ Done</div>
+      <div class="habit-note">You did your normal version.</div>
+    </div>
+    <div class="habit-card" style="margin-top:10px">
+      <div class="habit-name">○ Counted</div>
+      <div class="habit-note">You used a smaller valid version. It counts exactly the same toward engagement.</div>
+    </div>
+    <div class="habit-card" style="margin-top:10px">
+      <div class="habit-name">— Not today</div>
+      <div class="habit-note">Neutral data. Nothing needs fixing tonight.</div>
+    </div>
+    <div class="habit-card" style="margin-top:10px">
+      <div class="habit-name">↩ Returned</div>
+      <div class="habit-note">The first time you engage again after a missed day. This is the behavior we want to strengthen.</div>
+    </div>
+
+    <div class="footer-rule">
+      <strong>After a miss:</strong><br>
+      Do not compensate. Do not restart the week. Do not redesign the system. Just make contact with the habit again.
+    </div>
+  </div>
+
+  <div id="settingsView" class="view">
+    <header><div><div class="eyebrow">Make it yours</div><h1>⚙️ Settings</h1><div class="sub">Adjust the Workbench without turning it into another project.</div></div></header>
+    <div class="settings-page settings-calm">
+      <section class="settings-card settings-essential">
+        <div class="settings-title">Daily use</div><div class="settings-help">Only the choices that affect how the Workbench meets you.</div>
+        <div class="form-row"><label for="startScreen">Open to</label><select id="startScreen"><option value="last">Where I left off</option><option value="homeView">Home</option><option value="todayView">Habits</option><option value="circleView">Circle</option><option value="weekView">Trend</option></select></div>
+        <label class="setting-row" for="compactMode"><span class="grow"><span class="setting-label">Compact cards</span><span class="setting-note">See more with less scrolling</span></span><input id="compactMode" type="checkbox" /></label>
+      </section>
+      <details class="settings-disclosure">
+        <summary><span><strong>Data, backup & device</strong><small>Only when you need it</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <div class="settings-title">Backup</div><div class="settings-help">Your Workbench lives on this device. Export a private copy whenever you want one.</div>
+          <div class="privacy-note" id="backupStatus">A weekly backup is a good safety net.</div>
+          <label class="setting-row" for="backupReminderEnabled"><span class="grow"><span class="setting-label">Weekly backup reminder</span><span class="setting-note">A gentle Home reminder after seven days</span></span><input id="backupReminderEnabled" type="checkbox" /></label>
+          <div class="settings-actions"><button class="btn" id="exportDataBtn">Export backup</button><button class="btn" id="importDataBtn">Import backup</button></div>
+          <input id="importDataFile" type="file" accept="application/json,.json" hidden />
+          <div class="settings-divider"></div>
+          <div class="settings-title">Device</div><div class="settings-help">No account or cloud sync is connected during this pilot.</div>
+          <div class="device-row"><span class="device-dot"></span><span class="device-copy"><span class="setting-label">Stored on this device</span><span class="setting-note" id="deviceStatus">Checking offline support…</span></span></div>
+          <label class="setting-row" for="hapticsEnabled"><span class="grow"><span class="setting-label">Gentle vibration</span><span class="setting-note">A tiny confirmation after quick logging</span></span><input id="hapticsEnabled" type="checkbox" /></label>
+          <button class="danger-row" id="clearDataBtn">Clear data<span>Choose exactly what to remove before anything is deleted</span></button>
+        </div>
+      </details>
+    </div>
+    <div class="home-rule">Personal Workbench · Pilot version</div>
+  </div>
+</div>
+
+<nav class="tabbar" aria-label="Navigation">
+  <button class="tab active" data-view="homeView"><span class="tab-icon">🏡</span><span>Home</span></button>
+  <button class="tab" data-view="todayView"><span class="tab-icon">🌱</span><span>Habits</span></button>
+  <button class="tab" data-view="circleView"><span class="tab-icon">💛</span><span>Circle</span></button>
+  <button class="tab" data-view="weekView"><span class="tab-icon">📈</span><span>Review</span></button>
+  <button class="tab" data-view="settingsView"><span class="tab-icon">⚙️</span><span>Settings</span></button>
+</nav>
+
+<div id="habitModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <h3 id="modalTitle">Add habit</h3>
+      <button class="icon-btn" id="closeModal">✕</button>
+    </div>
+    <div class="emoji-row">
+      <div class="form-row">
+        <label for="habitEmoji">Emoji</label>
+        <input id="habitEmoji" value="🌱" maxlength="4" />
+      </div>
+      <div class="form-row">
+        <label for="habitName">Habit name</label>
+        <input id="habitName" placeholder="e.g. Morning Face Wash" />
+      </div>
+    </div>
+    <input id="habitIcon" type="hidden" /><input id="habitColor" type="hidden" value="sage" />
+    <div class="visual-field"><div class="visual-preview visual-tone-sage" id="habitVisualPreview">🌱</div><div class="visual-field-copy"><div class="visual-field-title">Icon & color</div><span class="visual-field-note">Optional, calm visual cue</span></div><button class="visual-change" id="chooseHabitVisual" type="button">Customize</button></div>
+    <div class="form-row"><label for="habitGoalType">What kind of goal?</label><select id="habitGoalType"><option value="practice">Practice something</option><option value="reduce">Reduce something</option></select></div>
+    <details class="goal-plan" id="goalPlanDetails">
+      <summary><span class="goal-plan-title">Goal plan</span><span class="goal-plan-summary-note">Define what counts</span></summary><div class="goal-plan-help" id="goalPlanHelp">Define the versions once so you do not have to renegotiate what counts each day.</div>
+      <div class="form-row"><label for="habitFull" id="habitFullLabel">Full version <span style="font-weight:500">(optional)</span></label><input id="habitFull" placeholder="e.g. Wash face for 60 seconds" /></div>
+      <div class="form-row"><label for="habitSmall" id="habitSmallLabel">Smaller valid version</label><input id="habitSmall" placeholder="e.g. A quick 30-second wash" /></div>
+      <div class="form-row"><label for="habitSmall2">Another smaller option <span style="font-weight:500">(optional)</span></label><input id="habitSmall2" placeholder="e.g. Rinse and moisturize" /></div>
+    </details>
+    <div class="form-row">
+      <label for="habitScheduleType">How often?</label>
+      <select id="habitScheduleType"><option value="daily">Daily</option><option value="days">Specific days</option><option value="weekly">Times per week</option><option value="flexible">Flexible / no schedule</option></select>
+    </div>
+    <div class="form-row" id="habitDaysRow">
+      <label>Which days?</label>
+      <div class="weekday-picker">
+        <label class="weekday-option"><input type="checkbox" name="habitDay" value="1"><span>Mon</span></label><label class="weekday-option"><input type="checkbox" name="habitDay" value="2"><span>Tue</span></label><label class="weekday-option"><input type="checkbox" name="habitDay" value="3"><span>Wed</span></label><label class="weekday-option"><input type="checkbox" name="habitDay" value="4"><span>Thu</span></label><label class="weekday-option"><input type="checkbox" name="habitDay" value="5"><span>Fri</span></label><label class="weekday-option"><input type="checkbox" name="habitDay" value="6"><span>Sat</span></label><label class="weekday-option"><input type="checkbox" name="habitDay" value="0"><span>Sun</span></label>
+      </div>
+    </div>
+    <div class="form-row" id="habitWeeklyRow"><label for="habitWeeklyTarget">Weekly target</label><select id="habitWeeklyTarget"><option value="1">Once a week</option><option value="2">Twice a week</option><option value="3">3 times a week</option><option value="4">4 times a week</option><option value="5">5 times a week</option><option value="6">6 times a week</option><option value="7">7 times a week</option></select></div>
+    <div class="modal-actions">
+      <button class="btn danger" id="deleteHabitBtn" style="display:none">Delete</button>
+      <button class="btn" id="cancelHabitBtn">Cancel</button>
+      <button class="btn primary" id="saveHabitBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div id="manageModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>Manage habits</h3>
+      <button class="icon-btn" id="closeManage">✕</button>
+    </div>
+    <div id="manageList" class="manage-list"></div>
+    <div class="modal-actions">
+      <button class="btn primary" id="manageAdd">+ Add habit</button>
+    </div>
+  </div>
+</div>
+
+<div id="habitFilterModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="habitFilterTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="habitFilterTitle">Show habits</h3><button class="icon-btn" id="closeHabitFilter" aria-label="Close habit filter">✕</button></div>
+    <div class="settings-help">Keep the main screen quiet. Choose a narrower view only when it helps.</div>
+    <div class="filter-options" id="habitFilterOptions"></div>
+  </div>
+</div>
+
+<div id="statusModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="statusModalTitle">Log habit</h3><button class="icon-btn" id="closeStatusModal" aria-label="Close habit log">✕</button></div>
+    <div class="settings-help" id="statusModalHelp">Choose what is true for today. Each valid form of engagement counts.</div>
+    <div class="status-plan" id="statusPlan"></div>
+    <div class="status-grid" id="statusChoices"></div>
+    <div class="modal-actions"><button class="btn danger" id="clearStatusBtn">Clear today’s log</button><button class="btn" id="cancelStatusBtn">Cancel</button></div>
+  </div>
+</div>
+
+
+<div id="personModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head"><h3 id="personModalTitle">Add person</h3><button class="icon-btn" id="closePersonModal">✕</button></div>
+    <div class="emoji-row">
+      <div class="form-row"><label for="personEmoji">Emoji</label><input id="personEmoji" value="💛" maxlength="4" /></div>
+      <div class="form-row"><label for="personName">Name</label><input id="personName" placeholder="Who matters?" /></div>
+    </div>
+    <input id="personIcon" type="hidden" /><input id="personColor" type="hidden" value="blush" />
+    <div class="visual-field"><div class="visual-preview visual-tone-blush" id="personVisualPreview">💛</div><div class="visual-field-copy"><div class="visual-field-title">Icon & color</div><span class="visual-field-note">Optional, gentle visual identity</span></div><button class="visual-change" id="choosePersonVisual" type="button">Customize</button></div>
+    <div class="form-row"><label for="personRelation">Relationship <span style="font-weight:500">(optional)</span></label><input id="personRelation" placeholder="e.g. Friend, Mom, Cousin" /></div>
+    <div class="form-row"><label for="personFrequency">Usual contact rhythm</label><select id="personFrequency"><option value="7">Weekly</option><option value="14" selected>Every 2 weeks</option><option value="30">Monthly</option><option value="0">No schedule</option></select></div>
+    <div class="modal-actions"><button class="btn danger" id="deletePersonBtn" style="display:none">Delete</button><button class="btn" id="cancelPersonBtn">Cancel</button><button class="btn primary" id="savePersonBtn">Save</button></div>
+  </div>
+</div>
+<div id="contactModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head"><h3 id="contactModalTitle">Log contact</h3><button class="icon-btn" id="closeContactModal">✕</button></div>
+    <div class="form-row" id="contactPersonRow"><label for="contactPerson">Who did you connect with?</label><select id="contactPerson"></select></div>
+    <div class="form-row"><label for="contactMethod">How did you connect?</label><select id="contactMethod"><option>Text</option><option>Phone</option><option>In person</option><option>Video</option><option>Other</option></select></div>
+    <div class="form-row"><label for="contactDate">Date</label><input id="contactDate" type="date" /></div>
+    <div class="form-row"><label for="contactNote">Contact note <span style="font-weight:500">(optional)</span></label><textarea id="contactNote" rows="3" placeholder="What came up during this interaction?"></textarea></div>
+    <div class="modal-actions"><button class="btn" id="cancelContactBtn">Cancel</button><button class="btn primary" id="saveContactBtn">Log contact</button></div>
+  </div>
+</div>
+<div id="managePeopleModal" class="modal-backdrop" role="dialog" aria-modal="true">
+  <div class="modal">
+    <div class="modal-head"><h3>Manage Main Circle</h3><button class="icon-btn" id="closeManagePeople">✕</button></div>
+    <div id="managePeopleList" class="manage-list"></div>
+    <div class="modal-actions"><button class="btn primary" id="managePersonAdd">+ Add person</button></div>
+  </div>
+</div>
+
+<div id="personDetailModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="personDetailTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="personDetailTitle">Person</h3><button class="icon-btn" id="closePersonDetail" aria-label="Close person details">✕</button></div>
+    <div id="personDetailBody"></div>
+    <div class="modal-actions"><button class="btn" id="editFromDetailBtn">Edit</button><button class="btn" id="noteFromDetailBtn">＋ Note</button><button class="btn primary" id="logFromDetailBtn">💬 Log contact</button></div>
+  </div>
+</div>
+
+<div id="personNoteModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="personNoteTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="personNoteTitle">Add a note</h3><button class="icon-btn" id="closePersonNote" aria-label="Close note">✕</button></div>
+    <div class="settings-help">Save the thought without turning it into another contact log.</div>
+    <div class="form-row"><label for="personNoteType">What kind of note?</label><select id="personNoteType"><option>Remember</option><option>Life update</option><option>Gift idea</option><option>Follow-up</option><option>Favorite</option></select></div>
+    <div class="form-row"><label for="personNoteText">Note</label><textarea id="personNoteText" rows="4" placeholder="Something worth remembering about them…"></textarea></div>
+    <div class="modal-actions"><button class="btn" id="cancelPersonNote">Cancel</button><button class="btn primary" id="savePersonNote">Save note</button></div>
+  </div>
+</div>
+
+<div id="clearDataModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="clearDataTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="clearDataTitle">Clear data</h3><button class="icon-btn" id="closeClearData" aria-label="Close clear data">✕</button></div>
+    <div class="settings-help">Choose exactly what to remove. Each option asks again before anything is deleted.</div>
+    <div class="clear-options">
+      <button class="clear-option" id="clearHabitHistoryBtn" type="button"><strong>Habit history</strong><span>Clears check-ins and streak history, but keeps your habits and goal plans.</span></button>
+      <button class="clear-option" id="clearContactHistoryBtn" type="button"><strong>Circle contact history</strong><span>Clears last-contact dates and contact logs, but keeps people, notes, and profile details.</span></button>
+      <button class="clear-option total" id="resetDataBtn" type="button"><strong>Entire Workbench</strong><span>Removes habits, history, people, notes, and settings from this browser.</span></button>
+    </div>
+    <div class="modal-actions"><button class="btn" id="cancelClearData">Cancel</button></div>
+  </div>
+</div>
+
+<div id="visualPickerModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="visualPickerTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="visualPickerTitle">Choose a visual</h3><button class="icon-btn" id="closeVisualPicker" aria-label="Close visual picker">✕</button></div>
+    <div class="settings-help">Pick one quiet cue. You can always keep your emoji instead.</div>
+    <label>Line icon</label><div class="icon-grid" id="visualIconGrid"></div>
+    <div class="form-row"><label>Soft color</label><div class="tone-row" id="visualToneRow"></div></div>
+    <div class="modal-actions"><button class="btn danger" id="useEmojiVisual">Use emoji</button><button class="btn" id="cancelVisualPicker">Cancel</button><button class="btn primary" id="applyVisualPicker">Apply</button></div>
+  </div>
+</div>
+
+<div id="saveToast" class="toast" role="status" aria-live="polite"><div class="toast-message" id="toastMessage">Saved</div><button id="undoBtn">Undo</button></div>
+
+<script src="js/state.js"></script>
+<script src="js/habits.js"></script>
+<script src="js/circle.js"></script>
+<script src="js/home.js"></script>
+<script src="js/settings.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
