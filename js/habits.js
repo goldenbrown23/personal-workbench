@@ -84,6 +84,10 @@ function renderToday(){
   const gentleBtn=document.getElementById("gentleModeBtn");gentleBtn.classList.toggle("active",gentle);gentleBtn.textContent=gentle?"🌿 Gentle day · On":"🌿 Gentle day";
   const meta=state.habits.map(h=>({habit:h,status:getStatus(h.id),suggestReturn:wasMissedPreviousRecordedDay(h.id)&&!getStatus(h.id)}));
   const base=meta.filter(x=>habitScope==="all"||(habitScope==="today"&&habitAppliesToday(x.habit))||(habitScope==="week"&&(x.habit.scheduleType||"daily")==="weekly"));
+  const nothingInScope=!base.length;
+  document.getElementById("habitOverview").style.display=nothingInScope?"none":"block";
+  const practiceLink=document.getElementById("practiceLinkBtn");
+  if(practiceLink) practiceLink.style.display=state.habits.length?"block":"none";
   const visible=base.filter(x=>habitStatusFilter==="any"||(habitStatusFilter==="unlogged"&&!x.status)||(habitStatusFilter==="logged"&&x.status)||(habitStatusFilter==="return"&&x.suggestReturn));
   const scopes={today:"Today",week:"Week",all:"All"};
   document.getElementById("habitScope").innerHTML=Object.entries(scopes).map(([key,label])=>`<button class="scope-btn ${habitScope===key?"active":""}" data-habit-scope="${key}">${label}</button>`).join("");
@@ -124,7 +128,7 @@ function renderToday(){
   document.getElementById("habitListNote").style.display=focus?"block":"none";
   remaining.forEach(({habit:h,status,suggestReturn})=>{const row=document.createElement("div");row.className=`habit-row ${status?"logged":""}`;const small=smallerVersions(h)[0],gentleCue=gentle&&!status&&small?` · ${small}`:"",typeCue=isReduceGoal(h)?"Reduce · ":"";row.innerHTML=`<button class="habit-check" aria-label="${status?"Change":"Log"} ${escapeAttr(h.name)}" onclick="${status?`openStatusModal('${jsEscape(h.id)}')`:`quickCompleteHabit('${jsEscape(h.id)}')`}">${status?habitStatusIcon(status):""}</button><div class="habit-row-main"><div class="habit-row-name">${escapeHTML(h.name)}</div><div class="habit-row-meta">${escapeHTML(typeCue+scheduleLabel(h)+gentleCue)}${suggestReturn?" · Return opportunity":""}</div></div><button class="habit-more" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button>`;list.appendChild(row)});
   if(!state.habits.length)list.innerHTML=`<div class="empty-card">No habits yet. Add one tiny habit to start.</div>`;
-  else if(!base.length)list.innerHTML=`<div class="empty-card">Nothing is asking for you in this view.</div>`;
+  else if(!base.length)list.innerHTML=`<div class="empty-card">Nothing asking for you right now.</div>`;
   else if(!remaining.length&&!focus&&habitStatusFilter!=="any")list.innerHTML=`<div class="empty-card">Nothing matches this filter right now.</div>`;
   else if(!remaining.length)list.style.display="none";else list.style.display="block";
 }
@@ -225,9 +229,9 @@ function renderWeek(){
   document.getElementById("returnsMetric").textContent = String(returns);
   document.getElementById("returnTimeMetric").textContent = returnDistances.length ? (Math.round((returnDistances.reduce((a,b)=>a+b,0)/returnDistances.length)*10)/10)+" d" : "—";
   const headline=document.getElementById("trendHeadline"),copy=document.getElementById("trendCopy"),pattern=document.getElementById("trendPattern");
-  if(!considered){headline.textContent="Not enough check-ins yet.";copy.textContent="We’ll show patterns after a few days. The week does not need to be reconstructed from memory.";pattern.textContent="There is not enough information to name a pattern yet."}
-  else if(returns){headline.textContent=returns===1?"You came back.":`You came back ${returns} times.`;copy.textContent="That is the signal worth strengthening. A return matters more than an uninterrupted streak.";pattern.textContent=`You engaged on ${activeDays} of the last 7 days, and ${returns} of your check-ins represented a return.`}
-  else{headline.textContent=activeDays>=4?"You kept the thread going.":"You made contact.";copy.textContent=`You recorded ${engaged} valid check-in${engaged===1?"":"s"} across ${activeDays} day${activeDays===1?"":"s"}. Smaller versions count here too.`;const strongest=[...dayStats].sort((a,b)=>b.engaged-a.engaged)[0];pattern.textContent=engaged>=3&&strongest.engaged?`${fmtLong(strongest.date)} held the most habit contact this week. Treat that as a clue, not a rule.`:"A few more check-ins will make the weekly rhythm easier to read."}
+  if(!considered){headline.textContent="Not enough check-ins yet.";copy.textContent="Patterns will show up after a few days.";pattern.textContent="Not enough information yet."}
+  else if(returns){headline.textContent=returns===1?"You came back once.":`You came back ${returns} times.`;copy.textContent=`${engaged} check-in${engaged===1?"":"s"} across ${activeDays} day${activeDays===1?"":"s"}.`;pattern.textContent=`You engaged on ${activeDays} of the last 7 days, and ${returns} of your check-ins were a return.`}
+  else{headline.textContent=activeDays>=4?"You kept the thread going.":"You made contact.";copy.textContent=`${engaged} check-in${engaged===1?"":"s"} across ${activeDays} day${activeDays===1?"":"s"}.`;const strongest=[...dayStats].sort((a,b)=>b.engaged-a.engaged)[0];pattern.textContent=engaged>=3&&strongest.engaged?`${fmtLong(strongest.date)} had the most habit contact this week.`:"A few more check-ins will make the weekly rhythm easier to read."}
   renderReviewHistory(days);
 }
 

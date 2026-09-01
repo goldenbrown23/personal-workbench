@@ -10,9 +10,9 @@ function fmtUpdatedDate(){
 
 function renderVersionInfo(){
   const versionEl = document.getElementById("appVersion");
-  if(versionEl) versionEl.textContent = `App version: ${APP_VERSION}`;
+  if(versionEl) versionEl.textContent = `Version ${APP_VERSION.replace(/^v/i,"")}`;
   const updatedEl = document.getElementById("appUpdatedAt");
-  if(updatedEl) updatedEl.textContent = `Last updated: ${fmtUpdatedDate()}`;
+  if(updatedEl) updatedEl.textContent = `Updated ${fmtUpdatedDate()}`;
 }
 
 function showUpdateCard(){

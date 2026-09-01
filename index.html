@@ -33,7 +33,7 @@
     <div class="home-section-title">Your spaces</div>
     <div class="space-list">
       <button class="space-row" data-jump="todayView">
-        <span class="space-icon">🌱</span><span class="space-copy"><span class="space-title">Habit Practice</span><span class="space-meta" id="habitHomeMeta">No habits yet</span><span class="mini-track"><span class="mini-fill" id="habitHomeProgress"></span></span></span><span class="space-arrow">→</span>
+        <span class="space-icon">🌱</span><span class="space-copy"><span class="space-title">Habits</span><span class="space-meta" id="habitHomeMeta">No habits yet</span><span class="mini-track"><span class="mini-fill" id="habitHomeProgress"></span></span></span><span class="space-arrow">→</span>
       </button>
       <button class="space-row" data-jump="circleView">
         <span class="space-icon">💛</span><span class="space-copy"><span class="space-title">Main Circle</span><span class="space-meta" id="circleHomeMeta">Add only the people you intentionally want to keep close</span></span><span class="space-arrow">→</span>
@@ -51,7 +51,7 @@
       </div>
       <button class="icon-btn" id="manageBtn" aria-label="Manage habits">⚙️</button>
     </header>
-    <button class="link-btn" style="padding-left:0" data-jump="practiceView">📊 Practice Review</button>
+    <button class="link-btn" id="practiceLinkBtn" style="padding-left:0" data-jump="practiceView">📊 Weekly Detail</button>
 
     <div class="habit-overview" id="habitOverview">
       <div class="overview-top">
@@ -82,16 +82,18 @@
     <header>
       <div>
         <div class="eyebrow">See your patterns</div>
-        <h1>📊 Practice Review</h1>
-        <div class="sub">A closer look at engagement and return, not a scoreboard.</div>
+        <h1>📊 Weekly Detail</h1>
+        <div class="sub">Patterns from your check-ins, not a scoreboard.</div>
       </div>
-      <button class="icon-btn" data-jump="todayView" aria-label="Close practice review">✕</button>
+      <button class="icon-btn" data-jump="todayView" aria-label="Close weekly detail">✕</button>
     </header>
 
     <div class="practice-intro">
-      <div class="practice-intro-title">🌱 Our goal is connection, not perfection.</div>
-      <div class="practice-intro-copy">Stay engaged. Return quickly. One miss does not mean the system is broken.</div>
-      <div class="practice-lock-line">🔒 One miss cannot trigger a system change. System review requires 3+ repeated problems. Until then: return, don’t redesign.</div>
+      <div class="practice-intro-title">🔒 One miss isn’t a system failure — return, don’t redesign.</div>
+      <details class="goal-plan">
+        <summary><span class="goal-plan-title">Why we track this way</span></summary>
+        <div class="goal-plan-help">Our goal is connection, not perfection. Stay engaged and return quickly — a single miss is data, not a broken streak. A system change needs 3+ repeated problems in a row; until then, return rather than redesign.</div>
+      </details>
     </div>
 
     <div class="metric-grid">
@@ -184,16 +186,23 @@
       <div>
         <div class="eyebrow">Last 7 days</div>
         <h1>📈 Review</h1>
-        <div class="sub">Context from the last 7 days—not a scorecard.</div>
       </div>
     </header>
-    <div class="trend-insight"><div class="trend-kicker">What this week says</div><div class="trend-headline" id="trendHeadline">Not enough check-ins yet.</div><div class="trend-copy" id="trendCopy"></div></div>
+    <div class="trend-insight">
+      <div class="trend-kicker">A miss is data. Returning is the skill.</div>
+      <div class="trend-headline" id="trendHeadline">Not enough check-ins yet.</div>
+      <div class="trend-copy" id="trendCopy"></div>
+      <details class="goal-plan">
+        <summary><span class="goal-plan-title">Why we track this way</span></summary>
+        <div class="goal-plan-help">We don’t track streaks because one missed day can otherwise feel like it erases everything before it. What predicts long-term consistency is how quickly you come back after a gap — not whether you ever had one.</div>
+      </details>
+    </div>
     <div class="section-head"><h2>Your rhythm</h2></div>
-    <div class="rhythm-card"><div id="weekGrid" class="rhythm-grid"></div><div class="rhythm-help">A filled day means you made contact with at least one habit. Purple marks a return.</div></div>
+    <div class="rhythm-card"><div id="weekGrid" class="rhythm-grid"></div><div class="rhythm-help">A filled day means at least one check-in. Purple marks a return.</div></div>
     <div class="section-head"><h2>What matters</h2></div>
     <div class="stat-list">
-      <div class="stat-row"><span class="stat-icon">🌱</span><span class="stat-copy"><span class="stat-label">Valid check-ins</span><span class="stat-help">Normal, smaller, and returned versions</span></span><span class="stat-value" id="engagementMetric">—</span></div>
-      <div class="stat-row"><span class="stat-icon">↩</span><span class="stat-copy"><span class="stat-label">Returns</span><span class="stat-help">Coming back is the practiced skill</span></span><span class="stat-value" id="returnsMetric">0</span></div>
+      <div class="stat-row"><span class="stat-icon">🌱</span><span class="stat-copy"><span class="stat-label">Engagement</span><span class="stat-help">Normal, smaller, and returned versions</span></span><span class="stat-value" id="engagementMetric">—</span></div>
+      <div class="stat-row"><span class="stat-icon">↩</span><span class="stat-copy"><span class="stat-label">Returns</span><span class="stat-help">Check-ins that followed a missed day</span></span><span class="stat-value" id="returnsMetric">0</span></div>
       <div class="stat-row"><span class="stat-icon">⏱</span><span class="stat-copy"><span class="stat-label">Time to return</span><span class="stat-help">Only shown when there is enough data</span></span><span class="stat-value" id="returnTimeMetric">—</span></div>
     </div>
     <div class="pattern-card"><div class="pattern-label">A useful pattern</div><div class="pattern-text" id="trendPattern">We’re still gathering a little context.</div></div>
@@ -201,7 +210,6 @@
       <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div><details class="review-filter"><summary>Filter</summary><div class="review-filter-menu"><button type="button" class="active" data-review-filter="all">All activity</button><button type="button" data-review-filter="habits">Habits</button><button type="button" data-review-filter="circle">Circle</button></div></details></div>
       <div class="history-list" id="reviewHistory"></div>
     </section>
-    <div class="home-rule">No streaks. One quiet day cannot erase what you practiced before it.</div>
   </div>
 
 
@@ -343,7 +351,7 @@
       <details class="settings-disclosure">
         <summary><span><strong>App updates</strong><small>Check whether a newer version is ready</small></span><span aria-hidden="true">⌄</span></summary>
         <div class="settings-disclosure-body">
-          <div class="privacy-note"><span id="appVersion">App version: —</span><br /><span id="appUpdatedAt">Last updated: —</span></div>
+          <div class="privacy-note"><span id="appVersion">Version …</span><br /><span id="appUpdatedAt">Updated …</span></div>
           <div class="settings-actions" style="grid-template-columns:1fr"><button class="btn" id="checkUpdatesBtn">Check for updates</button></div>
         </div>
       </details>
