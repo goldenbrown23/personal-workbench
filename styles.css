@@ -427,6 +427,18 @@
 
     .date-chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 
+    .date-mode-row{display:flex;gap:6px;margin-bottom:10px}
+    .date-mode-btn{flex:1;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:12px;min-height:40px;padding:8px 10px;font-size:12px;font-weight:780}
+    .date-mode-btn.active{background:#eaf2e9;color:var(--accent);border-color:#cdddcf}
+    .calendar-day.selectable{border:0;font:inherit;cursor:pointer;background:#eef1ec;color:var(--text)}
+    .calendar-day.selectable:disabled{opacity:.32;cursor:not-allowed}
+    .calendar-day.selectable.selected{background:var(--accent);color:#fff;font-weight:850}
+    .calendar-day.selectable.has-entry:not(.selected)::after{content:"";position:absolute;bottom:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:#c99a4a}
+    .calendar-day.selectable.range-anchor{box-shadow:inset 0 0 0 2px var(--accent)}
+    .multi-date-summary{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.4}
+    .multi-date-controls{display:flex;gap:8px;margin-top:8px}
+    .multi-date-controls .btn{flex:1;min-height:40px;padding:8px 10px;font-size:12px}
+
     .home-pulse{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
     .pulse-chip{background:#f2f4ef;color:var(--muted);border-radius:999px;padding:6px 11px;font-size:11px;font-weight:740}
     .pulse-chip.quiet{background:#eef3ed;color:var(--accent)}

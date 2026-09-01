@@ -27,6 +27,24 @@ function saveHabitLogEntry(habitId,{date,timeBlock,status,note}){
   saveState();
   showSaved(key===dateKey()?"Habit updated":"Added. Your timeline is more accurate now.",before);
 }
+function saveHabitLogEntriesBatch(habitId,dates,{timeBlock,status,note}){
+  const before=structuredClone(state);
+  const now=new Date().toISOString();
+  const sorted=[...dates].sort();
+  let created=0,updated=0;
+  sorted.forEach(key=>{
+    const targetDate=parseLocalDate(key)||new Date();
+    const existing=getLogEntry(habitId,key);
+    let finalStatus=status;
+    if(!existing?.status&&["done","counted"].includes(finalStatus)&&wasMissedPreviousRecordedDay(habitId,targetDate))finalStatus="returned";
+    state.logs[key] ||= {};
+    state.logs[key][habitId]={status:finalStatus,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
+    if(existing?.status) updated++; else created++;
+  });
+  saveState();
+  showSaved(`${sorted.length} ${sorted.length===1?"entry":"entries"} logged${updated?` · ${updated} updated`:""}. Your timeline is more accurate now.`,before);
+  return {created,updated};
+}
 function clearHabitLogEntry(habitId,date){
   const before=structuredClone(state);
   const key=dateKey(parseLocalDate(date)||new Date());
@@ -138,24 +156,52 @@ function statusButton(id,key,label,current){
 }
 
 let loggingHabitId=null,loggingSelectedDate=dateKey(),loggingDateIsCustom=false;
+let loggingMode="single",loggingMultiDates=new Set(),loggingMultiMonth=new Date(),loggingRangeArmed=false,loggingRangeAnchor=null,loggingPendingStatus=null;
 const statusModal=document.getElementById("statusModal");
 function openStatusModal(id,presetDate=null){
   loggingHabitId=id;
   loggingSelectedDate=presetDate||dateKey();
   loggingDateIsCustom=false;
+  loggingMode="single";
+  loggingMultiDates=new Set();
+  loggingMultiMonth=parseLocalDate(loggingSelectedDate)||new Date();
+  loggingRangeArmed=false;loggingRangeAnchor=null;loggingPendingStatus=null;
   document.getElementById("statusDateDetails").open=false;
-  renderStatusModalForDate();
+  renderStatusSharedFields();
+  setLoggingMode("single");
   statusModal.classList.add("show");
+}
+function setLoggingMode(mode){
+  loggingMode=mode;
+  document.getElementById("statusModeSingleBtn").classList.toggle("active",mode==="single");
+  document.getElementById("statusModeSingleBtn").setAttribute("aria-selected",String(mode==="single"));
+  document.getElementById("statusModeMultiBtn").classList.toggle("active",mode==="multi");
+  document.getElementById("statusModeMultiBtn").setAttribute("aria-selected",String(mode==="multi"));
+  document.getElementById("statusSingleDateWrap").style.display=mode==="single"?"block":"none";
+  document.getElementById("statusMultiDateWrap").style.display=mode==="multi"?"block":"none";
+  document.getElementById("multiLogBtn").style.display=mode==="multi"?"inline-block":"none";
+  if(mode==="multi"){ renderMultiCalendar();renderMultiSummary(); }
+  renderStatusModalForDate();
+}
+function renderStatusSharedFields(){
+  const h=state.habits.find(x=>x.id===loggingHabitId);
+  document.getElementById("statusModalTitle").textContent=h?`Log · ${h.name}`:"Log habit";
+  document.getElementById("statusModalHelp").textContent=isReduceGoal(h)?"Choose what is true for that day. Going over the plan is information—not a failed streak.":"Choose what is true for that day. Each valid form of engagement counts.";
+  const small=smallerVersions(h),plan=document.getElementById("statusPlan");plan.classList.toggle("show",Boolean(h?.full||small.length));plan.innerHTML=`${h?.full?`<div class="status-plan-label">${isReduceGoal(h)?"Your plan":"Full version"}</div><div class="status-plan-main">${escapeHTML(h.full)}</div>`:""}${small.length?`<div class="status-plan-small"><strong>${isReduceGoal(h)?"Smaller wins":"Smaller versions"}:</strong> ${small.map(escapeHTML).join(" · ")}</div>`:""}`;
+  document.getElementById("statusTimeBlock").value=timeBlockOf(h);
+}
+function renderStatusChoices(){
+  const h=state.habits.find(x=>x.id===loggingHabitId);
+  const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
+  const active=loggingMode==="multi"?loggingPendingStatus:getStatus(loggingHabitId,key);
+  document.getElementById("statusChoices").innerHTML=statusOptions(h).map(([k,label])=>statusButton(loggingHabitId,k,label,active)).join("");
 }
 function renderStatusModalForDate(){
   const id=loggingHabitId,h=state.habits.find(x=>x.id===id);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
   const current=getStatus(id,key),entry=getLogEntry(id,key);
-  document.getElementById("statusModalTitle").textContent=h?`Log · ${h.name}`:"Log habit";
-  document.getElementById("statusModalHelp").textContent=isReduceGoal(h)?"Choose what is true for that day. Going over the plan is information—not a failed streak.":"Choose what is true for that day. Each valid form of engagement counts.";
-  const small=smallerVersions(h),plan=document.getElementById("statusPlan");plan.classList.toggle("show",Boolean(h?.full||small.length));plan.innerHTML=`${h?.full?`<div class="status-plan-label">${isReduceGoal(h)?"Your plan":"Full version"}</div><div class="status-plan-main">${escapeHTML(h.full)}</div>`:""}${small.length?`<div class="status-plan-small"><strong>${isReduceGoal(h)?"Smaller wins":"Smaller versions"}:</strong> ${small.map(escapeHTML).join(" · ")}</div>`:""}`;
-  document.getElementById("statusChoices").innerHTML=statusOptions(h).map(([k,label])=>statusButton(id,k,label,current)).join("");
-  document.getElementById("clearStatusBtn").style.display=current?"block":"none";
+  renderStatusChoices();
+  document.getElementById("clearStatusBtn").style.display=loggingMode==="single"&&current?"block":"none";
   document.getElementById("statusTimeBlock").value=entry?.timeBlock||timeBlockOf(h);
   document.getElementById("statusNote").value=entry?.note||"";
   renderStatusDatePicker();
@@ -167,8 +213,71 @@ function renderStatusDatePicker(){
     setState:(d,isCustom)=>{loggingSelectedDate=d;loggingDateIsCustom=isCustom;renderStatusModalForDate();}
   });
 }
+function renderMultiCalendar(){
+  const month=loggingMultiMonth||new Date();
+  const start=new Date(month.getFullYear(),month.getMonth(),1);
+  const daysInMonth=new Date(month.getFullYear(),month.getMonth()+1,0).getDate();
+  const today=new Date();
+  const currentStart=new Date(today.getFullYear(),today.getMonth(),1);
+  const atCurrent=start.getFullYear()===currentStart.getFullYear()&&start.getMonth()===currentStart.getMonth();
+  const label=new Intl.DateTimeFormat(undefined,{month:"long",year:"numeric"}).format(start);
+  const cells=[];
+  for(let i=0;i<start.getDay();i++) cells.push('<span class="calendar-day" aria-hidden="true"></span>');
+  for(let day=1;day<=daysInMonth;day++){
+    const d=new Date(start.getFullYear(),start.getMonth(),day);
+    const key=dateKey(d);
+    const isFuture=d>today;
+    const selected=loggingMultiDates.has(key);
+    const hasEntry=Boolean(getStatus(loggingHabitId,key));
+    const isAnchor=loggingRangeAnchor===key;
+    const isToday=key===dateKey();
+    cells.push(`<button type="button" class="calendar-day selectable ${selected?"selected":""} ${hasEntry?"has-entry":""} ${isAnchor?"range-anchor":""} ${isToday?"today":""}" data-multi-date="${key}" aria-pressed="${selected}" aria-label="${escapeAttr(fmtLong(d))}${hasEntry?", already has an entry":""}" ${isFuture?"disabled":""}>${day}</button>`);
+  }
+  document.getElementById("statusMultiCalendar").innerHTML=`<div class="calendar-head"><div><div class="calendar-title">Select dates</div><div class="calendar-month">${escapeHTML(label)}</div></div><div class="calendar-nav"><button type="button" data-multi-month="-1" aria-label="Previous month">‹</button><button type="button" data-multi-month="1" aria-label="Next month" ${atCurrent?"disabled":""}>›</button></div></div><div class="calendar-grid">${["S","M","T","W","T","F","S"].map(x=>`<span class="calendar-weekday">${x}</span>`).join("")}${cells.join("")}</div><div class="calendar-legend"><span><i class="legend-mark" style="background:#c99a4a"></i>Already has an entry</span></div>`;
+  document.querySelectorAll("[data-multi-date]").forEach(btn=>btn.addEventListener("click",()=>toggleMultiDate(btn.dataset.multiDate)));
+  document.querySelectorAll("[data-multi-month]").forEach(btn=>btn.addEventListener("click",()=>shiftMultiMonth(Number(btn.dataset.multiMonth))));
+}
+function shiftMultiMonth(delta){
+  const base=loggingMultiMonth||new Date();
+  const next=new Date(base.getFullYear(),base.getMonth()+delta,1);
+  const today=new Date(),currentStart=new Date(today.getFullYear(),today.getMonth(),1);
+  loggingMultiMonth=next>currentStart?currentStart:next;
+  renderMultiCalendar();
+}
+function toggleMultiDate(key){
+  if(loggingRangeArmed){
+    if(!loggingRangeAnchor){
+      loggingRangeAnchor=key;
+    }else{
+      let a=parseLocalDate(loggingRangeAnchor),b=parseLocalDate(key);
+      if(a>b){const t=a;a=b;b=t;}
+      for(let d=new Date(a);d<=b;d.setDate(d.getDate()+1)) loggingMultiDates.add(dateKey(d));
+      loggingRangeAnchor=null;loggingRangeArmed=false;
+      const rangeBtn=document.getElementById("statusMultiRangeBtn");rangeBtn.classList.remove("primary");rangeBtn.textContent="Select range";
+    }
+  }else{
+    if(loggingMultiDates.has(key)) loggingMultiDates.delete(key); else loggingMultiDates.add(key);
+  }
+  renderMultiCalendar();
+  renderMultiSummary();
+}
+function renderMultiSummary(){
+  const dates=[...loggingMultiDates].sort();
+  const n=dates.length;
+  const existingCount=dates.filter(d=>getStatus(loggingHabitId,d)).length;
+  document.getElementById("statusMultiSummary").textContent=n===0?"No dates selected yet.":`${n} date${n===1?"":"s"} selected${existingCount?` · ${existingCount} of these already ${existingCount===1?"has":"have"} an entry`:""}`;
+  const btn=document.getElementById("multiLogBtn");
+  btn.textContent=n<=1?"Log entry":`Log ${n} entries`;
+  btn.disabled=n===0||!loggingPendingStatus;
+}
 function handleLogStatusClick(status){
   if(!loggingHabitId) return;
+  if(loggingMode==="multi"){
+    loggingPendingStatus=status;
+    renderStatusChoices();
+    renderMultiSummary();
+    return;
+  }
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
   const existing=getLogEntry(loggingHabitId,key);
@@ -185,6 +294,30 @@ function handleLogStatusClick(status){
 function closeStatusModal(){statusModal.classList.remove("show");loggingHabitId=null}
 document.getElementById("closeStatusModal").addEventListener("click",closeStatusModal);document.getElementById("cancelStatusBtn").addEventListener("click",closeStatusModal);statusModal.addEventListener("click",e=>{if(e.target===statusModal)closeStatusModal()});
 document.getElementById("clearStatusBtn").addEventListener("click",()=>{if(loggingHabitId)clearHabitLogEntry(loggingHabitId,loggingSelectedDate);closeStatusModal()});
+document.getElementById("statusModeSingleBtn").addEventListener("click",()=>setLoggingMode("single"));
+document.getElementById("statusModeMultiBtn").addEventListener("click",()=>setLoggingMode("multi"));
+document.getElementById("statusMultiClearBtn").addEventListener("click",()=>{loggingMultiDates=new Set();loggingRangeArmed=false;loggingRangeAnchor=null;const rangeBtn=document.getElementById("statusMultiRangeBtn");rangeBtn.classList.remove("primary");rangeBtn.textContent="Select range";renderMultiCalendar();renderMultiSummary();});
+document.getElementById("statusMultiRangeBtn").addEventListener("click",()=>{
+  loggingRangeArmed=!loggingRangeArmed;loggingRangeAnchor=null;
+  const btn=document.getElementById("statusMultiRangeBtn");
+  btn.classList.toggle("primary",loggingRangeArmed);
+  btn.textContent=loggingRangeArmed?"Tap start date…":"Select range";
+  renderMultiCalendar();
+});
+document.getElementById("multiLogBtn").addEventListener("click",()=>{
+  if(!loggingHabitId||!loggingPendingStatus||!loggingMultiDates.size) return;
+  const dates=[...loggingMultiDates].sort();
+  const h=state.habits.find(x=>x.id===loggingHabitId);
+  const existingCount=dates.filter(d=>getStatus(loggingHabitId,d)).length;
+  if(existingCount){
+    const label=(statusOptions(h).find(([k])=>k===loggingPendingStatus)||[])[1]||loggingPendingStatus;
+    if(!confirm(`${existingCount} of these ${dates.length} dates already ${existingCount===1?"has":"have"} an entry. Replace ${existingCount===1?"it":"them"} with "${label}"? The rest will be added safely.`)) return;
+  }
+  const timeBlock=document.getElementById("statusTimeBlock").value;
+  const note=document.getElementById("statusNote").value;
+  saveHabitLogEntriesBatch(loggingHabitId,dates,{timeBlock,status:loggingPendingStatus,note});
+  closeStatusModal();
+});
 
 const habitFilterModal=document.getElementById("habitFilterModal");
 function openHabitFilter(){

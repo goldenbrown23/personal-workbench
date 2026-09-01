@@ -462,8 +462,22 @@
     <div class="status-grid" id="statusChoices"></div>
     <details class="goal-plan" id="statusDateDetails">
       <summary><span class="goal-plan-title">When did this happen?</span><span class="goal-plan-summary-note" id="statusDateSummary">Today</span></summary>
-      <div class="date-chip-row" id="statusDateChips"></div>
-      <input id="statusDateCustom" type="date" style="display:none;margin-top:8px" />
+      <div class="date-mode-row" role="tablist" aria-label="Date selection mode">
+        <button type="button" class="date-mode-btn active" id="statusModeSingleBtn" role="tab" aria-selected="true">One date</button>
+        <button type="button" class="date-mode-btn" id="statusModeMultiBtn" role="tab" aria-selected="false">Multiple dates</button>
+      </div>
+      <div id="statusSingleDateWrap">
+        <div class="date-chip-row" id="statusDateChips"></div>
+        <input id="statusDateCustom" type="date" style="display:none;margin-top:8px" />
+      </div>
+      <div id="statusMultiDateWrap" style="display:none">
+        <div class="contact-calendar" id="statusMultiCalendar"></div>
+        <div class="multi-date-summary" id="statusMultiSummary"></div>
+        <div class="multi-date-controls">
+          <button type="button" class="btn" id="statusMultiRangeBtn">Select range</button>
+          <button type="button" class="btn" id="statusMultiClearBtn">Clear</button>
+        </div>
+      </div>
       <div class="form-row">
         <label for="statusTimeBlock">Time block</label>
         <select id="statusTimeBlock"><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="anytime">Anytime</option></select>
@@ -473,7 +487,11 @@
         <textarea id="statusNote" rows="2" placeholder="Anything worth remembering about this?"></textarea>
       </div>
     </details>
-    <div class="modal-actions"><button class="btn danger" id="clearStatusBtn">Clear this day’s log</button><button class="btn" id="cancelStatusBtn">Cancel</button></div>
+    <div class="modal-actions">
+      <button class="btn danger" id="clearStatusBtn">Clear this day’s log</button>
+      <button class="btn" id="cancelStatusBtn">Cancel</button>
+      <button class="btn primary" id="multiLogBtn" style="display:none" disabled>Log entries</button>
+    </div>
   </div>
 </div>
 
