@@ -21,7 +21,7 @@ function backupIsDue(){if(state.settings?.backupReminderEnabled===false)return f
 function renderBackupReminder(){document.getElementById("backupNudge").classList.toggle("show",backupIsDue())}
 function exportBackup(){
   state.settings.lastBackupAt=new Date().toISOString();state.settings.backupRemindAfter=null;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));renderAll();
-  const backup={app:"Personal Workbench",exportedAt:state.settings.lastBackupAt,version:4,data:state};
+  const backup={app:"Personal Workbench",exportedAt:state.settings.lastBackupAt,version:5,data:state};
   const url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}));
   const a=document.createElement("a");a.href=url;a.download=`personal-workbench-${dateKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showSaved("Backup exported");
 }

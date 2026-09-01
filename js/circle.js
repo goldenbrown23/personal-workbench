@@ -1,5 +1,5 @@
 function frequencyLabel(days){
-  days=Number(days||0); if(days===7) return "Weekly"; if(days===14) return "Every 2 weeks"; if(days===30) return "Monthly"; return "No schedule";
+  days=Number(days||0); if(days===7) return "Weekly"; if(days===14) return "Every 2 weeks"; if(days===30) return "Monthly"; if(days===60) return "Occasionally"; return "No schedule";
 }
 function latestInteraction(p){
   const a=p.interactions||[];
@@ -51,7 +51,7 @@ function renderCircle(){
   else if(!remaining.length)list.style.display="none";else list.style.display="block";
 }
 
-function personIdentityHTML(p,t=personTiming(p)){return `<div class="circle-person-head">${visualHTML(p,"avatar","person")}<div class="circle-person-identity"><div class="circle-person-name">${escapeHTML(p.name)}</div><span class="relationship-label">${escapeHTML(p.relation||"Main Circle")}</span></div><span class="circle-status ${t.class}">${escapeHTML(t.label)}</span></div>`}
+function personIdentityHTML(p,t=personTiming(p)){return `<div class="circle-person-head">${visualHTML(p,"avatar","person")}<div class="circle-person-identity"><div class="circle-person-name">${escapeHTML(p.name)}</div>${relationPillHTML(p.relation)}</div><span class="circle-status ${t.class}">${escapeHTML(t.label)}</span></div>`}
 function personSnapshotHTML(p,t=personTiming(p)){const last=latestContactDate(p),seen=parseLocalDate(latestInteractionByMethod(p,"In person")?.date);return `<div class="person-snapshot"><div class="snapshot-item"><div class="snapshot-label">Last contact</div><div class="snapshot-value">${escapeHTML(relativeContactLabel(last))}</div></div><div class="snapshot-item"><div class="snapshot-label">Last seen</div><div class="snapshot-value">${escapeHTML(relativeContactLabel(seen))}</div></div><div class="snapshot-item"><div class="snapshot-label">Status</div><div class="snapshot-value">${escapeHTML(t.label)}</div></div></div>`}
 
 let detailPersonId=null,detailCalendarMonth=null;const personDetailModal=document.getElementById("personDetailModal");
@@ -70,7 +70,7 @@ function openPersonDetail(id){
   const notes=[...(p.notes||[])].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   const notesHTML=notes.length?`<div class="note-list">${notes.map(n=>`<div class="memory-note"><div class="memory-note-type">${escapeHTML(n.type||"Remember")}</div><div class="memory-note-text">${escapeHTML(n.text||"")}</div><div class="memory-note-date">${n.createdAt?escapeHTML(fmtDate(new Date(n.createdAt))):""}</div></div>`).join("")}</div>`:`<div class="empty-notes">No personal notes yet. Save a memory, gift idea, life update, or follow-up when it naturally comes up.</div>`;
   document.getElementById("personDetailTitle").textContent=p.name;
-  document.getElementById("personDetailBody").innerHTML=`<div class="person-detail-hero">${visualHTML(p,"avatar","person")}<div><div class="person-name">${escapeHTML(p.name)}</div><div class="person-chips"><span class="person-chip relation">${escapeHTML(p.relation||"Main Circle")}</span><span class="person-chip ${t.class}">${escapeHTML(t.label)}</span></div></div></div><div class="detail-facts"><div class="detail-fact"><span>💬</span><span class="detail-fact-copy"><span class="detail-fact-label">Last contact</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(last))}${latest?.method?` · ${escapeHTML(latest.method)}`:""}</span></span></div><div class="detail-fact"><span>👥</span><span class="detail-fact-copy"><span class="detail-fact-label">Last seen in person</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(inPerson))}</span></span></div><div class="detail-fact"><span>📅</span><span class="detail-fact-copy"><span class="detail-fact-label">Usual rhythm</span><span class="detail-fact-value">${escapeHTML(frequencyLabel(p.frequency))}${next?` · around ${escapeHTML(fmtDate(next))}`:""}</span></span></div></div><div class="contact-calendar" id="personContactCalendar">${contactCalendarHTML(p)}</div>${latest?.note?`<div class="detail-note"><strong>Latest contact note</strong><br>${escapeHTML(latest.note)}</div>`:""}<div class="notes-section"><div class="notes-head"><div class="notes-title">Notes to remember</div><button class="tiny-btn" onclick="openPersonNote('${jsEscape(p.id)}',true)">＋ Add</button></div>${notesHTML}</div>`;
+  document.getElementById("personDetailBody").innerHTML=`<div class="person-detail-hero">${visualHTML(p,"avatar","person")}<div><div class="person-name">${escapeHTML(p.name)}</div><div class="person-chips">${relationPillHTML(p.relation,"person-chip relation")}<span class="person-chip ${t.class}">${escapeHTML(t.label)}</span></div></div></div><div class="detail-facts"><div class="detail-fact"><span>💬</span><span class="detail-fact-copy"><span class="detail-fact-label">Last contact</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(last))}${latest?.method?` · ${escapeHTML(latest.method)}`:""}</span></span></div><div class="detail-fact"><span>👥</span><span class="detail-fact-copy"><span class="detail-fact-label">Last seen in person</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(inPerson))}</span></span></div><div class="detail-fact"><span>📅</span><span class="detail-fact-copy"><span class="detail-fact-label">Usual rhythm</span><span class="detail-fact-value">${escapeHTML(frequencyLabel(p.frequency))}${next?` · around ${escapeHTML(fmtDate(next))}`:""}</span></span></div></div><div class="contact-calendar" id="personContactCalendar">${contactCalendarHTML(p)}</div>${latest?.note?`<div class="detail-note"><strong>Latest contact note</strong><br>${escapeHTML(latest.note)}</div>`:""}<div class="notes-section"><div class="notes-head"><div class="notes-title">Notes to remember</div><button class="tiny-btn" onclick="openPersonNote('${jsEscape(p.id)}',true)">＋ Add</button></div>${notesHTML}</div>`;
   personDetailModal.classList.add("show");
 }
 function closePersonDetail(){personDetailModal.classList.remove("show");detailPersonId=null;detailCalendarMonth=null}
@@ -87,12 +87,57 @@ const personModal=document.getElementById("personModal");
 function openPersonModal(id=null){
   editingPersonId=id; const p=id?state.people.find(x=>x.id===id):null;
   document.getElementById("personModalTitle").textContent=p?"Edit person":"Add person";
-  document.getElementById("personIcon").value=safeIcon(p?.icon,"person");document.getElementById("personColor").value=safeTone(p?.color||"rose");updateVisualPreview("person"); document.getElementById("personName").value=p?.name||""; document.getElementById("personRelation").value=p?.relation||""; document.getElementById("personFrequency").value=String(p?.frequency??14); document.getElementById("deletePersonBtn").style.display=p?"inline-block":"none"; personModal.classList.add("show");
+  document.getElementById("personIcon").value=safeIcon(p?.icon,"person");document.getElementById("personColor").value=safeTone(p?.color||"rose");updateVisualPreview("person"); document.getElementById("personName").value=p?.name||"";
+  document.getElementById("personRelation").value=p?.relation||"";
+  document.getElementById("personFrequency").value=String(p?.frequency??14);
+  renderSelectedPill("relation");renderSelectedPill("frequency");
+  document.getElementById("deletePersonBtn").style.display=p?"inline-block":"none"; personModal.classList.add("show");
 }
 function closePersonModal(){ personModal.classList.remove("show"); editingPersonId=null; }
 document.getElementById("addPersonBtn").addEventListener("click",()=>openPersonModal());
 document.getElementById("closePersonModal").addEventListener("click",closePersonModal); document.getElementById("cancelPersonBtn").addEventListener("click",closePersonModal);
 document.getElementById("savePersonBtn").addEventListener("click",()=>{ const name=document.getElementById("personName").value.trim(); if(!name){document.getElementById("personName").focus();return;} const payload={name,icon:safeIcon(document.getElementById("personIcon").value,"person"),color:safeTone(document.getElementById("personColor").value),relation:document.getElementById("personRelation").value.trim(),frequency:Number(document.getElementById("personFrequency").value)}; if(editingPersonId) Object.assign(state.people.find(x=>x.id===editingPersonId),payload); else state.people.push({id:"p-"+Date.now(),...payload,lastContact:null,interactions:[],notes:[]}); closePersonModal(); saveState(); });
+
+let tagPickerTarget=null;
+const tagPickerModal=document.getElementById("tagPickerModal");
+function openTagPicker(target){
+  tagPickerTarget=target;
+  const isRelation=target==="relation";
+  document.getElementById("tagPickerTitle").textContent=isRelation?"Relationship":"Contact frequency";
+  document.getElementById("tagPickerHelp").textContent=isRelation?"Choose the option that fits best.":"How often do you usually want to check in?";
+  const options=isRelation?RELATIONSHIP_TAGS:FREQUENCY_TAGS;
+  const currentValue=document.getElementById(isRelation?"personRelation":"personFrequency").value;
+  document.getElementById("tagPickerGrid").innerHTML=options.map(opt=>{
+    const selected=String(currentValue)===String(opt.id);
+    return `<button class="tag-pill-choice tone-${opt.tone} ${selected?"selected":""}" type="button" role="option" aria-selected="${selected}" data-tag-value="${escapeAttr(opt.id)}" aria-label="Select ${escapeAttr(opt.label)} ${isRelation?"relationship":"frequency"}">${opt.icon?iconSVG(opt.icon):""}<span>${escapeHTML(opt.label)}</span></button>`;
+  }).join("");
+  document.querySelectorAll("[data-tag-value]").forEach(btn=>btn.addEventListener("click",()=>applyTagChoice(btn.dataset.tagValue)));
+  tagPickerModal.classList.add("show");
+}
+function applyTagChoice(value){
+  if(!tagPickerTarget) return;
+  const isRelation=tagPickerTarget==="relation";
+  document.getElementById(isRelation?"personRelation":"personFrequency").value=value;
+  renderSelectedPill(tagPickerTarget);
+  closeTagPicker();
+}
+function closeTagPicker(){tagPickerModal.classList.remove("show");tagPickerTarget=null}
+function clearRelationTag(){document.getElementById("personRelation").value="";renderSelectedPill("relation")}
+function renderSelectedPill(target){
+  const isRelation=target==="relation";
+  const value=document.getElementById(isRelation?"personRelation":"personFrequency").value;
+  const options=isRelation?RELATIONSHIP_TAGS:FREQUENCY_TAGS;
+  const tag=options.find(o=>String(o.id)===String(value));
+  const container=document.getElementById(isRelation?"relationPills":"frequencyPills");
+  if(!tag){container.innerHTML=`<span class="tag-pill-empty">None selected</span>`;return}
+  container.innerHTML=`<span class="tag-pill tone-${tag.tone}">${tag.icon?iconSVG(tag.icon):""}<span>${escapeHTML(tag.label)}</span>${isRelation?`<button type="button" class="tag-pill-remove" aria-label="Clear relationship">✕</button>`:""}</span>`;
+  if(isRelation) container.querySelector(".tag-pill-remove")?.addEventListener("click",e=>{e.stopPropagation();clearRelationTag()});
+}
+document.getElementById("chooseRelationBtn").addEventListener("click",()=>openTagPicker("relation"));
+document.getElementById("chooseFrequencyBtn").addEventListener("click",()=>openTagPicker("frequency"));
+document.getElementById("closeTagPicker").addEventListener("click",closeTagPicker);
+document.getElementById("cancelTagPicker").addEventListener("click",closeTagPicker);
+tagPickerModal.addEventListener("click",e=>{if(e.target===tagPickerModal)closeTagPicker()});
 document.getElementById("deletePersonBtn").addEventListener("click",()=>{if(editingPersonId&&confirm("Remove this person from Main Circle?")){state.people=state.people.filter(p=>p.id!==editingPersonId);closePersonModal();saveState();}}); personModal.addEventListener("click",e=>{if(e.target===personModal)closePersonModal()});
 let contactPersonId=null; const contactModal=document.getElementById("contactModal");
 function openContactModal(id=null){
@@ -111,5 +156,5 @@ function closeContactModal(){contactModal.classList.remove("show");contactPerson
 document.getElementById("closeContactModal").addEventListener("click",closeContactModal);document.getElementById("cancelContactBtn").addEventListener("click",closeContactModal);
 document.getElementById("saveContactBtn").addEventListener("click",()=>{const chosenId=contactPersonId||document.getElementById("contactPerson").value;if(!chosenId)return;const p=state.people.find(x=>x.id===chosenId);if(!p)return;const before=structuredClone(state);const date=document.getElementById("contactDate").value||dateKey();const method=document.getElementById("contactMethod").value;p.interactions ||= [];p.interactions.push({date,method,note:document.getElementById("contactNote").value.trim(),createdAt:new Date().toISOString()});p.lastContact=date;localStorage.setItem(METHOD_KEY,method);closeContactModal();saveState();showSaved(`Contact logged · ${p.name}`,before);}); contactModal.addEventListener("click",e=>{if(e.target===contactModal)closeContactModal()});
 const managePeopleModal=document.getElementById("managePeopleModal");
-function renderManagePeople(){const list=document.getElementById("managePeopleList");list.innerHTML="";state.people.forEach(p=>{const row=document.createElement("div");row.className="manage-item";row.innerHTML=`${visualHTML(p,"avatar","person")}<div class="grow"><strong>${escapeHTML(p.name)}</strong><small>${escapeHTML(p.relation||frequencyLabel(p.frequency))}</small></div><button class="tiny-btn" data-person="${escapeAttr(p.id)}">Edit</button>`;list.appendChild(row)});if(!state.people.length)list.innerHTML=`<div class="empty-card">No people added yet.</div>`;list.querySelectorAll("[data-person]").forEach(b=>b.addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal(b.dataset.person)}));}
+function renderManagePeople(){const list=document.getElementById("managePeopleList");list.innerHTML="";state.people.forEach(p=>{const row=document.createElement("div");row.className="manage-item";row.innerHTML=`${visualHTML(p,"avatar","person")}<div class="grow"><strong>${escapeHTML(p.name)}</strong>${p.relation?relationPillHTML(p.relation,"relationship-label small"):`<small>${escapeHTML(frequencyLabel(p.frequency))}</small>`}</div><button class="tiny-btn" data-person="${escapeAttr(p.id)}">Edit</button>`;list.appendChild(row)});if(!state.people.length)list.innerHTML=`<div class="empty-card">No people added yet.</div>`;list.querySelectorAll("[data-person]").forEach(b=>b.addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal(b.dataset.person)}));}
 document.getElementById("managePeopleBtn").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show")});document.getElementById("closeManagePeople").addEventListener("click",()=>managePeopleModal.classList.remove("show"));document.getElementById("managePersonAdd").addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal()});managePeopleModal.addEventListener("click",e=>{if(e.target===managePeopleModal)managePeopleModal.classList.remove("show")});

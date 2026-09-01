@@ -42,6 +42,51 @@ function iconSVG(name){const nodes=WORKBENCH_ICONS[name];if(!nodes)return "";con
 function safeTone(tone){const migrated=safeToneMigrated(tone);return Object.hasOwn(VISUAL_TONES,migrated)?migrated:"sage"}
 function safeIcon(icon,fallback){return icon&&WORKBENCH_ICONS[icon]?icon:fallback}
 function visualHTML(item,className,fallback="leaf"){const tone=safeTone(item?.color);const icon=safeIcon(item?.icon,fallback);return '<span class="'+className+' visual-tone-'+tone+'">'+iconSVG(icon)+'</span>'}
+
+const RELATIONSHIP_TAGS=[
+  {id:"family",label:"Family",tone:"peach",icon:"home"},
+  {id:"partner",label:"Partner",tone:"rose",icon:"heart"},
+  {id:"close-friend",label:"Close Friend",tone:"lavender",icon:"sparkles"},
+  {id:"friend",label:"Friend",tone:"sage",icon:"people"},
+  {id:"coworker",label:"Coworker",tone:"blue",icon:"folder"},
+  {id:"work-contact",label:"Work Contact",tone:"teal",icon:"wallet"},
+  {id:"acquaintance",label:"Acquaintance",tone:"gray",icon:"person"},
+  {id:"pet",label:"Pet",tone:"sage",icon:"pet"},
+  {id:"other",label:"Other",tone:"gray",icon:"star"}
+];
+const FREQUENCY_TAGS=[
+  {id:"7",label:"Weekly",tone:"sage"},
+  {id:"14",label:"Every 2 Weeks",tone:"sand"},
+  {id:"30",label:"Monthly",tone:"gray"},
+  {id:"60",label:"Occasionally",tone:"gray"},
+  {id:"0",label:"No Schedule",tone:"gray"}
+];
+function relationTag(id){return RELATIONSHIP_TAGS.find(t=>t.id===id)}
+function relationPillHTML(id,className="relationship-label"){
+  const tag=relationTag(id);
+  if(!tag) return `<span class="${className} tone-gray">Main Circle</span>`;
+  return `<span class="${className} tone-${tag.tone}">${tag.icon?iconSVG(tag.icon):""}<span>${escapeHTML(tag.label)}</span></span>`;
+}
+function normalizeRelation(value){
+  if(!value) return "";
+  const v=String(value).trim();
+  if(!v||v.toLowerCase()==="main circle") return "";
+  if(RELATIONSHIP_TAGS.some(t=>t.id===v)) return v;
+  const exact=RELATIONSHIP_TAGS.find(t=>t.label.toLowerCase()===v.toLowerCase());
+  if(exact) return exact.id;
+  const lower=v.toLowerCase();
+  const groups=[
+    ["family",["mom","dad","mother","father","sister","brother","sibling","cousin","aunt","uncle","grandma","grandpa","grandmother","grandfather","family","son","daughter","parent"]],
+    ["partner",["wife","husband","spouse","girlfriend","boyfriend","partner","fiance","fiancée","fiancee"]],
+    ["close-friend",["best friend","bestie","close friend","bff"]],
+    ["coworker",["coworker","co-worker","colleague"]],
+    ["work-contact",["client","boss","manager","work contact","work"]],
+    ["pet",["pet","dog","cat","dogs","cats"]],
+    ["friend",["friend"]]
+  ];
+  for(const [id,words] of groups){ if(words.some(w=>lower.includes(w))) return id; }
+  return "other";
+}
 const TIME_BLOCKS = {
   morning: {label:"Morning", icon:"🌅"},
   afternoon: {label:"Afternoon", icon:"☀️"},
@@ -59,6 +104,13 @@ function normalizePerson(p){
   const merged={interactions:[],notes:[],...p};
   merged.icon=safeIcon(merged.icon,"person");
   merged.color=safeTone(merged.color);
+  if(!RELATIONSHIP_TAGS.some(t=>t.id===merged.relation)){
+    const legacyText=merged.relation;
+    merged.relation=normalizeRelation(merged.relation);
+    if(legacyText && merged.relation && !merged.relationLegacyText) merged.relationLegacyText=legacyText;
+  }
+  const freq=Number(merged.frequency);
+  merged.frequency=Number.isFinite(freq)?freq:14;
   return merged;
 }
 
