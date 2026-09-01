@@ -1,5 +1,8 @@
-importScripts("./js/version.js");
-const CACHE_NAME = "personal-workbench-" + APP_VERSION;
+// CACHE_NAME must be bumped as a literal string every release — do not compute it
+// from an imported file. Safari/WebKit only re-checks this service worker for
+// updates when sw.js's OWN bytes change; it does not re-check importScripts()
+// targets, so deriving this from version.js silently breaks update detection there.
+const CACHE_NAME = "personal-workbench-v0.5.0";
 const APP_SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png",
   "./styles.css",
