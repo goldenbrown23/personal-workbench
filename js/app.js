@@ -11,11 +11,10 @@ function switchView(viewId){
   if(viewId==="homeView") renderHome();
   if(viewId==="settingsView") renderSettings();
   if(viewId==="practiceView") renderPractice();
+  if(viewId==="aboutView"&&!state.settings.guideOpened){state.settings.guideOpened=true;saveState();}
 }
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>switchView(btn.dataset.view)));
 document.querySelectorAll("[data-jump]").forEach(btn=>btn.addEventListener("click",()=>switchView(btn.dataset.jump)));
-document.getElementById("quickHabitBtn").addEventListener("click",()=>switchView("todayView"));
-document.getElementById("quickContactBtn").addEventListener("click",()=>openContactModal());
 
 const sheets=[...document.querySelectorAll(".modal-backdrop")];
 const FOCUSABLE_SELECTOR='a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';

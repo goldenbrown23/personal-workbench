@@ -24,14 +24,11 @@
       </div>
       <button class="icon-btn" id="settingsBtn" aria-label="Open settings">⚙️</button>
     </header>
-    <button class="link-btn" style="padding-left:0" data-jump="aboutView">🧭 How this works</button>
     <div class="backup-nudge" id="backupNudge"><div class="backup-nudge-icon">☁️</div><div class="backup-nudge-copy"><div class="backup-nudge-title">Keep a copy of your Workbench</div><div class="backup-nudge-note">A quick backup protects what you’ve added on this device.</div></div><div class="backup-nudge-actions"><button id="backupLaterBtn">Later</button><button id="backupNowBtn">Back up</button></div></div>
     <div class="home-now" id="homeNow"></div>
+    <button class="link-btn" id="homeGuideLink" style="padding-left:0" data-jump="aboutView">🧭 How this works</button>
     <div class="home-section-title">Quick actions</div>
-    <div class="home-action-dock">
-      <button class="dock-action" id="quickHabitBtn">🌱 Check in<span>Open today’s habits</span></button>
-      <button class="dock-action" id="quickContactBtn">💬 Log contact<span>A quick record, then leave</span></button>
-    </div>
+    <div class="home-action-dock" id="homeActionDock"></div>
     <div class="home-section-title">Your spaces</div>
     <div class="space-list">
       <button class="space-row" data-jump="todayView">
