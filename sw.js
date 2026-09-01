@@ -1,8 +1,9 @@
-const CACHE_NAME = "personal-workbench-v6";
+importScripts("./js/version.js");
+const CACHE_NAME = "personal-workbench-" + APP_VERSION;
 const APP_SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png",
   "./styles.css",
-  "./js/state.js", "./js/update.js", "./js/habits.js", "./js/practice.js", "./js/circle.js", "./js/home.js", "./js/settings.js", "./js/app.js"
+  "./js/version.js", "./js/state.js", "./js/update.js", "./js/habits.js", "./js/practice.js", "./js/circle.js", "./js/home.js", "./js/settings.js", "./js/app.js"
 ];
 
 self.addEventListener("install", event => {
