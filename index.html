@@ -393,18 +393,12 @@
       <h3 id="modalTitle">Add habit</h3>
       <button class="icon-btn" id="closeModal">✕</button>
     </div>
-    <div class="emoji-row">
-      <div class="form-row">
-        <label for="habitEmoji">Emoji</label>
-        <input id="habitEmoji" value="🌱" maxlength="4" />
-      </div>
-      <div class="form-row">
-        <label for="habitName">Habit name</label>
-        <input id="habitName" placeholder="e.g. Morning Face Wash" />
-      </div>
+    <div class="form-row">
+      <label for="habitName">Habit name</label>
+      <input id="habitName" placeholder="e.g. Morning Face Wash" />
     </div>
-    <input id="habitIcon" type="hidden" /><input id="habitColor" type="hidden" value="sage" />
-    <div class="visual-field"><div class="visual-preview visual-tone-sage" id="habitVisualPreview">🌱</div><div class="visual-field-copy"><div class="visual-field-title">Icon & color</div><span class="visual-field-note">Optional, calm visual cue</span></div><button class="visual-change" id="chooseHabitVisual" type="button">Customize</button></div>
+    <input id="habitEmoji" type="hidden" value="🌱" /><input id="habitIcon" type="hidden" /><input id="habitColor" type="hidden" value="sage" />
+    <div class="visual-field"><div class="visual-preview visual-tone-sage" id="habitVisualPreview">🌱</div><div class="visual-field-copy"><div class="visual-field-title">Icon & color</div><span class="visual-field-note">Pick one calm visual cue</span></div><button class="visual-change" id="chooseHabitVisual" type="button">Customize</button></div>
     <div class="form-row"><label for="habitGoalType">What kind of goal?</label><select id="habitGoalType"><option value="practice">Practice something</option><option value="reduce">Reduce something</option></select></div>
     <div class="form-row"><label for="habitTimeBlock">When</label><select id="habitTimeBlock"><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option></select></div>
     <details class="goal-plan" id="goalPlanDetails">
