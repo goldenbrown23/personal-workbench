@@ -17,7 +17,7 @@ document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>
 document.querySelectorAll("[data-jump]").forEach(btn=>btn.addEventListener("click",()=>switchView(btn.dataset.jump)));
 
 const sheets=[...document.querySelectorAll(".modal-backdrop")];
-const FOCUSABLE_SELECTOR='a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const FOCUSABLE_SELECTOR='a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';
 function getFocusable(container){
   return [...container.querySelectorAll(FOCUSABLE_SELECTOR)].filter(el=>el.offsetParent!==null);
 }
