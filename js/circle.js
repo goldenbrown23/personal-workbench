@@ -47,7 +47,7 @@ function renderCircle(){
   document.getElementById("circlePeopleTitle").textContent=focus?"Other people":"Your people";
   document.getElementById("circlePeopleHead").style.display=remaining.length||!people.length?"flex":"none";
   remaining.forEach(p=>{const t=personTiming(p);const card=document.createElement("div");card.className="circle-person-card";card.innerHTML=`${personIdentityHTML(p,t)}${personSnapshotHTML(p,t)}<div class="circle-card-actions"><button class="primary-soft" onclick="openContactModal('${jsEscape(p.id)}')">💬 Contact</button><button onclick="openPersonNote('${jsEscape(p.id)}')">＋ Note</button><button onclick="openPersonDetail('${jsEscape(p.id)}')">Details</button></div>`;list.appendChild(card)});
-  if(!people.length)list.innerHTML=`<div class="empty-card">Add only the people you intentionally want to keep in view. This does not need to become your whole contacts list.</div>`;
+  if(!people.length)list.innerHTML=`<div class="empty-card">No people yet. Add one person you want to keep in view.</div>`;
   else if(!remaining.length)list.style.display="none";else list.style.display="block";
 }
 

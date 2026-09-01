@@ -4,6 +4,9 @@ function renderSettings(){
   document.getElementById("compactMode").checked=Boolean(state.settings?.compactMode);
   document.getElementById("hapticsEnabled").checked=state.settings?.hapticsEnabled!==false;
   document.getElementById("backupReminderEnabled").checked=state.settings?.backupReminderEnabled!==false;
+  document.getElementById("compactModeState").textContent=document.getElementById("compactMode").checked?"On":"Off";
+  document.getElementById("hapticsEnabledState").textContent=document.getElementById("hapticsEnabled").checked?"On":"Off";
+  document.getElementById("backupReminderEnabledState").textContent=document.getElementById("backupReminderEnabled").checked?"On":"Off";
   const last=state.settings?.lastBackupAt?new Date(state.settings.lastBackupAt):null;document.getElementById("backupStatus").textContent=last?`Last backup: ${fmtDate(last)}. A weekly copy is a good safety net.`:"No backup yet. After your first week, the Home screen will remind you gently.";
   document.getElementById("deviceStatus").textContent=("serviceWorker" in navigator)?"Offline support is available. Your data stays in this browser until you export or clear it.":"Your data stays in this browser. Offline support is limited on this device.";
   renderVersionInfo();

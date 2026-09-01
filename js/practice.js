@@ -97,13 +97,13 @@ function renderPracticeGrid(){
     row.className = isToday ? "today" : "";
     const note = getDayNote(key);
     row.innerHTML = `
-      <td>${escapeHTML(fmtRange(date))}</td>
-      <td>${escapeHTML(fmtShort(date))}</td>
-      <td>${blockBadge(aggregateBlockStatus(blocks.morning))}</td>
-      <td>${blockBadge(aggregateBlockStatus(blocks.afternoon))}</td>
-      <td>${blockBadge(aggregateBlockStatus(blocks.evening))}</td>
-      <td>${dayReturns ? `<span class="status-chip returned">↩ ${dayReturns}</span>` : "<span class=\"status-chip blank\">—</span>"}</td>
-      <td><button class="note-btn" data-day-note="${key}">${note ? escapeHTML(note) : "+ Add note"}</button></td>
+      <td data-label="Date">${escapeHTML(fmtRange(date))}</td>
+      <td data-label="Day">${escapeHTML(fmtShort(date))}</td>
+      <td data-label="🌅 Morning">${blockBadge(aggregateBlockStatus(blocks.morning))}</td>
+      <td data-label="☀️ Afternoon">${blockBadge(aggregateBlockStatus(blocks.afternoon))}</td>
+      <td data-label="🌙 Evening">${blockBadge(aggregateBlockStatus(blocks.evening))}</td>
+      <td data-label="↩ Re-entry">${dayReturns ? `<span class="status-chip returned">↩ ${dayReturns}</span>` : "<span class=\"status-chip blank\">—</span>"}</td>
+      <td data-label="Notes"><button class="note-btn" data-day-note="${key}">${note ? escapeHTML(note) : "+ Add note"}</button></td>
     `;
     body.appendChild(row);
   });

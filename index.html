@@ -48,7 +48,7 @@
     <header>
       <div>
         <div class="eyebrow" id="todayDate"></div>
-        <h1>🌱 Today</h1>
+        <h1>🌱 Today’s Habits</h1>
         <div class="sub">Connection, not perfection.</div>
       </div>
       <button class="icon-btn" id="manageBtn" aria-label="Manage habits">⚙️</button>
@@ -70,7 +70,8 @@
     </div>
     <div class="active-filter-note" id="activeFilterNote" style="display:none"></div>
     <div id="habitFocus"></div>
-    <div class="section-head"><h2 id="habitListTitle">Later</h2><button class="link-btn" id="addHabitBtn">+ Add</button></div>
+    <div class="section-head"><h2 id="habitListTitle">Habits</h2><button class="link-btn" id="addHabitBtn">+ Add</button></div>
+    <div class="settings-note" id="habitListNote" style="display:none">Hidden from today, not deleted.</div>
     <div id="habitList" class="habit-stack"></div>
 
     <div class="footer-rule">
@@ -82,7 +83,7 @@
   <div id="practiceView" class="view">
     <header>
       <div>
-        <div class="eyebrow">Habit Practice</div>
+        <div class="eyebrow">See your patterns</div>
         <h1>📊 Practice Review</h1>
         <div class="sub">A closer look at engagement and return, not a scoreboard.</div>
       </div>
@@ -336,8 +337,8 @@
         <summary><span><strong>Personalize</strong><small>How the Workbench looks and feels</small></span><span aria-hidden="true">⌄</span></summary>
         <div class="settings-disclosure-body">
           <div class="form-row"><label for="startScreen">Open to</label><select id="startScreen"><option value="last">Where I left off</option><option value="homeView">Home</option><option value="todayView">Habits</option><option value="circleView">Circle</option><option value="weekView">Trend</option></select></div>
-          <label class="setting-row" for="compactMode"><span class="grow"><span class="setting-label">Compact cards</span><span class="setting-note">See more with less scrolling</span></span><input id="compactMode" type="checkbox" /></label>
-          <label class="setting-row" for="hapticsEnabled"><span class="grow"><span class="setting-label">Gentle vibration</span><span class="setting-note">A tiny confirmation after quick logging</span></span><input id="hapticsEnabled" type="checkbox" /></label>
+          <label class="setting-row" for="compactMode"><span class="grow"><span class="setting-label">Compact cards</span><span class="setting-note">See more with less scrolling</span></span><span class="toggle-state" id="compactModeState" aria-hidden="true">Off</span><input id="compactMode" type="checkbox" /></label>
+          <label class="setting-row" for="hapticsEnabled"><span class="grow"><span class="setting-label">Gentle vibration</span><span class="setting-note">A tiny confirmation after quick logging</span></span><span class="toggle-state" id="hapticsEnabledState" aria-hidden="true">On</span><input id="hapticsEnabled" type="checkbox" /></label>
         </div>
       </details>
 
@@ -353,7 +354,7 @@
         <summary><span><strong>Backup &amp; restore</strong><small>Protect your Workbench if you switch devices</small></span><span aria-hidden="true">⌄</span></summary>
         <div class="settings-disclosure-body">
           <div class="privacy-note" id="backupStatus">A weekly backup is a good safety net.</div>
-          <label class="setting-row" for="backupReminderEnabled"><span class="grow"><span class="setting-label">Weekly backup reminder</span><span class="setting-note">A gentle Home reminder after seven days</span></span><input id="backupReminderEnabled" type="checkbox" /></label>
+          <label class="setting-row" for="backupReminderEnabled"><span class="grow"><span class="setting-label">Weekly backup reminder</span><span class="setting-note">A gentle Home reminder after seven days</span></span><span class="toggle-state" id="backupReminderEnabledState" aria-hidden="true">On</span><input id="backupReminderEnabled" type="checkbox" /></label>
           <div class="settings-actions"><button class="btn" id="exportDataBtn">Export backup</button><button class="btn" id="importDataBtn">Import backup</button></div>
           <input id="importDataFile" type="file" accept="application/json,.json" hidden />
         </div>
