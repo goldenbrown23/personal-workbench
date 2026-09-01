@@ -21,9 +21,7 @@ const sheetObserver=new MutationObserver(()=>document.body.classList.toggle("she
 sheets.forEach(s=>sheetObserver.observe(s,{attributes:true,attributeFilter:["class"]}));
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){const open=sheets.filter(s=>s.classList.contains("show")).at(-1);if(open)open.querySelector(".icon-btn")?.click();}});
 
-if("serviceWorker" in navigator && location.protocol.startsWith("http")){
-  navigator.serviceWorker.register("./sw.js").catch(()=>{});
-}
+initUpdateWatcher();
 
 applySettings();
 renderAll();

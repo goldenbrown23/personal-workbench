@@ -171,6 +171,10 @@
           <div class="settings-title">Device</div><div class="settings-help">No account or cloud sync is connected during this pilot.</div>
           <div class="device-row"><span class="device-dot"></span><span class="device-copy"><span class="setting-label">Stored on this device</span><span class="setting-note" id="deviceStatus">Checking offline support…</span></span></div>
           <label class="setting-row" for="hapticsEnabled"><span class="grow"><span class="setting-label">Gentle vibration</span><span class="setting-note">A tiny confirmation after quick logging</span></span><input id="hapticsEnabled" type="checkbox" /></label>
+          <div class="settings-divider"></div>
+          <div class="settings-title">Version</div>
+          <div class="privacy-note"><span id="appVersion">App version: —</span><br /><span id="appUpdatedAt">Last updated: —</span></div>
+          <div class="settings-actions"><button class="btn" id="checkUpdatesBtn">Check for updates</button></div>
           <button class="danger-row" id="clearDataBtn">Clear data<span>Choose exactly what to remove before anything is deleted</span></button>
         </div>
       </details>
@@ -338,7 +342,19 @@
 
 <div id="saveToast" class="toast" role="status" aria-live="polite"><div class="toast-message" id="toastMessage">Saved</div><button id="undoBtn">Undo</button></div>
 
+<div id="updateCard" class="update-card" role="status" aria-live="polite">
+  <div class="update-card-copy">
+    <div class="update-card-title">New version ready</div>
+    <div class="update-card-note">Your saved Workbench data will stay saved.</div>
+  </div>
+  <div class="update-card-actions">
+    <button id="updateLaterBtn">Later</button>
+    <button id="updateNowBtn" class="primary">Update now</button>
+  </div>
+</div>
+
 <script src="js/state.js"></script>
+<script src="js/update.js"></script>
 <script src="js/habits.js"></script>
 <script src="js/circle.js"></script>
 <script src="js/home.js"></script>

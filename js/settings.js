@@ -6,6 +6,7 @@ function renderSettings(){
   document.getElementById("backupReminderEnabled").checked=state.settings?.backupReminderEnabled!==false;
   const last=state.settings?.lastBackupAt?new Date(state.settings.lastBackupAt):null;document.getElementById("backupStatus").textContent=last?`Last backup: ${fmtDate(last)}. A weekly copy is a good safety net.`:"No backup yet. After your first week, the Home screen will remind you gently.";
   document.getElementById("deviceStatus").textContent=("serviceWorker" in navigator)?"Offline support is available. Your data stays in this browser until you export or clear it.":"Your data stays in this browser. Offline support is limited on this device.";
+  renderVersionInfo();
 }
 function openSettings(){switchView("settingsView");renderSettings();}
 document.getElementById("settingsBtn").addEventListener("click",openSettings);
