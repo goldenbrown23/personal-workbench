@@ -21,7 +21,7 @@ function backupIsDue(){if(state.settings?.backupReminderEnabled===false)return f
 function renderBackupReminder(){document.getElementById("backupNudge").classList.toggle("show",backupIsDue())}
 function exportBackup(){
   state.settings.lastBackupAt=new Date().toISOString();state.settings.backupRemindAfter=null;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));renderAll();
-  const backup={app:"Personal Workbench",exportedAt:state.settings.lastBackupAt,version:3,data:state};
+  const backup={app:"Personal Workbench",exportedAt:state.settings.lastBackupAt,version:4,data:state};
   const url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}));
   const a=document.createElement("a");a.href=url;a.download=`personal-workbench-${dateKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showSaved("Backup exported");
 }
@@ -29,7 +29,7 @@ document.getElementById("exportDataBtn").addEventListener("click",exportBackup);
 document.getElementById("importDataBtn").addEventListener("click",()=>document.getElementById("importDataFile").click());
 document.getElementById("importDataFile").addEventListener("change",async e=>{
   const file=e.target.files?.[0];if(!file)return;
-  try{const parsed=JSON.parse(await file.text());const incoming=parsed.data||parsed;if(!Array.isArray(incoming.habits)||typeof incoming.logs!=="object"||!Array.isArray(incoming.people))throw new Error();const before=structuredClone(state);state={habits:incoming.habits.map(normalizeHabit),logs:incoming.logs,people:incoming.people.map(p=>({...p,interactions:p.interactions||[],notes:p.notes||[]})),dayNotes:(incoming.dayNotes&&typeof incoming.dayNotes==="object")?incoming.dayNotes:{},settings:{...defaultState.settings,...(incoming.settings||{}),lastBackupAt:new Date().toISOString(),backupRemindAfter:null}};applySettings();saveState();showSaved("Backup imported",before)}catch{showSaved("That file is not a valid Workbench backup")}
+  try{const parsed=JSON.parse(await file.text());const incoming=parsed.data||parsed;if(!Array.isArray(incoming.habits)||typeof incoming.logs!=="object"||!Array.isArray(incoming.people))throw new Error();const before=structuredClone(state);state={habits:incoming.habits.map(normalizeHabit),logs:incoming.logs,people:incoming.people.map(normalizePerson),dayNotes:(incoming.dayNotes&&typeof incoming.dayNotes==="object")?incoming.dayNotes:{},settings:{...defaultState.settings,...(incoming.settings||{}),lastBackupAt:new Date().toISOString(),backupRemindAfter:null}};applySettings();saveState();showSaved("Backup imported",before)}catch{showSaved("That file is not a valid Workbench backup")}
   e.target.value="";
 });
 const clearDataModal=document.getElementById("clearDataModal");

@@ -191,8 +191,7 @@ function openHabitModal(id=null){
   editingId=id;
   const h=id?state.habits.find(x=>x.id===id):null;
   document.getElementById("modalTitle").textContent=h?"Edit habit":"Add habit";
-  document.getElementById("habitEmoji").value=h?.emoji||"🌱";
-  document.getElementById("habitIcon").value=h?.icon||"";
+  document.getElementById("habitIcon").value=safeIcon(h?.icon,"leaf");
   document.getElementById("habitColor").value=safeTone(h?.color||"sage");
   updateVisualPreview("habit");
   document.getElementById("habitName").value=h?.name||"";
@@ -239,8 +238,7 @@ habitModal.addEventListener("click",e=>{if(e.target===habitModal) closeHabitModa
 document.getElementById("saveHabitBtn").addEventListener("click",()=>{
   const name=document.getElementById("habitName").value.trim();
   if(!name){document.getElementById("habitName").focus();return;}
-  const emoji=document.getElementById("habitEmoji").value.trim()||"🌱";
-  const icon=document.getElementById("habitIcon").value||null;
+  const icon=safeIcon(document.getElementById("habitIcon").value,"leaf");
   const color=safeTone(document.getElementById("habitColor").value);
   const goalType=document.getElementById("habitGoalType").value;
   const timeBlock=document.getElementById("habitTimeBlock").value;
@@ -253,9 +251,9 @@ document.getElementById("saveHabitBtn").addEventListener("click",()=>{
   const schedule={scheduleType,weekdays:scheduleType==="days"?weekdays:[],weeklyTarget:scheduleType==="weekly"?weeklyTarget:1};
   if(editingId){
     const h=state.habits.find(x=>x.id===editingId);
-    Object.assign(h,{name,emoji,icon,color,goalType,timeBlock,full,small,small2,...schedule});
+    Object.assign(h,{name,icon,color,goalType,timeBlock,full,small,small2,...schedule});
   }else{
-    state.habits.push({id:"h-"+Date.now(),name,emoji,icon,color,goalType,timeBlock,full,small,small2,...schedule});
+    state.habits.push({id:"h-"+Date.now(),name,icon,color,goalType,timeBlock,full,small,small2,...schedule});
   }
   closeHabitModal();saveState();
 });
