@@ -461,12 +461,9 @@
 <div id="personModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="modal-head"><h3 id="personModalTitle">Add person</h3><button class="icon-btn" id="closePersonModal">✕</button></div>
-    <div class="emoji-row">
-      <div class="form-row"><label for="personEmoji">Emoji</label><input id="personEmoji" value="💛" maxlength="4" /></div>
-      <div class="form-row"><label for="personName">Name</label><input id="personName" placeholder="Who matters?" /></div>
-    </div>
-    <input id="personIcon" type="hidden" /><input id="personColor" type="hidden" value="blush" />
-    <div class="visual-field"><div class="visual-preview visual-tone-blush" id="personVisualPreview">💛</div><div class="visual-field-copy"><div class="visual-field-title">Icon & color</div><span class="visual-field-note">Optional, gentle visual identity</span></div><button class="visual-change" id="choosePersonVisual" type="button">Customize</button></div>
+    <div class="form-row"><label for="personName">Name</label><input id="personName" placeholder="Who matters?" /></div>
+    <input id="personEmoji" type="hidden" value="💛" /><input id="personIcon" type="hidden" /><input id="personColor" type="hidden" value="blush" />
+    <div class="visual-field"><div class="visual-preview visual-tone-blush" id="personVisualPreview">💛</div><div class="visual-field-copy"><div class="visual-field-title">Icon & color</div><span class="visual-field-note">Pick one gentle visual identity</span></div><button class="visual-change" id="choosePersonVisual" type="button">Customize</button></div>
     <div class="form-row"><label for="personRelation">Relationship <span style="font-weight:500">(optional)</span></label><input id="personRelation" placeholder="e.g. Friend, Mom, Cousin" /></div>
     <div class="form-row"><label for="personFrequency">Usual contact rhythm</label><select id="personFrequency"><option value="7">Weekly</option><option value="14" selected>Every 2 weeks</option><option value="30">Monthly</option><option value="0">No schedule</option></select></div>
     <div class="modal-actions"><button class="btn danger" id="deletePersonBtn" style="display:none">Delete</button><button class="btn" id="cancelPersonBtn">Cancel</button><button class="btn primary" id="savePersonBtn">Save</button></div>
