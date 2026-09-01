@@ -1,4 +1,4 @@
-const APP_VERSION = "v0.3.3";
+const APP_VERSION = "v0.4.0";
 const APP_UPDATED_AT = "2026-08-31";
 
 let waitingWorker = null;

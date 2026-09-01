@@ -53,6 +53,7 @@
       </div>
       <button class="icon-btn" id="manageBtn" aria-label="Manage habits">⚙️</button>
     </header>
+    <button class="link-btn" style="padding-left:0" data-jump="practiceView">📊 Practice Review</button>
 
     <div class="habit-overview" id="habitOverview">
       <div class="overview-top">
@@ -76,6 +77,107 @@
       <strong>🔒 One miss is not evidence the system is broken.</strong><br>
       Return first. Review the system only after the same problem repeats 3+ times.
     </div>
+  </div>
+
+  <div id="practiceView" class="view">
+    <header>
+      <div>
+        <div class="eyebrow">Habit Practice</div>
+        <h1>📊 Practice Review</h1>
+        <div class="sub">A closer look at engagement and return, not a scoreboard.</div>
+      </div>
+      <button class="icon-btn" data-jump="todayView" aria-label="Close practice review">✕</button>
+    </header>
+
+    <div class="practice-intro">
+      <div class="practice-intro-title">🌱 Our goal is connection, not perfection.</div>
+      <div class="practice-intro-copy">Stay engaged. Return quickly. One miss does not mean the system is broken.</div>
+      <div class="practice-lock-line">🔒 One miss cannot trigger a system change. System review requires 3+ repeated problems. Until then: return, don’t redesign.</div>
+    </div>
+
+    <div class="metric-grid">
+      <div class="metric-card">
+        <div class="metric-label">🌱 Engagement</div>
+        <div class="metric-value" id="metricEngagement">—</div>
+        <div class="metric-note" id="metricEngagementNote">Loading…</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">↩ Returns</div>
+        <div class="metric-value" id="metricReturns">—</div>
+        <div class="metric-note">You came back!</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">⏱ Avg. Time to Return</div>
+        <div class="metric-value" id="metricReturnTime">—</div>
+        <div class="metric-note" id="metricReturnTimeNote">Not enough data yet</div>
+      </div>
+      <div class="metric-card">
+        <div class="metric-label">🔥 Longest Active</div>
+        <div class="metric-value" id="metricLongestActive">—</div>
+        <div class="metric-note">Keep going</div>
+      </div>
+    </div>
+
+    <div class="section-head">
+      <h2 id="practiceWeekLabel">This Week</h2>
+      <div class="week-nav">
+        <button class="icon-btn" id="practicePrevWeek" aria-label="Previous week">←</button>
+        <button class="icon-btn" id="practiceNextWeek" aria-label="Next week">→</button>
+      </div>
+    </div>
+
+    <div class="practice-table-wrap">
+      <table class="practice-table">
+        <thead>
+          <tr><th>Date</th><th>Day</th><th>🌅 Morning</th><th>☀️ Afternoon</th><th>🌙 Evening</th><th>↩ Re-entry</th><th>Notes</th></tr>
+        </thead>
+        <tbody id="practiceGridBody"></tbody>
+      </table>
+    </div>
+
+    <div class="legend">
+      <span>✓ Done = Regular version</span>
+      <span>○ Counted = Smaller version</span>
+      <span>— Not Today = Didn’t happen</span>
+      <span>↩ Returned = First engagement after a miss</span>
+    </div>
+
+    <div class="section-head"><h2>This Week Overview</h2></div>
+    <div class="overview-card" id="practiceOverview"></div>
+
+    <div class="section-head"><h2>Recent Returns</h2></div>
+    <div class="stat-list" id="practiceRecentReturns"></div>
+
+    <div class="reminder-card">
+      <div class="settings-title">💗 Reminder</div>
+      <div class="settings-help">A miss is data, not failure. The win is returning.</div>
+    </div>
+
+    <div class="section-head"><h2>System Lock</h2></div>
+    <div class="lock-card" id="practiceSystemLock"></div>
+
+    <details class="settings-disclosure">
+      <summary><span><strong>🛡️ Why we track this way</strong><small>The idea behind Done, Counted, and Returned</small></span><span aria-hidden="true">⌄</span></summary>
+      <div class="settings-disclosure-body">
+        <ul class="guide-list">
+          <li><span class="guide-bullet">↩</span>Builds the muscle of re-entry</li>
+          <li><span class="guide-bullet">🌗</span>Reduces all-or-nothing thinking</li>
+          <li><span class="guide-bullet">💛</span>Celebrates consistency of identity, not just output</li>
+        </ul>
+        <div class="example-row">
+          <div class="example-day"><span class="example-day-name">Mon</span><span class="status-chip done">✓ Done</span></div>
+          <span class="example-arrow">→</span>
+          <div class="example-day"><span class="example-day-name">Tue</span><span class="status-chip done">✓ Done</span></div>
+          <span class="example-arrow">→</span>
+          <div class="example-day"><span class="example-day-name">Wed</span><span class="status-chip miss">— Not today</span></div>
+          <span class="example-arrow">→</span>
+          <div class="example-day"><span class="example-day-name">Thu</span><span class="status-chip returned">↩ Returned</span></div>
+          <span class="example-arrow">=</span>
+          <div class="example-success">Success</div>
+        </div>
+        <div class="guide-quote">You returned next day. That’s the skill.</div>
+      </div>
+    </details>
   </div>
 
   <div id="weekView" class="view">
@@ -304,6 +406,7 @@
     <input id="habitIcon" type="hidden" /><input id="habitColor" type="hidden" value="sage" />
     <div class="visual-field"><div class="visual-preview visual-tone-sage" id="habitVisualPreview">🌱</div><div class="visual-field-copy"><div class="visual-field-title">Icon & color</div><span class="visual-field-note">Optional, calm visual cue</span></div><button class="visual-change" id="chooseHabitVisual" type="button">Customize</button></div>
     <div class="form-row"><label for="habitGoalType">What kind of goal?</label><select id="habitGoalType"><option value="practice">Practice something</option><option value="reduce">Reduce something</option></select></div>
+    <div class="form-row"><label for="habitTimeBlock">When</label><select id="habitTimeBlock"><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option></select></div>
     <details class="goal-plan" id="goalPlanDetails">
       <summary><span class="goal-plan-title">Goal plan</span><span class="goal-plan-summary-note">Define what counts</span></summary><div class="goal-plan-help" id="goalPlanHelp">Define the versions once so you do not have to renegotiate what counts each day.</div>
       <div class="form-row"><label for="habitFull" id="habitFullLabel">Full version <span style="font-weight:500">(optional)</span></label><input id="habitFull" placeholder="e.g. Wash face for 60 seconds" /></div>
@@ -411,6 +514,15 @@
   </div>
 </div>
 
+<div id="dayNoteModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="dayNoteTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="dayNoteTitle">Day note</h3><button class="icon-btn" id="closeDayNote" aria-label="Close day note">✕</button></div>
+    <div class="settings-help">A quick word about the day, if it helps. Nothing required.</div>
+    <div class="form-row"><label for="dayNoteText">Note</label><textarea id="dayNoteText" rows="3" placeholder="e.g. Felt good"></textarea></div>
+    <div class="modal-actions"><button class="btn danger" id="clearDayNoteBtn">Clear note</button><button class="btn" id="cancelDayNote">Cancel</button><button class="btn primary" id="saveDayNoteBtn">Save</button></div>
+  </div>
+</div>
+
 <div id="clearDataModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="clearDataTitle">
   <div class="modal">
     <div class="modal-head"><h3 id="clearDataTitle">Clear data</h3><button class="icon-btn" id="closeClearData" aria-label="Close clear data">✕</button></div>
@@ -450,6 +562,7 @@
 <script src="js/state.js"></script>
 <script src="js/update.js"></script>
 <script src="js/habits.js"></script>
+<script src="js/practice.js"></script>
 <script src="js/circle.js"></script>
 <script src="js/home.js"></script>
 <script src="js/settings.js"></script>

@@ -1,4 +1,4 @@
-function renderAll(){ renderHome(); renderToday(); renderWeek(); renderManage(); renderCircle(); renderManagePeople(); renderSettings(); }
+function renderAll(){ renderHome(); renderToday(); renderWeek(); renderManage(); renderCircle(); renderManagePeople(); renderSettings(); renderPractice(); }
 
 function switchView(viewId){
   if(!document.getElementById(viewId)) viewId="homeView";
@@ -10,6 +10,7 @@ function switchView(viewId){
   if(viewId==="circleView") renderCircle();
   if(viewId==="homeView") renderHome();
   if(viewId==="settingsView") renderSettings();
+  if(viewId==="practiceView") renderPractice();
 }
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>switchView(btn.dataset.view)));
 document.querySelectorAll("[data-jump]").forEach(btn=>btn.addEventListener("click",()=>switchView(btn.dataset.jump)));

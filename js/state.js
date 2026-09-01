@@ -7,14 +7,27 @@ const VISUAL_TONES={sage:"Sage",lavender:"Lavender",blush:"Blush",sky:"Sky",sand
 function iconSVG(name){const nodes=WORKBENCH_ICONS[name];if(!nodes)return "";const attrs=a=>Object.entries(a).map(([k,v])=>' '+k+'="'+escapeAttr(v)+'"').join("");return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+nodes.map(([tag,a])=>"<"+tag+attrs(a)+"></"+tag+">").join("")+"</svg>"}
 function safeTone(tone){return Object.hasOwn(VISUAL_TONES,tone)?tone:"sage"}
 function visualHTML(item,className,fallback="🌱"){const tone=safeTone(item?.color);const content=item?.icon&&WORKBENCH_ICONS[item.icon]?iconSVG(item.icon):escapeHTML(item?.emoji||fallback);return '<span class="'+className+' visual-tone-'+tone+'">'+content+'</span>'}
+const TIME_BLOCKS = {
+  morning: {label:"Morning", icon:"🌅"},
+  afternoon: {label:"Afternoon", icon:"☀️"},
+  evening: {label:"Evening", icon:"🌙"}
+};
+function timeBlockOf(h){ return (h?.timeBlock==="afternoon"||h?.timeBlock==="evening") ? h.timeBlock : "morning"; }
+function normalizeHabit(h){
+  const merged={goalType:"practice",full:"",small2:"",scheduleType:"daily",weekdays:[],weeklyTarget:1,timeBlock:"morning",...h};
+  merged.timeBlock=Object.hasOwn(TIME_BLOCKS,merged.timeBlock)?merged.timeBlock:"morning";
+  return merged;
+}
+
 const defaultState = {
   habits: [
-    {id:"am-face", emoji:"☀️", name:"Morning Face Wash", small:"A quick wash still counts.",scheduleType:"daily"},
-    {id:"pm-face", emoji:"🌙", name:"Night Face Wash", small:"A smaller valid version still counts.",scheduleType:"daily"},
-    {id:"vit-d", emoji:"🌞", name:"Daily D", small:"Take it with your first real meal.",scheduleType:"daily"}
+    {id:"am-face", emoji:"☀️", name:"Morning Face Wash", small:"A quick wash still counts.",scheduleType:"daily",timeBlock:"morning"},
+    {id:"pm-face", emoji:"🌙", name:"Night Face Wash", small:"A smaller valid version still counts.",scheduleType:"daily",timeBlock:"evening"},
+    {id:"vit-d", emoji:"🌞", name:"Daily D", small:"Take it with your first real meal.",scheduleType:"daily",timeBlock:"morning"}
   ],
   logs: {},
   people: [],
+  dayNotes: {},
   settings: {startScreen:"last",compactMode:false,hapticsEnabled:true,backupReminderEnabled:true,firstUsedAt:new Date().toISOString(),lastBackupAt:null,backupRemindAfter:null}
 };
 
@@ -23,7 +36,7 @@ function loadState(){
     const raw = localStorage.getItem(STORAGE_KEY);
     if(!raw) return structuredClone(defaultState);
     const parsed = JSON.parse(raw);
-    return {habits: (parsed.habits || []).map(h=>({goalType:"practice",full:"",small2:"",scheduleType:"daily",weekdays:[],weeklyTarget:1,...h})), logs: parsed.logs || {}, people:(parsed.people||[]).map(p=>({...p,interactions:p.interactions||[],notes:p.notes||[]})), settings:{...defaultState.settings,...(parsed.settings||{})}};
+    return {habits: (parsed.habits || []).map(normalizeHabit), logs: parsed.logs || {}, people:(parsed.people||[]).map(p=>({...p,interactions:p.interactions||[],notes:p.notes||[]})), dayNotes:(parsed.dayNotes&&typeof parsed.dayNotes==="object")?parsed.dayNotes:{}, settings:{...defaultState.settings,...(parsed.settings||{})}};
   }catch(e){ return structuredClone(defaultState); }
 }
 let state = loadState();

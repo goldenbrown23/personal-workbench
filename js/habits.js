@@ -196,6 +196,7 @@ function openHabitModal(id=null){
   updateVisualPreview("habit");
   document.getElementById("habitName").value=h?.name||"";
   document.getElementById("habitGoalType").value=h?.goalType||"practice";
+  document.getElementById("habitTimeBlock").value=timeBlockOf(h);
   document.getElementById("habitFull").value=h?.full||"";
   document.getElementById("habitSmall").value=h?.small||"";
   document.getElementById("habitSmall2").value=h?.small2||"";
@@ -241,6 +242,7 @@ document.getElementById("saveHabitBtn").addEventListener("click",()=>{
   const icon=document.getElementById("habitIcon").value||null;
   const color=safeTone(document.getElementById("habitColor").value);
   const goalType=document.getElementById("habitGoalType").value;
+  const timeBlock=document.getElementById("habitTimeBlock").value;
   const full=document.getElementById("habitFull").value.trim();
   const small=document.getElementById("habitSmall").value.trim();
   const small2=document.getElementById("habitSmall2").value.trim();
@@ -250,9 +252,9 @@ document.getElementById("saveHabitBtn").addEventListener("click",()=>{
   const schedule={scheduleType,weekdays:scheduleType==="days"?weekdays:[],weeklyTarget:scheduleType==="weekly"?weeklyTarget:1};
   if(editingId){
     const h=state.habits.find(x=>x.id===editingId);
-    Object.assign(h,{name,emoji,icon,color,goalType,full,small,small2,...schedule});
+    Object.assign(h,{name,emoji,icon,color,goalType,timeBlock,full,small,small2,...schedule});
   }else{
-    state.habits.push({id:"h-"+Date.now(),name,emoji,icon,color,goalType,full,small,small2,...schedule});
+    state.habits.push({id:"h-"+Date.now(),name,emoji,icon,color,goalType,timeBlock,full,small,small2,...schedule});
   }
   closeHabitModal();saveState();
 });
