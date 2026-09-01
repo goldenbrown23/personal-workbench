@@ -44,7 +44,6 @@ function mostRecentPersonId(){
 
 function renderHome(){
   const now=new Date(),period=currentTimePeriod(now.getHours());
-  renderBackupReminder();
   document.getElementById("homeDate").textContent=fmtLong(now);
   document.getElementById("homeGreeting").textContent=PERIOD_GREETING[period];
   const gentle=gentleDayOn();
@@ -60,8 +59,10 @@ function renderHome(){
   const nudges=peopleMeta.filter(x=>["due","soon"].includes(x.timing.class));
   document.getElementById("circleHomeMeta").textContent=state.people.length?(nudges.length?`${nudges.length} gentle check-in${nudges.length===1?"":"s"} on your radar`:`${state.people.length} people · nothing pressing`):"Add only the people you intentionally want to keep close";
 
-  renderStartHere(period,gentle,nudges);
+  const shown=renderStartHere(period,gentle,nudges);
+  renderHomePulse({scheduled,logged,nudges,shown});
   renderHomeQuickActions(period);
+  document.getElementById("backupNudge").classList.toggle("show",backupIsDue()&&shown!=="backup");
 }
 
 function renderStartHere(period,gentle,nudges){
@@ -81,25 +82,42 @@ function renderStartHere(period,gentle,nudges){
       ? `<button class="home-now-action" onclick="setStatus('${jsEscape(h.id)}','counted')">${labels.primary}</button>`
       : `<div class="focus-actions"><button class="btn primary" onclick="setStatus('${jsEscape(h.id)}','counted')">${labels.primary}</button><div class="focus-secondary-row"><button class="btn" onclick="setStatus('${jsEscape(h.id)}','done')">${labels.done}</button><button class="btn" onclick="setStatus('${jsEscape(h.id)}','miss')">${labels.miss}</button><button class="btn focus-more-btn" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">⋯</button></div></div>`;
     homeNow.innerHTML=`<div class="home-now-top"><span class="home-now-label">Start here</span><span class="home-now-state">${isReduceGoal(h)?"Reduce":"Habit"}</span></div><div class="home-now-main">${visualHTML(h,"home-now-icon")}<div class="home-now-copy"><div class="home-now-title">${escapeHTML(h.name)}</div><div class="home-now-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<div class="home-now-count-line"><strong>What counts right now:</strong> ${escapeHTML(countText)}</div>${actionsHTML}`;
-    return;
+    return "habit";
   }
 
   const personNudge=nudges.sort((a,b)=>(a.timing.class==="due"?0:1)-(b.timing.class==="due"?0:1))[0];
   if(personNudge){
     const p=personNudge.person;
     homeNow.innerHTML=`<div class="home-now-top"><span class="home-now-label">Start here</span><span class="home-now-state">Circle</span></div><div class="home-now-main">${visualHTML(p,"home-now-icon","person")}<div class="home-now-copy"><div class="home-now-title">A small hello to ${escapeHTML(p.name)}</div><div class="home-now-detail">An opportunity to reconnect—not something overdue.</div></div></div><button class="home-now-action" onclick="openContactModal('${jsEscape(p.id)}')">💬 Log a connection</button>`;
-    return;
+    return "circle";
   }
 
   const weeklyHabit=state.habits.find(h=>(h.scheduleType||"daily")==="weekly"&&weeklyProgress(h)<Number(h.weeklyTarget||1));
   if(weeklyHabit){
     homeNow.innerHTML=`<div class="home-now-top"><span class="home-now-label">Start here</span><span class="home-now-state">This week</span></div><div class="home-now-main">${visualHTML(weeklyHabit,"home-now-icon")}<div class="home-now-copy"><div class="home-now-title">${escapeHTML(weeklyHabit.name)}</div><div class="home-now-detail">${escapeHTML(scheduleLabel(weeklyHabit))}. There is still room in the week.</div></div></div><button class="home-now-action" onclick="openHabitScope('week')">View this week</button>`;
-    return;
+    return "weekly";
+  }
+
+  if(backupIsDue()){
+    homeNow.innerHTML=`<div class="home-now-top"><span class="home-now-label">Start here</span><span class="home-now-state">Backup</span></div><div class="home-now-main"><span class="home-now-icon">☁️</span><div class="home-now-copy"><div class="home-now-title">Keep a copy of your Workbench</div><div class="home-now-detail">A quick backup protects what you’ve added on this device.</div></div></div><div class="home-now-empty-actions"><button class="btn" onclick="document.getElementById('backupLaterBtn').click()">Later</button><button class="btn primary" onclick="exportBackup()">Back up</button></div>`;
+    return "backup";
   }
 
   homeNow.classList.add("quiet");
   const dumpId=mostRecentPersonId();
   homeNow.innerHTML=`<div class="home-now-top"><span class="home-now-label">Start here</span><span class="home-now-state">Quiet</span></div><div class="home-now-main"><span class="home-now-icon">🍃</span><div class="home-now-copy"><div class="home-now-title">Nothing urgent right now.</div><div class="home-now-detail">You can close the app.</div></div></div><div class="home-now-empty-actions"><button class="btn" onclick="switchView('todayView')">View habits</button>${dumpId?`<button class="btn" onclick="openPersonNote('${jsEscape(dumpId)}')">📝 Dump thought</button>`:""}</div>`;
+  return "empty";
+}
+
+function renderHomePulse({scheduled,logged,nudges,shown}){
+  const pulse=document.getElementById("homePulse");
+  if(!pulse) return;
+  if(shown==="empty"){ pulse.innerHTML=`<span class="pulse-chip quiet">Nothing urgent. You can close the app.</span>`; return; }
+  const chips=[];
+  chips.push(`<span class="pulse-chip">${scheduled.length?`Habits: ${logged} touched`:"Habits: none yet"}</span>`);
+  chips.push(`<span class="pulse-chip">${state.people.length?(nudges.length?`Circle: ${nudges.length} on radar`:"Circle: no pressure"):"Circle: not started"}</span>`);
+  chips.push(`<span class="pulse-chip">${backupIsDue()?"Backup: due":"Backup: okay"}</span>`);
+  pulse.innerHTML=chips.join("");
 }
 
 function renderHomeQuickActions(period){

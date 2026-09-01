@@ -18,7 +18,6 @@ document.getElementById("compactMode").addEventListener("change",e=>{state.setti
 document.getElementById("hapticsEnabled").addEventListener("change",e=>{state.settings.hapticsEnabled=e.target.checked;saveState();showSaved(e.target.checked?"Gentle vibration on":"Gentle vibration off")});
 document.getElementById("backupReminderEnabled").addEventListener("change",e=>{state.settings.backupReminderEnabled=e.target.checked;saveState();showSaved(e.target.checked?"Backup reminder on":"Backup reminder off")});
 function backupIsDue(){if(state.settings?.backupReminderEnabled===false)return false;const now=Date.now(),remind=Date.parse(state.settings?.backupRemindAfter||"");if(Number.isFinite(remind)&&remind>now)return false;const anchor=Date.parse(state.settings?.lastBackupAt||state.settings?.firstUsedAt||new Date().toISOString());return now-anchor>=7*86400000}
-function renderBackupReminder(){document.getElementById("backupNudge").classList.toggle("show",backupIsDue())}
 function exportBackup(){
   state.settings.lastBackupAt=new Date().toISOString();state.settings.backupRemindAfter=null;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));renderAll();
   const backup={app:"Personal Workbench",exportedAt:state.settings.lastBackupAt,version:6,data:state};

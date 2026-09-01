@@ -24,18 +24,19 @@
       </div>
       <button class="icon-btn" id="settingsBtn" aria-label="Open settings">⚙️</button>
     </header>
-    <div class="backup-nudge" id="backupNudge"><div class="backup-nudge-icon">☁️</div><div class="backup-nudge-copy"><div class="backup-nudge-title">Keep a copy of your Workbench</div><div class="backup-nudge-note">A quick backup protects what you’ve added on this device.</div></div><div class="backup-nudge-actions"><button id="backupLaterBtn">Later</button><button id="backupNowBtn">Back up</button></div></div>
     <div class="home-now" id="homeNow"></div>
     <button class="link-btn" id="homeGuideLink" style="padding-left:0" data-jump="aboutView">🧭 How this works</button>
+    <div class="home-pulse" id="homePulse"></div>
     <div class="home-section-title">Quick actions</div>
     <div class="home-action-dock" id="homeActionDock"></div>
+    <div class="backup-nudge" id="backupNudge"><div class="backup-nudge-icon">☁️</div><div class="backup-nudge-copy"><div class="backup-nudge-title">Keep a copy of your Workbench</div><div class="backup-nudge-note">A quick backup protects what you’ve added on this device.</div></div><div class="backup-nudge-actions"><button id="backupLaterBtn">Later</button><button id="backupNowBtn">Back up</button></div></div>
     <div class="home-section-title">Your spaces</div>
     <div class="space-list">
       <button class="space-row" data-jump="todayView">
-        <span class="space-icon">🌱</span><span class="space-copy"><span class="space-title">Habit Practice</span><span class="space-meta" id="habitHomeMeta">Loading…</span><span class="mini-track"><span class="mini-fill" id="habitHomeProgress"></span></span></span><span class="space-arrow">→</span>
+        <span class="space-icon">🌱</span><span class="space-copy"><span class="space-title">Habit Practice</span><span class="space-meta" id="habitHomeMeta">No habits yet</span><span class="mini-track"><span class="mini-fill" id="habitHomeProgress"></span></span></span><span class="space-arrow">→</span>
       </button>
       <button class="space-row" data-jump="circleView">
-        <span class="space-icon">💛</span><span class="space-copy"><span class="space-title">Main Circle</span><span class="space-meta" id="circleHomeMeta">Loading…</span></span><span class="space-arrow">→</span>
+        <span class="space-icon">💛</span><span class="space-copy"><span class="space-title">Main Circle</span><span class="space-meta" id="circleHomeMeta">Add only the people you intentionally want to keep close</span></span><span class="space-arrow">→</span>
       </button>
     </div>
     <div class="home-rule">This should reduce friction, not become another system to maintain.</div>
@@ -54,7 +55,7 @@
 
     <div class="habit-overview" id="habitOverview">
       <div class="overview-top">
-        <div><div class="overview-label" id="habitOverviewLabel">Today</div><div class="overview-value" id="habitProgressText">Loading…</div></div>
+        <div><div class="overview-label" id="habitOverviewLabel">Today</div><div class="overview-value" id="habitProgressText">Nothing asking for you</div></div>
         <button class="gentle-toggle" id="gentleModeBtn">🌿 Gentle day</button>
       </div>
       <div class="progress-track"><div class="progress-fill" id="habitProgressBar"></div></div>
@@ -97,7 +98,7 @@
       <div class="metric-card">
         <div class="metric-label">🌱 Engagement</div>
         <div class="metric-value" id="metricEngagement">—</div>
-        <div class="metric-note" id="metricEngagementNote">Loading…</div>
+        <div class="metric-note" id="metricEngagementNote">Nothing logged yet</div>
       </div>
       <div class="metric-card">
         <div class="metric-label">↩ Returns</div>
@@ -186,7 +187,7 @@
         <div class="sub">Context from the last 7 days—not a scorecard.</div>
       </div>
     </header>
-    <div class="trend-insight"><div class="trend-kicker">What this week says</div><div class="trend-headline" id="trendHeadline">Loading…</div><div class="trend-copy" id="trendCopy"></div></div>
+    <div class="trend-insight"><div class="trend-kicker">What this week says</div><div class="trend-headline" id="trendHeadline">Not enough check-ins yet.</div><div class="trend-copy" id="trendCopy"></div></div>
     <div class="section-head"><h2>Your rhythm</h2></div>
     <div class="rhythm-card"><div id="weekGrid" class="rhythm-grid"></div><div class="rhythm-help">A filled day means you made contact with at least one habit. Purple marks a return.</div></div>
     <div class="section-head"><h2>What matters</h2></div>
@@ -213,7 +214,7 @@
       </div>
       <button class="icon-btn" id="managePeopleBtn" aria-label="Manage people">⚙️</button>
     </header>
-    <div class="circle-summary"><div class="circle-summary-label">Your Main Circle</div><div class="circle-summary-value" id="circleSummary">Loading…</div></div>
+    <div class="circle-summary"><div class="circle-summary-label">Your Main Circle</div><div class="circle-summary-value" id="circleSummary">A small, intentional circle</div></div>
     <div id="circleFocus"></div>
     <div class="section-head" id="circlePeopleHead"><h2 id="circlePeopleTitle">Your people</h2><button class="link-btn" id="addPersonBtn">+ Add</button></div>
     <div id="circleList" class="people-list"></div>

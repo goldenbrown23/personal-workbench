@@ -428,3 +428,7 @@
     .tone-gray{background:#ecefeb;color:#606a62}
 
     .date-chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
+
+    .home-pulse{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 14px}
+    .pulse-chip{background:#f2f4ef;color:var(--muted);border-radius:999px;padding:6px 11px;font-size:11px;font-weight:740}
+    .pulse-chip.quiet{background:#eef3ed;color:var(--accent)}
