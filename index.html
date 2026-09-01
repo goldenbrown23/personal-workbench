@@ -126,6 +126,7 @@
         <h1>🧠 How this works</h1>
         <div class="sub">The tracker is intentionally designed not to punish imperfect days.</div>
       </div>
+      <button class="icon-btn" data-jump="settingsView" aria-label="Back to settings">←</button>
     </header>
 
     <div class="habit-card">
@@ -154,30 +155,49 @@
   <div id="settingsView" class="view">
     <header><div><div class="eyebrow">Make it yours</div><h1>⚙️ Settings</h1><div class="sub">Adjust the Workbench without turning it into another project.</div></div></header>
     <div class="settings-page settings-calm">
-      <section class="settings-card settings-essential">
-        <div class="settings-title">Daily use</div><div class="settings-help">Only the choices that affect how the Workbench meets you.</div>
-        <div class="form-row"><label for="startScreen">Open to</label><select id="startScreen"><option value="last">Where I left off</option><option value="homeView">Home</option><option value="todayView">Habits</option><option value="circleView">Circle</option><option value="weekView">Trend</option></select></div>
-        <label class="setting-row" for="compactMode"><span class="grow"><span class="setting-label">Compact cards</span><span class="setting-note">See more with less scrolling</span></span><input id="compactMode" type="checkbox" /></label>
-      </section>
-      <details class="settings-disclosure">
-        <summary><span><strong>Data, backup & device</strong><small>Only when you need it</small></span><span aria-hidden="true">⌄</span></summary>
+
+      <details class="settings-disclosure" open>
+        <summary><span><strong>Personalize</strong><small>How the Workbench looks and feels</small></span><span aria-hidden="true">⌄</span></summary>
         <div class="settings-disclosure-body">
-          <div class="settings-title">Backup</div><div class="settings-help">Your Workbench lives on this device. Export a private copy whenever you want one.</div>
+          <div class="form-row"><label for="startScreen">Open to</label><select id="startScreen"><option value="last">Where I left off</option><option value="homeView">Home</option><option value="todayView">Habits</option><option value="circleView">Circle</option><option value="weekView">Trend</option></select></div>
+          <label class="setting-row" for="compactMode"><span class="grow"><span class="setting-label">Compact cards</span><span class="setting-note">See more with less scrolling</span></span><input id="compactMode" type="checkbox" /></label>
+          <label class="setting-row" for="hapticsEnabled"><span class="grow"><span class="setting-label">Gentle vibration</span><span class="setting-note">A tiny confirmation after quick logging</span></span><input id="hapticsEnabled" type="checkbox" /></label>
+        </div>
+      </details>
+
+      <details class="settings-disclosure">
+        <summary><span><strong>App updates</strong><small>Check whether a newer version is ready</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <div class="privacy-note"><span id="appVersion">App version: —</span><br /><span id="appUpdatedAt">Last updated: —</span></div>
+          <div class="settings-actions" style="grid-template-columns:1fr"><button class="btn" id="checkUpdatesBtn">Check for updates</button></div>
+        </div>
+      </details>
+
+      <details class="settings-disclosure" open>
+        <summary><span><strong>Backup &amp; restore</strong><small>Protect your Workbench if you switch devices</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
           <div class="privacy-note" id="backupStatus">A weekly backup is a good safety net.</div>
           <label class="setting-row" for="backupReminderEnabled"><span class="grow"><span class="setting-label">Weekly backup reminder</span><span class="setting-note">A gentle Home reminder after seven days</span></span><input id="backupReminderEnabled" type="checkbox" /></label>
           <div class="settings-actions"><button class="btn" id="exportDataBtn">Export backup</button><button class="btn" id="importDataBtn">Import backup</button></div>
           <input id="importDataFile" type="file" accept="application/json,.json" hidden />
-          <div class="settings-divider"></div>
-          <div class="settings-title">Device</div><div class="settings-help">No account or cloud sync is connected during this pilot.</div>
-          <div class="device-row"><span class="device-dot"></span><span class="device-copy"><span class="setting-label">Stored on this device</span><span class="setting-note" id="deviceStatus">Checking offline support…</span></span></div>
-          <label class="setting-row" for="hapticsEnabled"><span class="grow"><span class="setting-label">Gentle vibration</span><span class="setting-note">A tiny confirmation after quick logging</span></span><input id="hapticsEnabled" type="checkbox" /></label>
-          <div class="settings-divider"></div>
-          <div class="settings-title">Version</div>
-          <div class="privacy-note"><span id="appVersion">App version: —</span><br /><span id="appUpdatedAt">Last updated: —</span></div>
-          <div class="settings-actions"><button class="btn" id="checkUpdatesBtn">Check for updates</button></div>
-          <button class="danger-row" id="clearDataBtn">Clear data<span>Choose exactly what to remove before anything is deleted</span></button>
         </div>
       </details>
+
+      <details class="settings-disclosure">
+        <summary><span><strong>Privacy &amp; data</strong><small>Where your data lives, and how to remove it</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <div class="device-row"><span class="device-dot"></span><span class="device-copy"><span class="setting-label">Your data is saved on this device</span><span class="setting-note" id="deviceStatus">Checking offline support…</span></span></div>
+          <button class="danger-row" id="clearDataBtn">Clear data<span>Choose exactly what to remove — each option asks again before anything is deleted</span></button>
+        </div>
+      </details>
+
+      <details class="settings-disclosure">
+        <summary><span><strong>Guide &amp; help</strong><small>A quick refresher on how this works</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <button class="btn" id="openGuideBtn" data-jump="aboutView">Open the guide</button>
+        </div>
+      </details>
+
     </div>
     <div class="home-rule">Personal Workbench · Pilot version</div>
   </div>
