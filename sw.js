@@ -2,7 +2,7 @@
 // from an imported file. Safari/WebKit only re-checks this service worker for
 // updates when sw.js's OWN bytes change; it does not re-check importScripts()
 // targets, so deriving this from version.js silently breaks update detection there.
-const CACHE_NAME = "personal-workbench-v0.10.1";
+const CACHE_NAME = "personal-workbench-v0.10.2";
 const APP_SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png",
   "./styles.css",
@@ -10,7 +10,14 @@ const APP_SHELL = [
 ];
 
 self.addEventListener("install", event => {
-  event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
+  // cache:"reload" forces each precache fetch past the browser's HTTP disk cache —
+  // without it, a newly-installed worker can silently precache stale bytes it
+  // pulled from HTTP cache instead of the network, defeating the whole update.
+  event.waitUntil(
+    caches.open(CACHE_NAME).then(cache =>
+      Promise.all(APP_SHELL.map(url => cache.add(new Request(url, {cache:"reload"}))))
+    )
+  );
 });
 
 self.addEventListener("activate", event => {

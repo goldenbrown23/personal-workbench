@@ -1,4 +1,5 @@
 let waitingWorker = null;
+let swRegistration = null;
 let updateDismissedThisSession = false;
 let reloadingForUpdate = false;
 
@@ -39,7 +40,8 @@ function initUpdateWatcher(){
     window.location.reload();
   });
 
-  navigator.serviceWorker.register("./sw.js").then(reg => {
+  navigator.serviceWorker.register("./sw.js", {updateViaCache: "none"}).then(reg => {
+    swRegistration = reg;
     if(reg.waiting && navigator.serviceWorker.controller){
       waitingWorker = reg.waiting;
       showUpdateCard();
@@ -55,6 +57,13 @@ function initUpdateWatcher(){
       });
     });
   }).catch(() => {});
+
+  // A standalone/home-screen PWA is often resumed from the app switcher rather than
+  // freshly navigated, so the browser's own automatic update check may never fire.
+  // Re-check whenever the app comes back to the foreground, plus a slow background poll.
+  document.addEventListener("visibilitychange", () => { if(document.visibilityState === "visible") swRegistration?.update().catch(() => {}); });
+  window.addEventListener("focus", () => swRegistration?.update().catch(() => {}));
+  setInterval(() => { if(document.visibilityState === "visible") swRegistration?.update().catch(() => {}); }, 60*60*1000);
 }
 
 function checkForUpdates(){
