@@ -5,8 +5,8 @@ function latestInteraction(p){
   const a=p.interactions||[];
   return a.length?[...a].sort((x,y)=>(y.date||"").localeCompare(x.date||"") || (y.createdAt||"").localeCompare(x.createdAt||""))[0]:null;
 }
-function latestInteractionByMethod(p,method){
-  const a=(p.interactions||[]).filter(x=>(x.method||"").toLowerCase()===method.toLowerCase());
+function latestSeenInteraction(p){
+  const a=(p.interactions||[]).filter(x=>x.countsAsSeen===true||(x.countsAsSeen===undefined&&(x.method||"").toLowerCase()==="in person"));
   return a.length?[...a].sort((x,y)=>(y.date||"").localeCompare(x.date||"") || (y.createdAt||"").localeCompare(x.createdAt||""))[0]:null;
 }
 function latestContactDate(p){
@@ -52,7 +52,7 @@ function renderCircle(){
 }
 
 function personIdentityHTML(p,t=personTiming(p)){return `<div class="circle-person-head">${visualHTML(p,"avatar","person")}<div class="circle-person-identity"><div class="circle-person-name">${escapeHTML(p.name)}</div>${relationPillHTML(p.relation)}</div><span class="circle-status ${t.class}">${escapeHTML(t.label)}</span></div>`}
-function personSnapshotHTML(p,t=personTiming(p)){const last=latestContactDate(p),seen=parseLocalDate(latestInteractionByMethod(p,"In person")?.date);return `<div class="person-snapshot"><div class="snapshot-item"><div class="snapshot-label">Last contact</div><div class="snapshot-value">${escapeHTML(relativeContactLabel(last))}</div></div><div class="snapshot-item"><div class="snapshot-label">Last seen</div><div class="snapshot-value">${escapeHTML(relativeContactLabel(seen))}</div></div><div class="snapshot-item"><div class="snapshot-label">Status</div><div class="snapshot-value">${escapeHTML(t.label)}</div></div></div>`}
+function personSnapshotHTML(p,t=personTiming(p)){const last=latestContactDate(p),seen=parseLocalDate(latestSeenInteraction(p)?.date);return `<div class="person-snapshot"><div class="snapshot-item"><div class="snapshot-label">Last contact</div><div class="snapshot-value">${escapeHTML(relativeContactLabel(last))}</div></div><div class="snapshot-item"><div class="snapshot-label">Last seen</div><div class="snapshot-value">${escapeHTML(relativeContactLabel(seen))}</div></div><div class="snapshot-item"><div class="snapshot-label">Status</div><div class="snapshot-value">${escapeHTML(t.label)}</div></div></div>`}
 
 let detailPersonId=null,detailCalendarMonth=null;const personDetailModal=document.getElementById("personDetailModal");
 function contactCalendarHTML(p,month=detailCalendarMonth||new Date()){
@@ -66,7 +66,7 @@ function contactCalendarHTML(p,month=detailCalendarMonth||new Date()){
 function renderPersonCalendar(){const p=state.people.find(x=>x.id===detailPersonId),el=document.getElementById("personContactCalendar");if(p&&el)el.innerHTML=contactCalendarHTML(p)}
 function shiftPersonCalendar(delta){if(!detailCalendarMonth)return;const next=new Date(detailCalendarMonth.getFullYear(),detailCalendarMonth.getMonth()+delta,1),current=new Date(),currentStart=new Date(current.getFullYear(),current.getMonth(),1);detailCalendarMonth=next>currentStart?currentStart:next;renderPersonCalendar()}
 function openPersonDetail(id){
-  detailPersonId=id;const p=state.people.find(x=>x.id===id);if(!p)return;const t=personTiming(p),latest=latestInteraction(p),last=latestContactDate(p),inPerson=parseLocalDate(latestInteractionByMethod(p,"In person")?.date),next=nextContactDate(p);detailCalendarMonth=last?new Date(last.getFullYear(),last.getMonth(),1):new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  detailPersonId=id;const p=state.people.find(x=>x.id===id);if(!p)return;const t=personTiming(p),latest=latestInteraction(p),last=latestContactDate(p),inPerson=parseLocalDate(latestSeenInteraction(p)?.date),next=nextContactDate(p);detailCalendarMonth=last?new Date(last.getFullYear(),last.getMonth(),1):new Date(new Date().getFullYear(),new Date().getMonth(),1);
   const notes=[...(p.notes||[])].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   const notesHTML=notes.length?`<div class="note-list">${notes.map(n=>`<div class="memory-note"><div class="memory-note-type">${escapeHTML(n.type||"Remember")}</div><div class="memory-note-text">${escapeHTML(n.text||"")}</div><div class="memory-note-date">${n.createdAt?escapeHTML(fmtDate(new Date(n.createdAt))):""}</div></div>`).join("")}</div>`:`<div class="empty-notes">No personal notes yet. Save a memory, gift idea, life update, or follow-up when it naturally comes up.</div>`;
   document.getElementById("personDetailTitle").textContent=p.name;
@@ -139,7 +139,22 @@ document.getElementById("closeTagPicker").addEventListener("click",closeTagPicke
 document.getElementById("cancelTagPicker").addEventListener("click",closeTagPicker);
 tagPickerModal.addEventListener("click",e=>{if(e.target===tagPickerModal)closeTagPicker()});
 document.getElementById("deletePersonBtn").addEventListener("click",()=>{if(editingPersonId&&confirm("Remove this person from Main Circle?")){state.people=state.people.filter(p=>p.id!==editingPersonId);closePersonModal();saveState();}}); personModal.addEventListener("click",e=>{if(e.target===personModal)closePersonModal()});
-let contactPersonId=null; const contactModal=document.getElementById("contactModal");
+let contactPersonId=null,contactSelectedDate=dateKey(); const contactModal=document.getElementById("contactModal");
+function renderContactDatePicker(){
+  setupDatePicker({
+    chipsId:"contactDateChips",customId:"contactDateCustom",summaryId:"contactDateSummary",
+    get:()=>contactSelectedDate,
+    set:(d)=>{contactSelectedDate=d;renderContactDatePicker();}
+  });
+}
+function updateContactSeenRow(){
+  const method=document.getElementById("contactMethod").value;
+  const row=document.getElementById("contactSeenRow"),box=document.getElementById("contactCountsAsSeen");
+  const applicable=method==="In person"||method==="Video";
+  row.style.display=applicable?"flex":"none";
+  box.checked=method==="In person";
+}
+document.getElementById("contactMethod").addEventListener("change",updateContactSeenRow);
 function openContactModal(id=null){
   if(!state.people.length){switchView("circleView");openPersonModal();showSaved("Add someone first");return;}
   contactPersonId=id;
@@ -150,11 +165,37 @@ function openContactModal(id=null){
   document.getElementById("contactPersonRow").style.display=id?"none":"grid";
   document.getElementById("contactModalTitle").textContent=p?`Log contact · ${p.name}`:"Log contact";
   document.getElementById("contactMethod").value=localStorage.getItem(METHOD_KEY)||"Text";
-  document.getElementById("contactDate").value=dateKey();document.getElementById("contactNote").value="";contactModal.classList.add("show");
+  document.getElementById("contactNote").value="";
+  contactSelectedDate=dateKey();
+  document.getElementById("contactDateDetails").open=false;
+  renderContactDatePicker();
+  updateContactSeenRow();
+  contactModal.classList.add("show");
 }
 function closeContactModal(){contactModal.classList.remove("show");contactPersonId=null;}
 document.getElementById("closeContactModal").addEventListener("click",closeContactModal);document.getElementById("cancelContactBtn").addEventListener("click",closeContactModal);
-document.getElementById("saveContactBtn").addEventListener("click",()=>{const chosenId=contactPersonId||document.getElementById("contactPerson").value;if(!chosenId)return;const p=state.people.find(x=>x.id===chosenId);if(!p)return;const before=structuredClone(state);const date=document.getElementById("contactDate").value||dateKey();const method=document.getElementById("contactMethod").value;p.interactions ||= [];p.interactions.push({date,method,note:document.getElementById("contactNote").value.trim(),createdAt:new Date().toISOString()});p.lastContact=date;localStorage.setItem(METHOD_KEY,method);closeContactModal();saveState();showSaved(`Contact logged · ${p.name}`,before);}); contactModal.addEventListener("click",e=>{if(e.target===contactModal)closeContactModal()});
+document.getElementById("saveContactBtn").addEventListener("click",()=>{
+  const chosenId=contactPersonId||document.getElementById("contactPerson").value;if(!chosenId)return;
+  const p=state.people.find(x=>x.id===chosenId);if(!p)return;
+  const before=structuredClone(state);
+  const date=contactSelectedDate||dateKey();
+  const method=document.getElementById("contactMethod").value;
+  const note=document.getElementById("contactNote").value.trim();
+  const countsAsSeen=document.getElementById("contactSeenRow").style.display!=="none"&&document.getElementById("contactCountsAsSeen").checked;
+  p.interactions ||= [];
+  const dup=p.interactions.find(item=>item.date===date&&item.method===method);
+  if(dup){
+    if(!confirm(`That day already has a ${method} contact logged. Update it instead of adding another?`)) return;
+    dup.note=note;dup.countsAsSeen=countsAsSeen;dup.updatedAt=new Date().toISOString();
+  }else{
+    p.interactions.push({id:"i-"+Date.now(),date,method,note,countsAsSeen,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+  }
+  p.lastContact=dateKey(latestContactDate(p))||date;
+  localStorage.setItem(METHOD_KEY,method);
+  closeContactModal();saveState();
+  showSaved(date===dateKey()?`Contact logged · ${p.name}`:"Added. Your timeline is more accurate now.",before);
+});
+contactModal.addEventListener("click",e=>{if(e.target===contactModal)closeContactModal()});
 const managePeopleModal=document.getElementById("managePeopleModal");
 function renderManagePeople(){const list=document.getElementById("managePeopleList");list.innerHTML="";state.people.forEach(p=>{const row=document.createElement("div");row.className="manage-item";row.innerHTML=`${visualHTML(p,"avatar","person")}<div class="grow"><strong>${escapeHTML(p.name)}</strong>${p.relation?relationPillHTML(p.relation,"relationship-label small"):`<small>${escapeHTML(frequencyLabel(p.frequency))}</small>`}</div><button class="tiny-btn" data-person="${escapeAttr(p.id)}">Edit</button>`;list.appendChild(row)});if(!state.people.length)list.innerHTML=`<div class="empty-card">No people added yet.</div>`;list.querySelectorAll("[data-person]").forEach(b=>b.addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal(b.dataset.person)}));}
 document.getElementById("managePeopleBtn").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show")});document.getElementById("closeManagePeople").addEventListener("click",()=>managePeopleModal.classList.remove("show"));document.getElementById("managePersonAdd").addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal()});managePeopleModal.addEventListener("click",e=>{if(e.target===managePeopleModal)managePeopleModal.classList.remove("show")});

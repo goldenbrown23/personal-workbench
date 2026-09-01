@@ -111,6 +111,15 @@ function normalizePerson(p){
   }
   const freq=Number(merged.frequency);
   merged.frequency=Number.isFinite(freq)?freq:14;
+  merged.interactions=(merged.interactions||[]).map((item,i)=>({
+    id:item.id||`i-legacy-${merged.id||"p"}-${i}`,
+    date:item.date||dateKey(),
+    method:item.method||"Other",
+    note:item.note||"",
+    countsAsSeen:item.countsAsSeen!==undefined?item.countsAsSeen:(item.method||"").toLowerCase()==="in person",
+    createdAt:item.createdAt||item.date||new Date().toISOString(),
+    updatedAt:item.updatedAt||item.createdAt||item.date||new Date().toISOString()
+  }));
   return merged;
 }
 
@@ -182,6 +191,24 @@ function dailyCopy(key,choices,d=new Date()){const seed=Number(dateKey(d).replac
 function fmtShort(d){ return new Intl.DateTimeFormat(undefined,{weekday:"short"}).format(d); }
 
 function parseLocalDate(key){ if(!key) return null; const [y,m,d]=key.split("-").map(Number); return new Date(y,m-1,d); }
+
+function setupDatePicker({chipsId,customId,summaryId,get,set}){
+  const chips=document.getElementById(chipsId), custom=document.getElementById(customId), summary=document.getElementById(summaryId);
+  if(!chips||!custom) return;
+  const today=dateKey(), yesterday=dateKey(addDays(new Date(),-1)), twoAgo=dateKey(addDays(new Date(),-2));
+  const presets=[[today,"Today"],[yesterday,"Yesterday"],[twoAgo,"2 days ago"]];
+  const current=get();
+  const presetMatch=presets.find(([d])=>d===current);
+  chips.innerHTML=presets.map(([d,label])=>`<button type="button" class="filter-chip ${current===d?"active":""}" data-pick="${d}">${label}</button>`).join("")+`<button type="button" class="filter-chip ${!presetMatch?"active":""}" data-pick="custom">Pick date</button>`;
+  custom.style.display=presetMatch?"none":"block";
+  if(!presetMatch) custom.value=current||today;
+  if(summary) summary.textContent=presetMatch?presetMatch[1]:(current?fmtDate(parseLocalDate(current)):"Pick date");
+  chips.querySelectorAll("[data-pick]").forEach(btn=>btn.addEventListener("click",()=>{
+    if(btn.dataset.pick==="custom"){custom.style.display="block";custom.value=custom.value||current||today;custom.focus();set(custom.value||current||today);return;}
+    set(btn.dataset.pick);
+  }));
+  custom.onchange=()=>{ if(custom.value) set(custom.value); };
+}
 function daysBetween(a,b){ const x=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const y=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((y-x)/86400000); }
 function fmtDate(d){ return d ? new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric"}).format(d) : "Not yet"; }
 

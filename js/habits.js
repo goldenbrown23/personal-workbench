@@ -1,4 +1,10 @@
-function getStatus(habitId, key=dateKey()){ return state.logs?.[key]?.[habitId] || ""; }
+function getLogEntry(habitId, key=dateKey()){
+  const raw=state.logs?.[key]?.[habitId];
+  if(!raw) return null;
+  if(typeof raw==="string") return {status:raw,timeBlock:null,note:"",createdAt:null,updatedAt:null};
+  return {status:"",timeBlock:null,note:"",createdAt:null,updatedAt:null,...raw};
+}
+function getStatus(habitId, key=dateKey()){ return getLogEntry(habitId,key)?.status || ""; }
 function setStatus(habitId, status){
   const before=structuredClone(state);
   const key=dateKey();
@@ -9,10 +15,29 @@ function setStatus(habitId, status){
   saveState();
   showSaved("Habit updated",before);
 }
-function wasMissedPreviousRecordedDay(habitId){
+function saveHabitLogEntry(habitId,{date,timeBlock,status,note}){
+  const before=structuredClone(state);
+  const targetDate=parseLocalDate(date)||new Date();
+  const key=dateKey(targetDate);
+  const existing=getLogEntry(habitId,key);
+  if(!existing?.status&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId,targetDate))status="returned";
+  state.logs[key] ||= {};
+  const now=new Date().toISOString();
+  state.logs[key][habitId]={status,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
+  saveState();
+  showSaved(key===dateKey()?"Habit updated":"Added. Your timeline is more accurate now.",before);
+}
+function clearHabitLogEntry(habitId,date){
+  const before=structuredClone(state);
+  const key=dateKey(parseLocalDate(date)||new Date());
+  if(state.logs[key]) delete state.logs[key][habitId];
+  saveState();
+  showSaved("Log cleared",before);
+}
+function wasMissedPreviousRecordedDay(habitId, fromDate=new Date()){
   // most recent earlier day that has a status for this habit
   for(let i=1;i<=30;i++){
-    const k=dateKey(addDays(new Date(),-i));
+    const k=dateKey(addDays(fromDate,-i));
     const s=getStatus(habitId,k);
     if(s) return s==="miss";
   }
@@ -105,22 +130,56 @@ function renderToday(){
 }
 function statusLabel(status){return ({done:"✓ Done",counted:"○ Counted",miss:"— Not today",returned:"↩ Returned"})[status]||""}
 function statusButton(id,key,label,current){
-  return `<button class="status ${key} ${current===key?"active":""}" onclick="setStatus('${jsEscape(id)}','${key}');closeStatusModal()">${label}</button>`;
+  return `<button class="status ${key} ${current===key?"active":""}" onclick="handleLogStatusClick('${jsEscape(key)}')">${label}</button>`;
 }
 
-let loggingHabitId=null;
+let loggingHabitId=null,loggingSelectedDate=dateKey();
 const statusModal=document.getElementById("statusModal");
-function openStatusModal(id){
-  loggingHabitId=id;const h=state.habits.find(x=>x.id===id);const current=getStatus(id);
+function openStatusModal(id,presetDate=null){
+  loggingHabitId=id;
+  loggingSelectedDate=presetDate||dateKey();
+  document.getElementById("statusDateDetails").open=false;
+  renderStatusModalForDate();
+  statusModal.classList.add("show");
+}
+function renderStatusModalForDate(){
+  const id=loggingHabitId,h=state.habits.find(x=>x.id===id);
+  const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
+  const current=getStatus(id,key),entry=getLogEntry(id,key);
   document.getElementById("statusModalTitle").textContent=h?`Log · ${h.name}`:"Log habit";
-  document.getElementById("statusModalHelp").textContent=isReduceGoal(h)?"Choose what is true today. Going over the plan is information—not a failed streak.":"Choose what is true for today. Each valid form of engagement counts.";
+  document.getElementById("statusModalHelp").textContent=isReduceGoal(h)?"Choose what is true for that day. Going over the plan is information—not a failed streak.":"Choose what is true for that day. Each valid form of engagement counts.";
   const small=smallerVersions(h),plan=document.getElementById("statusPlan");plan.classList.toggle("show",Boolean(h?.full||small.length));plan.innerHTML=`${h?.full?`<div class="status-plan-label">${isReduceGoal(h)?"Your plan":"Full version"}</div><div class="status-plan-main">${escapeHTML(h.full)}</div>`:""}${small.length?`<div class="status-plan-small"><strong>${isReduceGoal(h)?"Smaller wins":"Smaller versions"}:</strong> ${small.map(escapeHTML).join(" · ")}</div>`:""}`;
-  document.getElementById("statusChoices").innerHTML=statusOptions(h).map(([key,label])=>statusButton(id,key,label,current)).join("");
-  document.getElementById("clearStatusBtn").style.display=current?"block":"none";statusModal.classList.add("show");
+  document.getElementById("statusChoices").innerHTML=statusOptions(h).map(([k,label])=>statusButton(id,k,label,current)).join("");
+  document.getElementById("clearStatusBtn").style.display=current?"block":"none";
+  document.getElementById("statusTimeBlock").value=entry?.timeBlock||timeBlockOf(h);
+  document.getElementById("statusNote").value=entry?.note||"";
+  renderStatusDatePicker();
+}
+function renderStatusDatePicker(){
+  setupDatePicker({
+    chipsId:"statusDateChips",customId:"statusDateCustom",summaryId:"statusDateSummary",
+    get:()=>loggingSelectedDate,
+    set:(d)=>{loggingSelectedDate=d;renderStatusModalForDate();}
+  });
+}
+function handleLogStatusClick(status){
+  if(!loggingHabitId) return;
+  const h=state.habits.find(x=>x.id===loggingHabitId);
+  const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
+  const existing=getLogEntry(loggingHabitId,key);
+  if(existing?.status&&existing.status!==status){
+    const newLabel=(statusOptions(h).find(([k])=>k===status)||[])[1]||status;
+    const oldLabel=(statusOptions(h).find(([k])=>k===existing.status)||[])[1]||existing.status;
+    if(!confirm(`That day already has "${oldLabel}" logged. Replace it with "${newLabel}"?`)) return;
+  }
+  const timeBlock=document.getElementById("statusTimeBlock").value;
+  const note=document.getElementById("statusNote").value;
+  saveHabitLogEntry(loggingHabitId,{date:loggingSelectedDate,timeBlock,status,note});
+  closeStatusModal();
 }
 function closeStatusModal(){statusModal.classList.remove("show");loggingHabitId=null}
 document.getElementById("closeStatusModal").addEventListener("click",closeStatusModal);document.getElementById("cancelStatusBtn").addEventListener("click",closeStatusModal);statusModal.addEventListener("click",e=>{if(e.target===statusModal)closeStatusModal()});
-document.getElementById("clearStatusBtn").addEventListener("click",()=>{if(loggingHabitId&&getStatus(loggingHabitId))setStatus(loggingHabitId,getStatus(loggingHabitId));closeStatusModal()});
+document.getElementById("clearStatusBtn").addEventListener("click",()=>{if(loggingHabitId)clearHabitLogEntry(loggingHabitId,loggingSelectedDate);closeStatusModal()});
 
 const habitFilterModal=document.getElementById("habitFilterModal");
 function openHabitFilter(){
@@ -173,12 +232,12 @@ function renderWeek(){
 
 let reviewFilter="all";
 function reviewDateLabel(date){const today=dateKey(),key=dateKey(date),yesterday=dateKey(addDays(new Date(),-1));if(key===today)return "Today";if(key===yesterday)return "Yesterday";return fmtLong(date)}
-function reviewHabitEvent(h,status){const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};const icons={done:"✓",counted:"○",miss:"—",returned:"↩"};return {type:"habit",status,title:h.name,note:labels[status],icon:icons[status]}}
+function reviewHabitEvent(h,entry){const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};const icons={done:"✓",counted:"○",miss:"—",returned:"↩"};const note=labels[entry.status]+(entry.note?` · ${entry.note}`:"");return {type:"habit",status:entry.status,title:h.name,note,icon:icons[entry.status]}}
 function renderReviewHistory(days=getLast7Days()){
   const list=document.getElementById("reviewHistory");if(!list)return;list.innerHTML="";
   [...days].reverse().forEach(date=>{
     const key=dateKey(date),events=[];
-    state.habits.forEach(h=>{const status=getStatus(h.id,key);if(status)events.push(reviewHabitEvent(h,status))});
+    state.habits.forEach(h=>{const entry=getLogEntry(h.id,key);if(entry?.status)events.push(reviewHabitEvent(h,entry))});
     state.people.forEach(person=>{const interactions=(person.interactions||[]).filter(item=>item.date===key);interactions.forEach(item=>events.push({type:"circle",title:`Connected with ${person.name}`,note:item.method||"Contact",icon:"💬"}));if(!interactions.length&&person.lastContact===key)events.push({type:"circle",title:`Connected with ${person.name}`,note:"Contact",icon:"💬"})});
     const visible=events.filter(event=>reviewFilter==="all"||event.type===reviewFilter);
     const day=document.createElement("section");day.className="history-day";day.innerHTML=`<div class="history-day-label">${escapeHTML(reviewDateLabel(date))}<span> · ${visible.length?`${visible.length} ${visible.length===1?"entry":"entries"}`:"Quiet day"}</span></div>`;

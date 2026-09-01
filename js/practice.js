@@ -82,9 +82,11 @@ function renderPracticeGrid(){
     let dayReturns = 0;
     state.habits.forEach(h=>{
       const applies = habitAppliesOnDate(h, date);
-      const status = getStatus(h.id, key);
+      const entry = getLogEntry(h.id, key);
+      const status = entry?.status || "";
       if(status){
-        blocks[timeBlockOf(h)].push(status);
+        const block = (entry.timeBlock && blocks[entry.timeBlock]) ? entry.timeBlock : timeBlockOf(h);
+        blocks[block].push(status);
         if(status==="done") done++;
         if(status==="counted") counted++;
         if(status==="miss") miss++;

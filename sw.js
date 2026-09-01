@@ -2,7 +2,7 @@
 // from an imported file. Safari/WebKit only re-checks this service worker for
 // updates when sw.js's OWN bytes change; it does not re-check importScripts()
 // targets, so deriving this from version.js silently breaks update detection there.
-const CACHE_NAME = "personal-workbench-v0.8.0";
+const CACHE_NAME = "personal-workbench-v0.9.0";
 const APP_SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./icon.svg", "./icon-192.png", "./icon-512.png",
   "./styles.css",
