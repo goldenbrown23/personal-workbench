@@ -24,6 +24,7 @@
       </div>
       <button class="icon-btn" id="settingsBtn" aria-label="Open settings">⚙️</button>
     </header>
+    <button class="link-btn" style="padding-left:0" data-jump="aboutView">🧭 How this works</button>
     <div class="backup-nudge" id="backupNudge"><div class="backup-nudge-icon">☁️</div><div class="backup-nudge-copy"><div class="backup-nudge-title">Keep a copy of your Workbench</div><div class="backup-nudge-note">A quick backup protects what you’ve added on this device.</div></div><div class="backup-nudge-actions"><button id="backupLaterBtn">Later</button><button id="backupNowBtn">Back up</button></div></div>
     <div class="home-now" id="homeNow"></div>
     <div class="home-section-title">Quick actions</div>
@@ -123,32 +124,105 @@
     <header>
       <div>
         <div class="eyebrow">Your rules</div>
-        <h1>🧠 How this works</h1>
-        <div class="sub">The tracker is intentionally designed not to punish imperfect days.</div>
+        <h1>🧭 Guide</h1>
+        <div class="sub">A calm map of the Workbench. Skim it, don’t study it.</div>
       </div>
-      <button class="icon-btn" data-jump="settingsView" aria-label="Back to settings">←</button>
+      <button class="icon-btn" data-jump="homeView" aria-label="Close guide">✕</button>
     </header>
 
-    <div class="habit-card">
-      <div class="habit-name">✓ Done</div>
-      <div class="habit-note">You did your normal version.</div>
-    </div>
-    <div class="habit-card" style="margin-top:10px">
-      <div class="habit-name">○ Counted</div>
-      <div class="habit-note">You used a smaller valid version. It counts exactly the same toward engagement.</div>
-    </div>
-    <div class="habit-card" style="margin-top:10px">
-      <div class="habit-name">— Not today</div>
-      <div class="habit-note">Neutral data. Nothing needs fixing tonight.</div>
-    </div>
-    <div class="habit-card" style="margin-top:10px">
-      <div class="habit-name">↩ Returned</div>
-      <div class="habit-note">The first time you engage again after a missed day. This is the behavior we want to strengthen.</div>
-    </div>
+    <div class="settings-page settings-calm">
 
-    <div class="footer-rule">
-      <strong>After a miss:</strong><br>
-      Do not compensate. Do not restart the week. Do not redesign the system. Just make contact with the habit again.
+      <details class="settings-disclosure" open>
+        <summary><span><strong>🌱 First 5 minutes</strong><small>The smallest way to start</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <ul class="guide-list">
+            <li><span class="guide-bullet">1</span>Add one habit</li>
+            <li><span class="guide-bullet">2</span>Add one smaller version of it</li>
+            <li><span class="guide-bullet">3</span>Add one person to your Circle</li>
+            <li><span class="guide-bullet">4</span>Turn on backup reminders</li>
+            <li><span class="guide-bullet">5</span>Close the app</li>
+          </ul>
+          <div class="guide-quote">Do not build the whole system today. Start small.</div>
+        </div>
+      </details>
+
+      <details class="settings-disclosure">
+        <summary><span><strong>🏡 Home</strong><small>Start here when you don’t know what to do</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <ul class="guide-list">
+            <li><span class="guide-bullet">🏡</span>The Start Here card tells you the one useful thing to do next</li>
+            <li><span class="guide-bullet">⚡</span>Quick actions jump straight to checking in or logging contact</li>
+            <li><span class="guide-bullet">🔔</span>Useful reminders show up gently, only when they matter</li>
+            <li><span class="guide-bullet">☁️</span>A backup reminder appears here after your first week</li>
+          </ul>
+        </div>
+      </details>
+
+      <details class="settings-disclosure">
+        <summary><span><strong>🌿 Habits</strong><small>Track full wins, small wins, and bare-minimum wins</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <ul class="guide-list">
+            <li><span class="guide-bullet">🕐</span>Habits can be grouped by morning, afternoon, or evening</li>
+            <li><span class="guide-bullet">✓</span>Full version — you did your normal version</li>
+            <li><span class="guide-bullet">○</span>Small version — a smaller valid version, counts just the same</li>
+            <li><span class="guide-bullet">·</span>Bare-minimum version — the smallest thing that still counts</li>
+            <li><span class="guide-bullet">—</span>“Not today” or Skip is neutral data, not a failure</li>
+            <li><span class="guide-bullet">↩</span>Returned — coming back after a missed day. That’s the whole goal</li>
+          </ul>
+          <div class="guide-quote">A smaller version still counts. The goal is returning, not perfection.</div>
+        </div>
+      </details>
+
+      <details class="settings-disclosure">
+        <summary><span><strong>💛 Circle</strong><small>Remember who matters, without the pressure</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <ul class="guide-list">
+            <li><span class="guide-bullet">📅</span>Last contact — when you last connected</li>
+            <li><span class="guide-bullet">👀</span>Last seen — when you last spent time together</li>
+            <li><span class="guide-bullet">💬</span>Contact ideas — a low-effort way to reach out</li>
+            <li><span class="guide-bullet">🕊️</span>Next soft check-in — a gentle nudge, not a deadline</li>
+            <li><span class="guide-bullet">📝</span>Person notes — small things worth remembering</li>
+          </ul>
+          <div class="guide-quote">This is not a guilt list. It is a care reminder.</div>
+        </div>
+      </details>
+
+      <details class="settings-disclosure">
+        <summary><span><strong>📈 Review</strong><small>Notice patterns without judging yourself</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <ul class="guide-list">
+            <li><span class="guide-bullet">🔁</span>Review repeated patterns, not single days</li>
+            <li><span class="guide-bullet">🌱</span>Look for habits that might need a smaller version</li>
+            <li><span class="guide-bullet">🚫</span>Don’t redesign everything after one missed day</li>
+          </ul>
+          <div class="guide-quote">Do not redesign your life after one bad day. Look for patterns.</div>
+        </div>
+      </details>
+
+      <details class="settings-disclosure">
+        <summary><span><strong>⚙️ Settings</strong><small>Customize, back up, update, or reset</small></span><span aria-hidden="true">⌄</span></summary>
+        <div class="settings-disclosure-body">
+          <ul class="guide-list">
+            <li><span class="guide-bullet">🎨</span>Personalize — how the Workbench looks and feels</li>
+            <li><span class="guide-bullet">☁️</span>Backup &amp; Restore — protect your data</li>
+            <li><span class="guide-bullet">🔄</span>App Updates — check whether a newer version is ready</li>
+            <li><span class="guide-bullet">🔒</span>Privacy &amp; Data — where your data lives, and how to clear it</li>
+          </ul>
+          <div class="guide-quote">Settings are for occasional changes. You do not need to check this daily.</div>
+        </div>
+      </details>
+
+      <div class="rescue-card">
+        <div class="settings-title">🫧 Overwhelmed?</div>
+        <div class="settings-help">Do not organize everything right now. Pick one tiny return.</div>
+        <ul class="guide-list">
+          <li><span class="guide-bullet">·</span>Count a bare-minimum habit</li>
+          <li><span class="guide-bullet">📝</span>Dump one thought in a person’s notes</li>
+          <li><span class="guide-bullet">💬</span>Text one person</li>
+          <li><span class="guide-bullet">🌿</span>Turn on Gentle Day</li>
+        </ul>
+      </div>
+
     </div>
   </div>
 
