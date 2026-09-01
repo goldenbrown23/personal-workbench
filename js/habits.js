@@ -41,6 +41,8 @@ function scheduleLabel(h){
 function isReduceGoal(h){return h?.goalType==="reduce"}
 function smallerVersions(h){return [h?.small,h?.small2].map(x=>(x||"").trim()).filter(Boolean)}
 function goalCue(h,gentle=false){const smaller=smallerVersions(h);if(gentle&&smaller.length)return dailyCopy(`small-${h.id}`,smaller);if(h.full)return h.full;if(isReduceGoal(h))return "Stay within the plan you chose for today.";return scheduleLabel(h)}
+function whatCountsText(h){const bareMin=(h.small2||"").trim(),smaller=(h.small||"").trim();return bareMin||smaller||(h.full||"").trim()||goalCue(h)}
+function focusActionLabels(h){return isReduceGoal(h)?{primary:"Reduced",done:"Within plan",miss:"Over plan"}:{primary:"Count it",done:"Done",miss:"Not today"}}
 function habitActionLabel(h,mode){if(isReduceGoal(h))return mode==="return"?"↩ Back to plan":mode==="gentle"?"○ Reduced":"✓ Within plan";return mode==="return"?"↩ Make contact":mode==="gentle"?"○ Do smaller version":"✓ Mark done"}
 function statusOptions(h){return isReduceGoal(h)?[["done","✓ Within plan"],["counted","○ Reduced"],["miss","— Over plan"],["returned","↩ Back to plan"]]:[["done","✓ Full version"],["counted","○ Smaller version"],["miss","— Not today"],["returned","↩ Returned"]]}
 function gentleDayOn(){try{const value=JSON.parse(localStorage.getItem(GENTLE_KEY)||"{}");return value.date===dateKey()&&value.on===true}catch{return false}}
@@ -73,7 +75,24 @@ function renderToday(){
 
   const focus=visible.find(x=>!x.status&&(!(x.habit.scheduleType==="weekly")||weeklyProgress(x.habit)<Number(x.habit.weeklyTarget||1)));
   const focusEl=document.getElementById("habitFocus");
-  if(focus){const h=focus.habit,mode=focus.suggestReturn?"return":gentle?"gentle":"done";const cue=focus.suggestReturn?(isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."):goalCue(h,gentle);focusEl.innerHTML=`<div class="focus-card"><div class="focus-eyebrow">${isReduceGoal(h)?"Reduce goal":"Up next"}</div><div class="focus-main">${visualHTML(h,"emoji")}<div class="focus-copy"><div class="focus-name">${escapeHTML(h.name)}</div><div class="focus-cue">${escapeHTML(cue)}</div></div></div><div class="focus-actions"><button class="btn primary" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${habitActionLabel(h,mode)}</button><button class="btn" onclick="openStatusModal('${jsEscape(h.id)}')">Options</button></div></div>`}else if(base.length&&habitStatusFilter==="any"){focusEl.innerHTML=`<div class="focus-done"><strong style="color:var(--text)">You’ve checked in with what’s here.</strong><br>Nothing needs to be compensated for or perfected.</div>`}else{focusEl.innerHTML=""}
+  if(focus){
+    const h=focus.habit,returnLine=focus.suggestReturn?(isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."):"";
+    const countText=whatCountsText(h),labels=focusActionLabels(h);
+    focusEl.innerHTML=`<div class="focus-card">
+      <div class="focus-eyebrow">${isReduceGoal(h)?"Reduce goal":"Up next"}</div>
+      <div class="focus-main">${visualHTML(h,"emoji")}<div class="focus-copy"><div class="focus-name">${escapeHTML(h.name)}</div><span class="schedule-chip">${escapeHTML((isReduceGoal(h)?"Reduce · ":"")+scheduleLabel(h))}</span></div></div>
+      ${returnLine?`<div class="focus-cue">${escapeHTML(returnLine)}</div>`:""}
+      <div class="focus-count-line"><strong>What counts right now:</strong> ${escapeHTML(countText)}</div>
+      <div class="focus-actions">
+        <button class="btn primary" onclick="setStatus('${jsEscape(h.id)}','counted')">${labels.primary}</button>
+        <div class="focus-secondary-row">
+          <button class="btn" onclick="setStatus('${jsEscape(h.id)}','done')">${labels.done}</button>
+          <button class="btn" onclick="setStatus('${jsEscape(h.id)}','miss')">${labels.miss}</button>
+          <button class="btn focus-more-btn" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">⋯</button>
+        </div>
+      </div>
+    </div>`;
+  }else if(base.length&&habitStatusFilter==="any"){focusEl.innerHTML=`<div class="focus-done"><strong style="color:var(--text)">You’ve checked in with what’s here.</strong><br>Nothing needs to be compensated for or perfected.</div>`}else{focusEl.innerHTML=""}
 
   const remaining=visible.filter(x=>!focus||x.habit.id!==focus.habit.id);
   document.getElementById("habitListTitle").textContent=focus?"Quiet for now":"Habits";
