@@ -139,12 +139,12 @@ document.getElementById("closeTagPicker").addEventListener("click",closeTagPicke
 document.getElementById("cancelTagPicker").addEventListener("click",closeTagPicker);
 tagPickerModal.addEventListener("click",e=>{if(e.target===tagPickerModal)closeTagPicker()});
 document.getElementById("deletePersonBtn").addEventListener("click",()=>{if(editingPersonId&&confirm("Remove this person from Main Circle?")){state.people=state.people.filter(p=>p.id!==editingPersonId);closePersonModal();saveState();}}); personModal.addEventListener("click",e=>{if(e.target===personModal)closePersonModal()});
-let contactPersonId=null,contactSelectedDate=dateKey(); const contactModal=document.getElementById("contactModal");
+let contactPersonId=null,contactSelectedDate=dateKey(),contactDateIsCustom=false; const contactModal=document.getElementById("contactModal");
 function renderContactDatePicker(){
   setupDatePicker({
     chipsId:"contactDateChips",customId:"contactDateCustom",summaryId:"contactDateSummary",
-    get:()=>contactSelectedDate,
-    set:(d)=>{contactSelectedDate=d;renderContactDatePicker();}
+    getState:()=>({date:contactSelectedDate,isCustom:contactDateIsCustom}),
+    setState:(d,isCustom)=>{contactSelectedDate=d;contactDateIsCustom=isCustom;renderContactDatePicker();}
   });
 }
 function updateContactSeenRow(){
@@ -167,6 +167,7 @@ function openContactModal(id=null){
   document.getElementById("contactMethod").value=localStorage.getItem(METHOD_KEY)||"Text";
   document.getElementById("contactNote").value="";
   contactSelectedDate=dateKey();
+  contactDateIsCustom=false;
   document.getElementById("contactDateDetails").open=false;
   renderContactDatePicker();
   updateContactSeenRow();

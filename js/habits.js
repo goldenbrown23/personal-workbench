@@ -133,11 +133,12 @@ function statusButton(id,key,label,current){
   return `<button class="status ${key} ${current===key?"active":""}" onclick="handleLogStatusClick('${jsEscape(key)}')">${label}</button>`;
 }
 
-let loggingHabitId=null,loggingSelectedDate=dateKey();
+let loggingHabitId=null,loggingSelectedDate=dateKey(),loggingDateIsCustom=false;
 const statusModal=document.getElementById("statusModal");
 function openStatusModal(id,presetDate=null){
   loggingHabitId=id;
   loggingSelectedDate=presetDate||dateKey();
+  loggingDateIsCustom=false;
   document.getElementById("statusDateDetails").open=false;
   renderStatusModalForDate();
   statusModal.classList.add("show");
@@ -158,8 +159,8 @@ function renderStatusModalForDate(){
 function renderStatusDatePicker(){
   setupDatePicker({
     chipsId:"statusDateChips",customId:"statusDateCustom",summaryId:"statusDateSummary",
-    get:()=>loggingSelectedDate,
-    set:(d)=>{loggingSelectedDate=d;renderStatusModalForDate();}
+    getState:()=>({date:loggingSelectedDate,isCustom:loggingDateIsCustom}),
+    setState:(d,isCustom)=>{loggingSelectedDate=d;loggingDateIsCustom=isCustom;renderStatusModalForDate();}
   });
 }
 function handleLogStatusClick(status){
