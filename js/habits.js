@@ -321,6 +321,39 @@ document.getElementById("multiLogBtn").addEventListener("click",()=>{
   closeStatusModal();
 });
 
+// Only the versions a habit actually has configured — never a placeholder for an
+// empty field. small/small2 both log as "counted" (the data model doesn't distinguish
+// two tiers of smaller-than-full), so picking either just records which text was shown.
+function versionRowsForHabit(h){
+  const reduce=isReduceGoal(h);
+  const full=(h.full||"").trim(),small=(h.small||"").trim(),small2=(h.small2||"").trim();
+  const rows=[];
+  if(full) rows.push({status:"done",label:reduce?"Your plan":"Full version",text:full});
+  if(small) rows.push({status:"counted",label:reduce?"Smaller win":"Smaller version",text:small});
+  if(small2) rows.push({status:"counted",label:reduce?"Another smaller win":"Minimum version",text:small2});
+  return rows;
+}
+let easierVersionHabitId=null;
+const easierVersionModal=document.getElementById("easierVersionModal");
+function openEasierVersion(habitId){
+  const h=state.habits.find(x=>x.id===habitId);
+  if(!h) return;
+  easierVersionHabitId=habitId;
+  const period=currentTimePeriod();
+  document.getElementById("easierVersionTitle").textContent=period==="morning"?"What works this morning?":period==="afternoon"?"What works this afternoon?":"What works tonight?";
+  const rows=versionRowsForHabit(h);
+  document.getElementById("easierVersionList").innerHTML=rows.map((r,i)=>`<button type="button" class="version-option" data-version-index="${i}"><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></button>`).join("");
+  document.querySelectorAll("#easierVersionList [data-version-index]").forEach(btn=>btn.addEventListener("click",()=>{
+    const row=rows[Number(btn.dataset.versionIndex)];
+    if(row) homeLogStatus(easierVersionHabitId,row.status);
+    closeEasierVersion();
+  }));
+  easierVersionModal.classList.add("show");
+}
+function closeEasierVersion(){easierVersionModal.classList.remove("show");easierVersionHabitId=null}
+document.getElementById("closeEasierVersion").addEventListener("click",closeEasierVersion);
+easierVersionModal.addEventListener("click",e=>{if(e.target===easierVersionModal)closeEasierVersion()});
+
 const habitFilterModal=document.getElementById("habitFilterModal");
 function openHabitFilter(){
   const options={any:["Everything","No extra filter"],unlogged:["Not logged","Only habits you haven’t checked in with"],logged:["Logged","Only today’s recorded habits"],return:["Return opportunities","Habits after a recorded Not today"]};

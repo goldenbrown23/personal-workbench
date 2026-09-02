@@ -50,6 +50,29 @@ function renderHome(){
   renderHomeQuickActions(period);
 }
 
+// Debounce guard for Home's primary logging actions: setStatus() is fully synchronous
+// (saveState -> renderAll happen inline), so a genuine double-click can't interleave —
+// but iOS occasionally dispatches a duplicate/"ghost" tap as a separate event shortly
+// after the real one, which this timestamp check absorbs without affecting normal taps.
+let lastHomeActionAt=0;
+function homeLogStatus(habitId,status){
+  const now=Date.now();
+  if(now-lastHomeActionAt<600) return;
+  lastHomeActionAt=now;
+  setStatus(habitId,status);
+}
+
+// The smallest configured version is what Start Here presents and what "I did it"
+// must log — never a hardcoded status. Full only counts as "done" when it's the ONLY
+// configured version (nothing smaller exists to present instead).
+function homePrimaryTier(h){
+  const bareMin=(h.small2||"").trim(),smaller=(h.small||"").trim(),full=(h.full||"").trim();
+  if(bareMin) return {text:bareMin,status:"counted"};
+  if(smaller) return {text:smaller,status:"counted"};
+  if(full) return {text:full,status:"done"};
+  return {text:"A tiny check-in counts.",status:"counted"};
+}
+
 // Home is a minimal launchpad, not a dashboard: Start Here shows exactly one
 // natural-language detail line (the smallest defined version of the habit) and
 // never falls back to a schedule label like "Daily" — that read as dashboard noise.
@@ -60,16 +83,15 @@ function renderStartHere(period,gentle,nudges){
 
   const pick=pickStartHereHabit(period);
   if(pick){
-    const h=pick.habit,countText=whatCountsText(h)||"A tiny check-in counts.",labels=focusActionLabels(h);
+    const h=pick.habit,tier=homePrimaryTier(h);
     const blockNote=pick.isCurrentBlock?"":`<div class="home-now-block-note">Nothing left from ${escapeHTML(BLOCK_LABEL[period]||"now")}, so here’s one from ${escapeHTML(BLOCK_LABEL[pick.block]||"elsewhere")} instead.</div>`;
-    let detail;
-    if(pick.isReturn) detail=isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart.";
-    else if(gentle) detail="Doing less still keeps the connection.";
-    else detail=countText;
-    const actionsHTML=gentle
-      ? `<button class="home-now-action" onclick="setStatus('${jsEscape(h.id)}','counted')">${labels.primary}</button>`
-      : `<div class="focus-actions"><button class="btn primary" onclick="setStatus('${jsEscape(h.id)}','counted')">${labels.primary}</button><div class="focus-secondary-row"><button class="btn" onclick="setStatus('${jsEscape(h.id)}','done')">${labels.done}</button><button class="btn" onclick="setStatus('${jsEscape(h.id)}','miss')">${labels.miss}</button><button class="btn focus-more-btn" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">⋯</button></div></div>`;
-    homeNow.innerHTML=`<div class="home-now-label">Start here</div><div class="home-now-main">${visualHTML(h,"home-now-icon")}<div class="home-now-copy"><div class="home-now-title">${escapeHTML(h.name)}</div><div class="home-now-detail">${escapeHTML(detail)}</div></div></div>${blockNote}${actionsHTML}`;
+    let detail,primaryStatus;
+    if(pick.isReturn){ detail=isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."; primaryStatus=tier.status; }
+    else if(gentle){ detail="Doing less still keeps the connection."; primaryStatus="counted"; }
+    else{ detail=tier.text; primaryStatus=tier.status; }
+    const hasVersions=Boolean(versionRowsForHabit(h).length);
+    const secondaryRow=`<div class="home-now-secondary-row">${hasVersions?`<button class="home-now-link" onclick="openEasierVersion('${jsEscape(h.id)}')">Need an easier version?</button>`:"<span></span>"}<button class="home-now-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
+    homeNow.innerHTML=`<div class="home-now-label">Start here</div><div class="home-now-main">${visualHTML(h,"home-now-icon")}<div class="home-now-copy"><div class="home-now-title">${escapeHTML(h.name)}</div><div class="home-now-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<button class="home-now-action" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ I did it</button>${secondaryRow}`;
     return;
   }
 
