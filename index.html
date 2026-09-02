@@ -449,11 +449,10 @@
 <div id="statusModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="statusModalTitle">
   <div class="modal">
     <div class="modal-head"><h3 id="statusModalTitle">Log habit</h3><button class="icon-btn" id="closeStatusModal" aria-label="Close habit log">✕</button></div>
-    <div class="settings-help" id="statusModalHelp">Choose what is true for today. Each valid form of engagement counts.</div>
-    <div class="status-plan" id="statusPlan"></div>
-    <div class="status-grid" id="statusChoices"></div>
+    <div class="status-ask">What did you do?</div>
+    <div class="version-option-list" id="statusVersionList"></div>
     <details class="goal-plan" id="statusDateDetails">
-      <summary><span class="goal-plan-title">When did this happen?</span><span class="goal-plan-summary-note" id="statusDateSummary">Today</span></summary>
+      <summary><span class="goal-plan-title">When</span><span class="goal-plan-summary-note" id="statusDateSummary">Today</span></summary>
       <div class="date-mode-row" role="tablist" aria-label="Date selection mode">
         <button type="button" class="date-mode-btn active" id="statusModeSingleBtn" role="tab" aria-selected="true">One date</button>
         <button type="button" class="date-mode-btn" id="statusModeMultiBtn" role="tab" aria-selected="false">Multiple dates</button>
@@ -479,10 +478,10 @@
         <textarea id="statusNote" rows="2" placeholder="Anything worth remembering about this?"></textarea>
       </div>
     </details>
+    <button type="button" class="status-not-today-btn" id="statusNotTodayBtn">Not today</button>
     <div class="modal-actions">
-      <button class="btn danger" id="clearStatusBtn">Clear this day’s log</button>
-      <button class="btn" id="cancelStatusBtn">Cancel</button>
       <button class="btn primary" id="multiLogBtn" style="display:none" disabled>Log entries</button>
+      <button type="button" class="status-clear-link" id="clearStatusBtn" style="display:none">Clear this day’s log</button>
     </div>
   </div>
 </div>

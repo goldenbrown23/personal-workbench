@@ -5,13 +5,26 @@ function getLogEntry(habitId, key=dateKey()){
   return {status:"",timeBlock:null,note:"",createdAt:null,updatedAt:null,...raw};
 }
 function getStatus(habitId, key=dateKey()){ return getLogEntry(habitId,key)?.status || ""; }
+// Engagement version (done/counted/miss) and return context are separate dimensions:
+// a return is derived automatically from history, never a status the user picks, and it
+// no longer overwrites which version was actually logged. isReturn is a flag alongside
+// the real status. Legacy records that collapsed both into status:"returned" are left
+// exactly as they were written — see isReturnDay() below for the compatibility shim.
 function setStatus(habitId, status){
   const before=structuredClone(state);
   const key=dateKey();
   state.logs[key] ||= {};
-  if(!getStatus(habitId,key)&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId))status="returned";
-  if(getStatus(habitId,key)===status) delete state.logs[key][habitId];
-  else state.logs[key][habitId]=status;
+  const hadEntry=Boolean(getStatus(habitId,key));
+  if(getStatus(habitId,key)===status){ delete state.logs[key][habitId]; }
+  else{
+    const isReturn=!hadEntry&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId);
+    if(isReturn){
+      const existing=getLogEntry(habitId,key),now=new Date().toISOString();
+      state.logs[key][habitId]={status,isReturn:true,timeBlock:existing?.timeBlock||null,note:existing?.note||"",createdAt:existing?.createdAt||now,updatedAt:now};
+    }else{
+      state.logs[key][habitId]=status;
+    }
+  }
   saveState();
   showSaved("Habit updated",before);
 }
@@ -20,10 +33,10 @@ function saveHabitLogEntry(habitId,{date,timeBlock,status,note}){
   const targetDate=parseLocalDate(date)||new Date();
   const key=dateKey(targetDate);
   const existing=getLogEntry(habitId,key);
-  if(!existing?.status&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId,targetDate))status="returned";
+  const isReturn=!existing?.status&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId,targetDate);
   state.logs[key] ||= {};
   const now=new Date().toISOString();
-  state.logs[key][habitId]={status,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
+  state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
   saveState();
   showSaved(key===dateKey()?"Habit updated":"Added. Your timeline is more accurate now.",before);
 }
@@ -35,10 +48,9 @@ function saveHabitLogEntriesBatch(habitId,dates,{timeBlock,status,note}){
   sorted.forEach(key=>{
     const targetDate=parseLocalDate(key)||new Date();
     const existing=getLogEntry(habitId,key);
-    let finalStatus=status;
-    if(!existing?.status&&["done","counted"].includes(finalStatus)&&wasMissedPreviousRecordedDay(habitId,targetDate))finalStatus="returned";
+    const isReturn=!existing?.status&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId,targetDate);
     state.logs[key] ||= {};
-    state.logs[key][habitId]={status:finalStatus,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
+    state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
     if(existing?.status) updated++; else created++;
   });
   saveState();
@@ -52,6 +64,11 @@ function clearHabitLogEntry(habitId,date){
   saveState();
   showSaved("Log cleared",before);
 }
+// True whether a return is stored as the new {status,isReturn:true} shape or the
+// legacy status:"returned" shape — callers should use this instead of comparing
+// entry.status==="returned" directly, since a new-style return keeps its real
+// engagement status (done/counted) and flags isReturn separately.
+function isReturnDay(entry){ return Boolean(entry)&&(entry.isReturn===true||entry.status==="returned"); }
 function wasMissedPreviousRecordedDay(habitId, fromDate=new Date()){
   // most recent earlier day that has a status for this habit
   for(let i=1;i<=30;i++){
@@ -90,7 +107,7 @@ function habitActionLabel(h,mode){if(isReduceGoal(h))return mode==="return"?"↩
 function statusOptions(h){return isReduceGoal(h)?[["done","✓ Within plan"],["counted","○ Reduced"],["miss","— Over plan"],["returned","↩ Back to plan"]]:[["done","✓ Full version"],["counted","○ Smaller version"],["miss","— Not today"],["returned","↩ Returned"]]}
 function gentleDayOn(){try{const value=JSON.parse(localStorage.getItem(GENTLE_KEY)||"{}");return value.date===dateKey()&&value.on===true}catch{return false}}
 function setGentleDay(on){localStorage.setItem(GENTLE_KEY,JSON.stringify({date:dateKey(),on}));renderToday();showSaved(on?"Gentle day on":"Standard day on")}
-function quickCompleteHabit(id){const current=getStatus(id);if(current){openStatusModal(id);return}const next=wasMissedPreviousRecordedDay(id)?"returned":gentleDayOn()?"counted":"done";setStatus(id,next)}
+function quickCompleteHabit(id){const current=getStatus(id);if(current){openStatusModal(id);return}setStatus(id,gentleDayOn()?"counted":"done")}
 function habitStatusIcon(status){return ({done:"✓",counted:"○",miss:"—",returned:"↩"})[status]||""}
 
 function renderToday(){
@@ -153,9 +170,6 @@ function renderToday(){
   else if(!remaining.length)list.style.display="none";else list.style.display="block";
 }
 function statusLabel(status){return ({done:"✓ Done",counted:"○ Counted",miss:"— Not today",returned:"↩ Returned"})[status]||""}
-function statusButton(id,key,label,current){
-  return `<button class="status ${key} ${current===key?"active":""}" onclick="handleLogStatusClick('${jsEscape(key)}')">${label}</button>`;
-}
 
 let loggingHabitId=null,loggingSelectedDate=dateKey(),loggingDateIsCustom=false;
 let loggingMode="single",loggingMultiDates=new Set(),loggingMultiMonth=new Date(),loggingRangeArmed=false,loggingRangeAnchor=null,loggingPendingStatus=null;
@@ -187,16 +201,21 @@ function setLoggingMode(mode){
 }
 function renderStatusSharedFields(){
   const h=state.habits.find(x=>x.id===loggingHabitId);
-  document.getElementById("statusModalTitle").textContent=h?`Log · ${h.name}`:"Log habit";
-  document.getElementById("statusModalHelp").textContent=isReduceGoal(h)?"Choose what is true for that day. Going over the plan is information—not a failed streak.":"Choose what is true for that day. Each valid form of engagement counts.";
-  const small=smallerVersions(h),plan=document.getElementById("statusPlan");plan.classList.toggle("show",Boolean(h?.full||small.length));plan.innerHTML=`${h?.full?`<div class="status-plan-label">${isReduceGoal(h)?"Your plan":"Full version"}</div><div class="status-plan-main">${escapeHTML(h.full)}</div>`:""}${small.length?`<div class="status-plan-small"><strong>${isReduceGoal(h)?"Smaller wins":"Smaller versions"}:</strong> ${small.map(escapeHTML).join(" · ")}</div>`:""}`;
+  document.getElementById("statusModalTitle").textContent=h?h.name:"Log habit";
   document.getElementById("statusTimeBlock").value=timeBlockOf(h);
 }
+// Engagement versions render as the same large tappable cards used by the Home
+// "easier version" sheet — only what's actually configured for this habit, never a
+// placeholder example. "Not today" lives outside this list as a quiet tertiary action
+// (see statusNotTodayBtn) since it isn't a version of engagement, it's the absence of one.
 function renderStatusChoices(){
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
   const active=loggingMode==="multi"?loggingPendingStatus:getStatus(loggingHabitId,key);
-  document.getElementById("statusChoices").innerHTML=statusOptions(h).map(([k,label])=>statusButton(loggingHabitId,k,label,active)).join("");
+  let rows=versionRowsForHabit(h);
+  if(!rows.length) rows=[{status:"counted",label:"Check-in",text:"A tiny check-in counts."}];
+  document.getElementById("statusVersionList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${active===r.status?"active":""}" onclick="handleLogStatusClick('${jsEscape(r.status)}')"><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></button>`).join("");
+  document.getElementById("statusNotTodayBtn").classList.toggle("active",active==="miss");
 }
 function renderStatusModalForDate(){
   const id=loggingHabitId,h=state.habits.find(x=>x.id===id);
@@ -294,7 +313,8 @@ function handleLogStatusClick(status){
   closeStatusModal();
 }
 function closeStatusModal(){statusModal.classList.remove("show");loggingHabitId=null}
-document.getElementById("closeStatusModal").addEventListener("click",closeStatusModal);document.getElementById("cancelStatusBtn").addEventListener("click",closeStatusModal);statusModal.addEventListener("click",e=>{if(e.target===statusModal)closeStatusModal()});
+document.getElementById("closeStatusModal").addEventListener("click",closeStatusModal);statusModal.addEventListener("click",e=>{if(e.target===statusModal)closeStatusModal()});
+document.getElementById("statusNotTodayBtn").addEventListener("click",()=>handleLogStatusClick("miss"));
 document.getElementById("clearStatusBtn").addEventListener("click",()=>{if(loggingHabitId)clearHabitLogEntry(loggingHabitId,loggingSelectedDate);closeStatusModal()});
 document.getElementById("statusModeSingleBtn").addEventListener("click",()=>setLoggingMode("single"));
 document.getElementById("statusModeMultiBtn").addEventListener("click",()=>setLoggingMode("multi"));
@@ -378,11 +398,11 @@ function renderWeek(){
     const k=dateKey(d);
     let dayEngaged=0,dayReturns=0,dayRecorded=0;
     state.habits.forEach(h=>{
-      const s=getStatus(h.id,k);
+      const entry=getLogEntry(h.id,k),s=entry?.status||"";
       if(s){
         considered++;dayRecorded++;
         if(["done","counted","returned"].includes(s)){engaged++;dayEngaged++}
-        if(s==="returned"){
+        if(isReturnDay(entry)){
           returns++;dayReturns++;
           const dist=lastMissDistance(h.id,d);
           if(dist) returnDistances.push(dist);
@@ -405,7 +425,16 @@ function renderWeek(){
 
 let reviewFilter="all";
 function reviewDateLabel(date){const today=dateKey(),key=dateKey(date),yesterday=dateKey(addDays(new Date(),-1));if(key===today)return "Today";if(key===yesterday)return "Yesterday";return fmtLong(date)}
-function reviewHabitEvent(h,entry){const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};const icons={done:"✓",counted:"○",miss:"—",returned:"↩"};const note=labels[entry.status]+(entry.note?` · ${entry.note}`:"");return {type:"habit",status:entry.status,title:h.name,note,icon:icons[entry.status]}}
+function reviewHabitEvent(h,entry){
+  const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};
+  const isReturn=isReturnDay(entry),baseLabel=labels[entry.status]||entry.status;
+  // A new-style return keeps its real version label ("Full version · Return") instead of
+  // collapsing to a generic "Returned" that hides which version was actually logged.
+  const label=isReturn&&entry.status!=="returned"?`${baseLabel} · Return`:baseLabel;
+  const icon=isReturn?"↩":({done:"✓",counted:"○",miss:"—",returned:"↩"})[entry.status];
+  const note=label+(entry.note?` · ${entry.note}`:"");
+  return {type:"habit",status:entry.status,title:h.name,note,icon};
+}
 function renderReviewHistory(days=getLast7Days()){
   const list=document.getElementById("reviewHistory");if(!list)return;list.innerHTML="";
   [...days].reverse().forEach(date=>{

@@ -5,15 +5,19 @@ function habitAppliesOnDate(h, date){
   if(type === "days") return (h.weekdays||[]).map(Number).includes(date.getDay());
   return true;
 }
-function aggregateBlockStatus(statuses){
-  if(!statuses.length) return "";
-  if(statuses.includes("returned")) return "returned";
-  if(statuses.every(s=>s==="done")) return "done";
-  if(statuses.includes("counted")) return "counted";
-  if(statuses.every(s=>s==="miss")) return "miss";
-  return "counted";
+function aggregateBlockStatus(entries){
+  if(!entries.length) return {status:"",isReturn:false};
+  const statuses=entries.map(e=>e.status);
+  const isReturn=entries.some(isReturnDay);
+  let status;
+  if(statuses.includes("returned")) status="returned";
+  else if(statuses.every(s=>s==="done")) status="done";
+  else if(statuses.includes("counted")) status="counted";
+  else if(statuses.every(s=>s==="miss")) status="miss";
+  else status="counted";
+  return {status,isReturn};
 }
-function blockBadge(status){
+function blockBadge({status,isReturn}={status:"",isReturn:false}){
   const map = {
     done: ["✓","Done","done"],
     counted: ["○","Counted","counted"],
@@ -22,6 +26,9 @@ function blockBadge(status){
     "": ["·","—","blank"]
   };
   const [icon,label,cls] = map[status] || map[""];
+  // A return keeps its real version label instead of collapsing to a generic "Returned"
+  // badge — the exception is a legacy entry whose actual version was never recorded.
+  if(isReturn&&status&&status!=="returned") return `<span class="status-chip returned">↩ ${label}</span>`;
   return `<span class="status-chip ${cls}">${icon} ${label}</span>`;
 }
 
@@ -73,7 +80,11 @@ function renderPracticeGrid(){
 
   const body = document.getElementById("practiceGridBody");
   body.innerHTML = "";
-  let done=0, counted=0, miss=0, returned=0, engaged=0, possible=0;
+  // "returned" here is only the legacy bucket (records written before engagement version
+  // and return context were split into separate fields — their real version is unknown).
+  // returnsCount is the true, version-independent tally used for the Returns metric and
+  // the Re-entry column, covering both legacy and new-style return records.
+  let done=0, counted=0, miss=0, returned=0, returnsCount=0, engaged=0, possible=0;
 
   days.forEach(date=>{
     const key = dateKey(date);
@@ -86,11 +97,12 @@ function renderPracticeGrid(){
       const status = entry?.status || "";
       if(status){
         const block = (entry.timeBlock && blocks[entry.timeBlock]) ? entry.timeBlock : timeBlockOf(h);
-        blocks[block].push(status);
+        blocks[block].push(entry);
         if(status==="done") done++;
         if(status==="counted") counted++;
         if(status==="miss") miss++;
-        if(status==="returned"){ returned++; dayReturns++; }
+        if(status==="returned") returned++;
+        if(isReturnDay(entry)){ returnsCount++; dayReturns++; }
         if(["done","counted","returned"].includes(status)) engaged++;
       }
       if(applies) possible++;
@@ -114,7 +126,7 @@ function renderPracticeGrid(){
   const engagementPct = possible ? Math.round((engaged/possible)*100) : 0;
   document.getElementById("metricEngagement").textContent = possible ? `${engagementPct}%` : "—";
   document.getElementById("metricEngagementNote").textContent = possible ? `${engaged} / ${possible} possible` : "Nothing logged yet";
-  document.getElementById("metricReturns").textContent = String(returned);
+  document.getElementById("metricReturns").textContent = String(returnsCount);
 
   const total = done+counted+miss+returned;
   const seg = (n)=> total ? Math.round((n/total)*100) : 0;
@@ -149,9 +161,9 @@ function renderPracticeMetrics(){
     const key = dateKey(date);
     let dayEngaged = false;
     state.habits.forEach(h=>{
-      const status = getStatus(h.id, key);
+      const entry = getLogEntry(h.id, key), status = entry?.status || "";
       if(["done","counted","returned"].includes(status)) dayEngaged = true;
-      if(status==="returned"){
+      if(isReturnDay(entry)){
         const dist = lastMissDistance(h.id, date);
         if(dist) returnEvents.push({date, dist});
       }
