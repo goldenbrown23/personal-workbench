@@ -49,9 +49,6 @@ function renderHome(){
   const gentle=gentleDayOn();
   document.getElementById("homeSub").textContent=gentle?"Gentle day is on. Smaller still counts.":PERIOD_COPY[period];
 
-  const guideLink=document.getElementById("homeGuideLink");
-  if(guideLink) guideLink.style.display=state.settings?.guideOpened?"none":"block";
-
   const scheduled=state.habits.filter(h=>habitAppliesToday(h)),logged=scheduled.filter(h=>getStatus(h.id)).length;
   document.getElementById("habitHomeMeta").textContent=scheduled.length?`${logged} of ${scheduled.length} checked in today`:state.habits.length?"Nothing scheduled today":"No habits yet";
   document.getElementById("habitHomeProgress").style.width=scheduled.length?`${Math.round(logged/scheduled.length*100)}%`:"0%";
@@ -60,7 +57,6 @@ function renderHome(){
   document.getElementById("circleHomeMeta").textContent=state.people.length?(nudges.length?`${nudges.length} gentle check-in${nudges.length===1?"":"s"} on your radar`:`${state.people.length} people · nothing pressing`):"Add only the people you intentionally want to keep close";
 
   const shown=renderStartHere(period,gentle,nudges);
-  renderHomePulse({scheduled,logged,nudges,shown});
   renderHomeQuickActions(period);
   document.getElementById("backupNudge").classList.toggle("show",backupIsDue()&&shown!=="backup");
 }
@@ -109,38 +105,27 @@ function renderStartHere(period,gentle,nudges){
   return "empty";
 }
 
-function renderHomePulse({scheduled,logged,nudges,shown}){
-  const pulse=document.getElementById("homePulse");
-  if(!pulse) return;
-  if(shown==="empty"){ pulse.innerHTML=`<span class="pulse-chip quiet">Nothing urgent. You can close the app.</span>`; return; }
-  const chips=[];
-  chips.push(`<span class="pulse-chip">${scheduled.length?`Habits: ${logged} touched`:"Habits: none yet"}</span>`);
-  chips.push(`<span class="pulse-chip">${state.people.length?(nudges.length?`Circle: ${nudges.length} on radar`:"Circle: no pressure"):"Circle: not started"}</span>`);
-  chips.push(`<span class="pulse-chip">${backupIsDue()?"Backup: due":"Backup: okay"}</span>`);
-  pulse.innerHTML=chips.join("");
-}
-
 function renderHomeQuickActions(period){
   const dock=document.getElementById("homeActionDock");
   if(!dock) return;
   const gentle=gentleDayOn();
   const buttons=[];
   if(period==="morning"){
-    buttons.push({icon:"🌅",label:"Morning habits",note:"Open today’s morning list",action:"switchView('todayView')"});
+    buttons.push({icon:"🌅",label:"Morning habits",note:"",action:"switchView('todayView')"});
     const tiny=pickHabitForBlock("morning")?.habit;
     if(tiny) buttons.push({icon:"🌱",label:"Count a tiny win",note:escapeHTML(tiny.name),action:`setStatus('${jsEscape(tiny.id)}','counted')`});
-    buttons.push({icon:"💬",label:"Log contact",note:"A quick record, then leave",action:"openContactModal()"});
+    buttons.push({icon:"💬",label:"Log contact",note:"",action:"openContactModal()"});
   }else if(period==="afternoon"){
-    buttons.push({icon:"☀️",label:"Afternoon habits",note:"Open today’s afternoon list",action:"switchView('todayView')"});
-    buttons.push({icon:"🌿",label:gentle?"Gentle day is on":"Reset with Gentle Day",note:"Make today lighter",action:`setGentleDay(${!gentle})`});
-    buttons.push({icon:"💬",label:"Log contact",note:"A quick record, then leave",action:"openContactModal()"});
+    buttons.push({icon:"☀️",label:"Afternoon habits",note:"",action:"switchView('todayView')"});
+    buttons.push({icon:"🌿",label:gentle?"Gentle day is on":"Reset with Gentle Day",note:"",action:`setGentleDay(${!gentle})`});
+    buttons.push({icon:"💬",label:"Log contact",note:"",action:"openContactModal()"});
   }else{
-    buttons.push({icon:"🌙",label:period==="late-night"?"Tonight’s habits":"Evening habits",note:"Open today’s evening list",action:"switchView('todayView')"});
+    buttons.push({icon:"🌙",label:period==="late-night"?"Tonight’s habits":"Evening habits",note:"",action:"switchView('todayView')"});
     const dumpId=mostRecentPersonId();
-    if(dumpId) buttons.push({icon:"📝",label:"Dump thought",note:"A quick note, nothing formal",action:`openPersonNote('${jsEscape(dumpId)}')`});
-    buttons.push({icon:"💬",label:"Log contact",note:"A quick record, then leave",action:"openContactModal()"});
+    if(dumpId) buttons.push({icon:"📝",label:"Dump thought",note:"Quick note",action:`openPersonNote('${jsEscape(dumpId)}')`});
+    buttons.push({icon:"💬",label:"Log contact",note:"",action:"openContactModal()"});
   }
-  dock.innerHTML=buttons.map(b=>`<button class="dock-action" onclick="${b.action}">${b.icon} ${b.label}<span>${b.note}</span></button>`).join("");
+  dock.innerHTML=buttons.map(b=>`<button class="dock-action" onclick="${b.action}">${b.icon} ${b.label}${b.note?`<span>${b.note}</span>`:""}</button>`).join("");
 }
 
 function openHabitScope(scope){habitScope=scope;localStorage.setItem("personal_workbench_habit_filter",scope);switchView("todayView");renderToday()}

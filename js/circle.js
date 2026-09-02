@@ -42,17 +42,23 @@ function renderCircle(){
   const radar=people.filter(p=>["due","soon"].includes(personTiming(p).class));
   document.getElementById("circleSummary").textContent=people.length?`${people.length} people · ${radar.length?radar.length+" gently on your radar":"nothing pressing"}`:"A small, intentional circle";
   const focus=radar[0],focusEl=document.getElementById("circleFocus");
-  if(focus){const t=personTiming(focus);focusEl.innerHTML=`<div class="circle-focus"><div class="focus-eyebrow">A connection in view</div>${personIdentityHTML(focus,t)}<div class="circle-focus-detail">${escapeHTML(t.text)}</div>${personSnapshotHTML(focus,t)}<div class="circle-card-actions"><button class="primary-soft" onclick="openContactModal('${jsEscape(focus.id)}')">💬 Contact</button><button onclick="openPersonNote('${jsEscape(focus.id)}')">＋ Note</button><button onclick="openPersonDetail('${jsEscape(focus.id)}')">Details</button></div></div>`}else if(people.length){focusEl.innerHTML=`<div class="focus-done"><strong style="color:var(--text)">Your Circle is quiet.</strong><br>No relationship needs to be turned into a task right now.</div>`}else{focusEl.innerHTML=""}
+  if(focus){const t=personTiming(focus);focusEl.innerHTML=`<div class="circle-focus"><div class="focus-eyebrow">A connection in view</div>${personIdentityHTML(focus,t)}<div class="circle-focus-detail">${escapeHTML(t.text)}</div>${personSecondaryLine(focus)}<div class="circle-card-actions two"><button class="primary-soft" onclick="openContactModal('${jsEscape(focus.id)}')">💬 Contact</button><button onclick="openPersonDetail('${jsEscape(focus.id)}')">Details</button></div></div>`}else if(people.length){focusEl.innerHTML=`<div class="focus-done"><strong style="color:var(--text)">Your Circle is quiet.</strong><br>No relationship needs to be turned into a task right now.</div>`}else{focusEl.innerHTML=""}
   const remaining=people.filter(p=>!focus||p.id!==focus.id);
   document.getElementById("circlePeopleTitle").textContent=focus?"Other people":"Your people";
   document.getElementById("circlePeopleHead").style.display=remaining.length||!people.length?"flex":"none";
-  remaining.forEach(p=>{const t=personTiming(p);const card=document.createElement("div");card.className="circle-person-card";card.innerHTML=`${personIdentityHTML(p,t)}${personSnapshotHTML(p,t)}<div class="circle-card-actions"><button class="primary-soft" onclick="openContactModal('${jsEscape(p.id)}')">💬 Contact</button><button onclick="openPersonNote('${jsEscape(p.id)}')">＋ Note</button><button onclick="openPersonDetail('${jsEscape(p.id)}')">Details</button></div>`;list.appendChild(card)});
+  remaining.forEach(p=>{const row=document.createElement("div");row.className="person-row-compact";row.innerHTML=`<button class="person-row-open" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="person-row-copy"><span class="person-row-name">${escapeHTML(p.name)}</span><span class="person-row-meta">${relationTag(p.relation)?escapeHTML(relationTag(p.relation).label)+" · ":""}${escapeHTML(personTiming(p).label)}</span></span></button><button class="person-row-log" aria-label="Contact ${escapeAttr(p.name)}" onclick="openContactModal('${jsEscape(p.id)}')">💬</button>`;list.appendChild(row)});
   if(!people.length)list.innerHTML=`<div class="empty-card">No people yet. Add one person you want to keep in view.</div>`;
   else if(!remaining.length)list.style.display="none";else list.style.display="block";
 }
 
 function personIdentityHTML(p,t=personTiming(p)){return `<div class="circle-person-head">${visualHTML(p,"avatar","person")}<div class="circle-person-identity"><div class="circle-person-name">${escapeHTML(p.name)}</div>${relationPillHTML(p.relation)}</div><span class="circle-status ${t.class}">${escapeHTML(t.label)}</span></div>`}
-function personSnapshotHTML(p,t=personTiming(p)){const last=latestContactDate(p),seen=parseLocalDate(latestSeenInteraction(p)?.date);return `<div class="person-snapshot"><div class="snapshot-item"><div class="snapshot-label">Last contact</div><div class="snapshot-value">${escapeHTML(relativeContactLabel(last))}</div></div><div class="snapshot-item"><div class="snapshot-label">Last seen</div><div class="snapshot-value">${escapeHTML(relativeContactLabel(seen))}</div></div><div class="snapshot-item"><div class="snapshot-label">Status</div><div class="snapshot-value">${escapeHTML(t.label)}</div></div></div>`}
+function personSecondaryLine(p){
+  const last=latestContactDate(p),seen=parseLocalDate(latestSeenInteraction(p)?.date);
+  const parts=[];
+  if(last) parts.push(`Last contact: ${relativeContactLabel(last).toLowerCase()}`);
+  if(seen) parts.push(`Last seen: ${relativeContactLabel(seen).toLowerCase()}`);
+  return parts.length?`<div class="circle-focus-secondary">${escapeHTML(parts.join(" · "))}</div>`:"";
+}
 
 let detailPersonId=null,detailCalendarMonth=null;const personDetailModal=document.getElementById("personDetailModal");
 function contactCalendarHTML(p,month=detailCalendarMonth||new Date()){

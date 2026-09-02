@@ -143,7 +143,9 @@ function renderToday(){
 
   const remaining=visible.filter(x=>!focus||x.habit.id!==focus.habit.id);
   document.getElementById("habitListTitle").textContent=focus?"Quiet for now":"Habits";
+  document.getElementById("habitListTitle").closest(".section-head").classList.toggle("quiet-section",Boolean(focus));
   document.getElementById("habitListNote").style.display=focus?"block":"none";
+  list.classList.toggle("quiet-section",Boolean(focus));
   remaining.forEach(({habit:h,status,suggestReturn})=>{const row=document.createElement("div");row.className=`habit-row ${status?"logged":""}`;const small=smallerVersions(h)[0],gentleCue=gentle&&!status&&small?` · ${small}`:"",typeCue=isReduceGoal(h)?"Reduce · ":"";row.innerHTML=`<button class="habit-check" aria-label="${status?"Change":"Log"} ${escapeAttr(h.name)}" onclick="${status?`openStatusModal('${jsEscape(h.id)}')`:`quickCompleteHabit('${jsEscape(h.id)}')`}">${status?habitStatusIcon(status):""}</button><div class="habit-row-main"><div class="habit-row-name">${escapeHTML(h.name)}</div><div class="habit-row-meta">${escapeHTML(typeCue+scheduleLabel(h)+gentleCue)}${suggestReturn?" · Return opportunity":""}</div></div><button class="habit-more" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button>`;list.appendChild(row)});
   if(!state.habits.length)list.innerHTML=`<div class="empty-card">No habits yet. Add one tiny habit to start.</div>`;
   else if(!base.length)list.innerHTML=`<div class="empty-card">Nothing asking for you right now.</div>`;
