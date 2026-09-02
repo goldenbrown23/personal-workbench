@@ -31,36 +31,30 @@
     <header>
       <div>
         <div class="eyebrow" id="todayDate"></div>
-        <h1>🌱 Today’s Habits</h1>
-        <div class="sub">Connection, not perfection.</div>
+        <h1>Habits</h1>
       </div>
-      <button class="icon-btn" id="manageBtn" aria-label="Manage habits">⚙️</button>
+      <div style="display:flex;gap:6px">
+        <button class="icon-btn" id="gentleModeBtn" aria-label="Gentle day">🌿</button>
+        <button class="icon-btn" id="manageBtn" aria-label="Manage habits">⚙️</button>
+      </div>
     </header>
-    <button class="link-btn" id="practiceLinkBtn" style="padding-left:0" data-jump="practiceView">📊 Weekly Detail</button>
 
-    <div class="habit-overview" id="habitOverview">
-      <div class="overview-top">
-        <div><div class="overview-label" id="habitOverviewLabel">Today</div><div class="overview-value" id="habitProgressText">Nothing asking for you</div></div>
-        <button class="gentle-toggle" id="gentleModeBtn">🌿 Gentle day</button>
-      </div>
-      <div class="progress-track"><div class="progress-fill" id="habitProgressBar"></div></div>
-      <div class="gentle-help">Smaller valid versions move to the front. Doing less still preserves the connection.</div>
-    </div>
+    <div class="home-now" id="habitsNow"></div>
 
-    <div class="habit-control-row">
-      <div class="scope-control" id="habitScope" aria-label="Habit timeframe"></div>
-      <button class="filter-btn" id="habitFilterBtn">☰ Filter</button>
-    </div>
-    <div class="active-filter-note" id="activeFilterNote" style="display:none"></div>
-    <div id="habitFocus"></div>
-    <div class="section-head"><h2 id="habitListTitle">Habits</h2><button class="link-btn" id="addHabitBtn">+ Add</button></div>
-    <div class="settings-note" id="habitListNote" style="display:none">Hidden from today, not deleted.</div>
-    <div id="habitList" class="habit-stack"></div>
+    <div class="section-label" id="habitsLaterLabel" style="display:none">Later today</div>
+    <div id="habitsLater" class="later-list"></div>
 
-    <div class="footer-rule">
-      <strong>🔒 One miss is not evidence the system is broken.</strong><br>
-      Return first. Review the system only after the same problem repeats 3+ times.
-    </div>
+    <details class="goal-plan" id="habitsDoneDetails" style="display:none">
+      <summary><span class="goal-plan-title">✓ Done today</span><span class="goal-plan-summary-note" id="habitsDoneCount">0</span></summary>
+      <div id="habitsDoneList" class="later-list"></div>
+    </details>
+
+    <details class="goal-plan" id="habitsPausedDetails" style="display:none">
+      <summary><span class="goal-plan-title">Quiet / paused</span><span class="goal-plan-summary-note" id="habitsPausedCount">0</span></summary>
+      <div id="habitsPausedList" class="later-list"></div>
+    </details>
+
+    <button class="link-btn habits-add-link" id="addHabitBtn">+ Add habit</button>
   </div>
 
   <div id="practiceView" class="view">
@@ -425,17 +419,10 @@
       <button class="icon-btn" id="closeManage">✕</button>
     </div>
     <div id="manageList" class="manage-list"></div>
+    <button class="link-btn" id="manageWeeklyDetailBtn" style="padding-left:0">📊 Weekly Detail</button>
     <div class="modal-actions">
       <button class="btn primary" id="manageAdd">+ Add habit</button>
     </div>
-  </div>
-</div>
-
-<div id="habitFilterModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="habitFilterTitle">
-  <div class="modal">
-    <div class="modal-head"><h3 id="habitFilterTitle">Show habits</h3><button class="icon-btn" id="closeHabitFilter" aria-label="Close habit filter">✕</button></div>
-    <div class="settings-help">Keep the main screen quiet. Choose a narrower view only when it helps.</div>
-    <div class="filter-options" id="habitFilterOptions"></div>
   </div>
 </div>
 

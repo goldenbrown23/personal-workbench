@@ -99,77 +99,165 @@ function scheduleLabel(h){
   const names=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];return (h.weekdays||[]).map(Number).sort((a,b)=>(a||7)-(b||7)).map(d=>names[d]).join(" · ")||"Specific days";
 }
 function isReduceGoal(h){return h?.goalType==="reduce"}
-function smallerVersions(h){return [h?.small,h?.small2].map(x=>(x||"").trim()).filter(Boolean)}
-function goalCue(h,gentle=false){const smaller=smallerVersions(h);if(gentle&&smaller.length)return dailyCopy(`small-${h.id}`,smaller);if(h.full)return h.full;if(isReduceGoal(h))return "Stay within the plan you chose for today.";return scheduleLabel(h)}
-function whatCountsText(h){const bareMin=(h.small2||"").trim(),smaller=(h.small||"").trim();return bareMin||smaller||(h.full||"").trim()||goalCue(h)}
-function focusActionLabels(h){return isReduceGoal(h)?{primary:"Reduced",done:"Within plan",miss:"Over plan"}:{primary:"Count it",done:"Done",miss:"Not today"}}
-function habitActionLabel(h,mode){if(isReduceGoal(h))return mode==="return"?"↩ Back to plan":mode==="gentle"?"○ Reduced":"✓ Within plan";return mode==="return"?"↩ Make contact":mode==="gentle"?"○ Do smaller version":"✓ Mark done"}
 function statusOptions(h){return isReduceGoal(h)?[["done","✓ Within plan"],["counted","○ Reduced"],["miss","— Over plan"],["returned","↩ Back to plan"]]:[["done","✓ Full version"],["counted","○ Smaller version"],["miss","— Not today"],["returned","↩ Returned"]]}
 function gentleDayOn(){try{const value=JSON.parse(localStorage.getItem(GENTLE_KEY)||"{}");return value.date===dateKey()&&value.on===true}catch{return false}}
 function setGentleDay(on){localStorage.setItem(GENTLE_KEY,JSON.stringify({date:dateKey(),on}));renderToday();showSaved(on?"Gentle day on":"Standard day on")}
 function quickCompleteHabit(id){const current=getStatus(id);if(current){openStatusModal(id);return}setStatus(id,gentleDayOn()?"counted":"done")}
 function habitStatusIcon(status){return ({done:"✓",counted:"○",miss:"—",returned:"↩"})[status]||""}
+function statusLabel(status){return ({done:"✓ Done",counted:"○ Counted",miss:"— Not today",returned:"↩ Returned"})[status]||""}
 
+// ---- Shared "what should I do right now" engine ----
+// Home's Start Here and the Habits tab's Now section both call this so there is exactly
+// one definition of "next" — never two independently maintained recommendation rules.
+function currentTimePeriod(hour=new Date().getHours()){
+  if(hour>=5&&hour<12) return "morning";
+  if(hour>=12&&hour<17) return "afternoon";
+  if(hour>=17&&hour<24) return "evening";
+  return "late-night";
+}
+const PERIOD_GREETING={morning:"Good morning",afternoon:"Good afternoon",evening:"Good evening","late-night":"Still up"};
+const PERIOD_COPY={
+  morning:"Only what helps you begin. The rest can wait.",
+  afternoon:"Only what helps you reset. The rest can wait.",
+  evening:"Only what supports tonight. The rest can wait.",
+  "late-night":"Only tiny closing steps. Nothing to prove."
+};
+const BLOCK_LABEL={morning:"morning",afternoon:"afternoon",evening:"evening"};
+const LATER_LABEL={morning:"This morning",afternoon:"This afternoon",evening:"Tonight"};
+const BLOCK_SEARCH_ORDER={
+  morning:["morning","afternoon","evening"],
+  afternoon:["afternoon","evening","morning"],
+  evening:["evening","afternoon","morning"],
+  "late-night":["evening","morning","afternoon"]
+};
+function unloggedTodayHabitsInBlock(block){return state.habits.filter(h=>habitAppliesToday(h)&&!h.paused&&timeBlockOf(h)===block&&!getStatus(h.id))}
+function pickHabitForBlock(block){
+  const candidates=unloggedTodayHabitsInBlock(block);
+  if(!candidates.length) return null;
+  const returnPick=candidates.find(h=>wasMissedPreviousRecordedDay(h.id));
+  if(returnPick) return {habit:returnPick,isReturn:true};
+  const withSmaller=candidates.find(h=>(h.small2||h.small||"").trim());
+  if(withSmaller) return {habit:withSmaller,isReturn:false};
+  return {habit:candidates[0],isReturn:false};
+}
+// Deterministic, config-driven pick: search the current time block first, then fall back
+// through the other blocks in an order chosen per period. At late-night this looks at
+// evening habits before morning ones, so a stale morning habit never gets surfaced as if
+// it were suddenly relevant again merely because it was never completed.
+function pickStartHereHabit(period){
+  const order=BLOCK_SEARCH_ORDER[period]||BLOCK_SEARCH_ORDER.morning;
+  for(let i=0;i<order.length;i++){
+    const pick=pickHabitForBlock(order[i]);
+    if(pick) return {...pick,block:order[i],isCurrentBlock:period!=="late-night"&&i===0};
+  }
+  return null;
+}
+function laterTodayLabel(h){ return LATER_LABEL[timeBlockOf(h)]||"Anytime today"; }
+// Everything else applicable today, not yet logged, not the current pick — previews for
+// "Later today," not competing calls to action, ordered by how soon their block comes up.
+function laterTodayHabits(excludeId){
+  const order=BLOCK_SEARCH_ORDER[currentTimePeriod()]||BLOCK_SEARCH_ORDER.morning;
+  return state.habits
+    .filter(h=>habitAppliesToday(h)&&!h.paused&&!getStatus(h.id)&&h.id!==excludeId)
+    .sort((a,b)=>order.indexOf(timeBlockOf(a))-order.indexOf(timeBlockOf(b)));
+}
+// The smallest configured version is what the Now card presents and what "I did it" must
+// log — never a hardcoded status. Full only counts as "done" when it's the ONLY configured
+// version (nothing smaller exists to present instead).
+function homePrimaryTier(h){
+  const bareMin=(h.small2||"").trim(),smaller=(h.small||"").trim(),full=(h.full||"").trim();
+  if(bareMin) return {text:bareMin,status:"counted"};
+  if(smaller) return {text:smaller,status:"counted"};
+  if(full) return {text:full,status:"done"};
+  return {text:"A tiny check-in counts.",status:"counted"};
+}
+// Debounce guard for the shared logging action: setStatus() is fully synchronous, but iOS
+// occasionally dispatches a duplicate/"ghost" tap as a separate event shortly after the
+// real one, which this timestamp check absorbs without affecting normal taps.
+let lastHomeActionAt=0;
+function homeLogStatus(habitId,status){
+  const now=Date.now();
+  if(now-lastHomeActionAt<600) return;
+  lastHomeActionAt=now;
+  setStatus(habitId,status);
+}
+// The single dominant action card, shared verbatim by Home's "Start here" and the Habits
+// tab's "Now" — one completion interaction, not two independently maintained ones.
+function nowCardHTML(pick,{label="Now",gentle=false,blockPeriod=null}={}){
+  const h=pick.habit,tier=homePrimaryTier(h);
+  const blockNote=pick.isCurrentBlock?"":`<div class="home-now-block-note">Nothing left from ${escapeHTML(BLOCK_LABEL[blockPeriod]||"now")}, so here’s one from ${escapeHTML(BLOCK_LABEL[pick.block]||"elsewhere")} instead.</div>`;
+  let detail,primaryStatus;
+  if(pick.isReturn){ detail=isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."; primaryStatus=tier.status; }
+  else if(gentle){ detail="Doing less still keeps the connection."; primaryStatus="counted"; }
+  else{ detail=tier.text; primaryStatus=tier.status; }
+  const hasVersions=Boolean(versionRowsForHabit(h).length);
+  const secondaryRow=`<div class="home-now-secondary-row">${hasVersions?`<button class="home-now-link" onclick="openEasierVersion('${jsEscape(h.id)}')">Need an easier version?</button>`:"<span></span>"}<button class="home-now-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
+  return `<div class="home-now-label">${escapeHTML(label)}</div><div class="home-now-main">${visualHTML(h,"home-now-icon")}<div class="home-now-copy"><div class="home-now-title">${escapeHTML(h.name)}</div><div class="home-now-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<button class="home-now-action" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ I did it</button>${secondaryRow}`;
+}
+
+// ---- Habits tab: SEE → START → LOG → MOVE ON, not a database view ----
 function renderToday(){
   document.getElementById("todayDate").textContent=fmtLong(new Date());
-  const list=document.getElementById("habitList");
-  list.innerHTML="";list.style.display="block";
   const gentle=gentleDayOn();
-  document.getElementById("habitOverview").classList.toggle("gentle",gentle);
-  const gentleBtn=document.getElementById("gentleModeBtn");gentleBtn.classList.toggle("active",gentle);gentleBtn.textContent=gentle?"🌿 Gentle day · On":"🌿 Gentle day";
-  const meta=state.habits.map(h=>({habit:h,status:getStatus(h.id),suggestReturn:wasMissedPreviousRecordedDay(h.id)&&!getStatus(h.id)}));
-  const base=meta.filter(x=>habitScope==="all"||(habitScope==="today"&&habitAppliesToday(x.habit))||(habitScope==="week"&&(x.habit.scheduleType||"daily")==="weekly"));
-  const nothingInScope=!base.length;
-  document.getElementById("habitOverview").style.display=nothingInScope?"none":"block";
-  const practiceLink=document.getElementById("practiceLinkBtn");
-  if(practiceLink) practiceLink.style.display=state.habits.length?"block":"none";
-  const visible=base.filter(x=>habitStatusFilter==="any"||(habitStatusFilter==="unlogged"&&!x.status)||(habitStatusFilter==="logged"&&x.status)||(habitStatusFilter==="return"&&x.suggestReturn));
-  const scopes={today:"Today",week:"Week",all:"All"};
-  document.getElementById("habitScope").innerHTML=Object.entries(scopes).map(([key,label])=>`<button class="scope-btn ${habitScope===key?"active":""}" data-habit-scope="${key}">${label}</button>`).join("");
-  document.querySelectorAll("[data-habit-scope]").forEach(button=>button.addEventListener("click",()=>{habitScope=button.dataset.habitScope;localStorage.setItem("personal_workbench_habit_filter",habitScope);renderToday()}));
-  const filterLabels={any:"Everything",unlogged:"Not logged",logged:"Logged",return:"Return opportunities"};
-  const filterBtn=document.getElementById("habitFilterBtn");filterBtn.classList.toggle("active",habitStatusFilter!=="any");filterBtn.textContent=habitStatusFilter==="any"?"☰ Filter":`☰ ${filterLabels[habitStatusFilter]}`;
-  const filterNote=document.getElementById("activeFilterNote");filterNote.style.display=habitStatusFilter==="any"?"none":"block";filterNote.textContent=`Showing ${filterLabels[habitStatusFilter].toLowerCase()} · tap Filter to change`;
-  let complete,total;
-  if(habitScope==="week"){total=base.reduce((sum,x)=>sum+Number(x.habit.weeklyTarget||1),0);complete=base.reduce((sum,x)=>sum+Math.min(weeklyProgress(x.habit),Number(x.habit.weeklyTarget||1)),0)}else{total=base.length;complete=base.filter(x=>x.status).length}
-  const scopeLabel=habitScope==="today"?"Today":habitScope==="week"?"This week":"All habits";
-  document.getElementById("habitOverviewLabel").textContent=scopeLabel;
-  document.getElementById("habitProgressText").textContent=total?`${complete} of ${total} checked in`:"Nothing asking for you";
-  document.getElementById("habitProgressBar").style.width=total?`${Math.min(100,Math.round(complete/total*100))}%`:"0%";
-
-  const focus=visible.find(x=>!x.status&&(!(x.habit.scheduleType==="weekly")||weeklyProgress(x.habit)<Number(x.habit.weeklyTarget||1)));
-  const focusEl=document.getElementById("habitFocus");
-  if(focus){
-    const h=focus.habit,returnLine=focus.suggestReturn?(isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."):"";
-    const countText=whatCountsText(h),labels=focusActionLabels(h);
-    focusEl.innerHTML=`<div class="focus-card">
-      <div class="focus-eyebrow">${isReduceGoal(h)?"Reduce goal":"Up next"}</div>
-      <div class="focus-main">${visualHTML(h,"emoji")}<div class="focus-copy"><div class="focus-name">${escapeHTML(h.name)}</div><span class="schedule-chip">${escapeHTML((isReduceGoal(h)?"Reduce · ":"")+scheduleLabel(h))}</span></div></div>
-      ${returnLine?`<div class="focus-cue">${escapeHTML(returnLine)}</div>`:""}
-      <div class="focus-count-line"><strong>What counts right now:</strong> ${escapeHTML(countText)}</div>
-      <div class="focus-actions">
-        <button class="btn primary" onclick="setStatus('${jsEscape(h.id)}','counted')">${labels.primary}</button>
-        <div class="focus-secondary-row">
-          <button class="btn" onclick="setStatus('${jsEscape(h.id)}','done')">${labels.done}</button>
-          <button class="btn" onclick="setStatus('${jsEscape(h.id)}','miss')">${labels.miss}</button>
-          <button class="btn focus-more-btn" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">⋯</button>
-        </div>
-      </div>
-    </div>`;
-  }else if(base.length&&habitStatusFilter==="any"){focusEl.innerHTML=`<div class="focus-done"><strong style="color:var(--text)">You’ve checked in with what’s here.</strong><br>Nothing needs to be compensated for or perfected.</div>`}else{focusEl.innerHTML=""}
-
-  const remaining=visible.filter(x=>!focus||x.habit.id!==focus.habit.id);
-  document.getElementById("habitListTitle").textContent=focus?"Quiet for now":"Habits";
-  document.getElementById("habitListTitle").closest(".section-head").classList.toggle("quiet-section",Boolean(focus));
-  document.getElementById("habitListNote").style.display=focus?"block":"none";
-  list.classList.toggle("quiet-section",Boolean(focus));
-  remaining.forEach(({habit:h,status,suggestReturn})=>{const row=document.createElement("div");row.className=`habit-row ${status?"logged":""}`;const small=smallerVersions(h)[0],gentleCue=gentle&&!status&&small?` · ${small}`:"",typeCue=isReduceGoal(h)?"Reduce · ":"";row.innerHTML=`<button class="habit-check" aria-label="${status?"Change":"Log"} ${escapeAttr(h.name)}" onclick="${status?`openStatusModal('${jsEscape(h.id)}')`:`quickCompleteHabit('${jsEscape(h.id)}')`}">${status?habitStatusIcon(status):""}</button><div class="habit-row-main"><div class="habit-row-name">${escapeHTML(h.name)}</div><div class="habit-row-meta">${escapeHTML(typeCue+scheduleLabel(h)+gentleCue)}${suggestReturn?" · Return opportunity":""}</div></div><button class="habit-more" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button>`;list.appendChild(row)});
-  if(!state.habits.length)list.innerHTML=`<div class="empty-card">No habits yet. Add one tiny habit to start.</div>`;
-  else if(!base.length)list.innerHTML=`<div class="empty-card">Nothing asking for you right now.</div>`;
-  else if(!remaining.length&&!focus&&habitStatusFilter!=="any")list.innerHTML=`<div class="empty-card">Nothing matches this filter right now.</div>`;
-  else if(!remaining.length)list.style.display="none";else list.style.display="block";
+  const gentleBtn=document.getElementById("gentleModeBtn");
+  gentleBtn.classList.toggle("active",gentle);
+  gentleBtn.setAttribute("aria-label",gentle?"Gentle day · On":"Gentle day");
+  const period=currentTimePeriod();
+  const pick=pickStartHereHabit(period);
+  const laterList=laterTodayHabits(pick?pick.habit.id:null);
+  renderHabitsNow(pick,gentle,period,laterList);
+  renderHabitsLater(laterList);
+  renderHabitsDone();
+  renderHabitsPaused();
 }
-function statusLabel(status){return ({done:"✓ Done",counted:"○ Counted",miss:"— Not today",returned:"↩ Returned"})[status]||""}
+function renderHabitsNow(pick,gentle,period,laterList){
+  const el=document.getElementById("habitsNow");
+  el.classList.remove("quiet");
+  el.classList.toggle("gentle",gentle);
+  if(!state.habits.length){
+    el.classList.add("quiet");
+    el.innerHTML=`<div class="home-now-label">Now</div><div class="home-now-main"><span class="home-now-icon">🌱</span><div class="home-now-copy"><div class="home-now-title">No habits yet.</div><div class="home-now-detail">Add one tiny habit to start.</div></div></div>`;
+    return;
+  }
+  if(pick){
+    el.innerHTML=nowCardHTML(pick,{label:"Now",gentle,blockPeriod:period});
+    return;
+  }
+  el.classList.add("quiet");
+  if(laterList.length){
+    const next=laterList[0];
+    el.innerHTML=`<div class="home-now-label">Now</div><div class="home-now-main"><span class="home-now-icon">🍃</span><div class="home-now-copy"><div class="home-now-title">Nothing needs you right now.</div><div class="home-now-detail">Later today: ${escapeHTML(next.name)} · ${escapeHTML(laterTodayLabel(next))}</div></div></div>`;
+  }else{
+    el.innerHTML=`<div class="home-now-label">Now</div><div class="home-now-main"><span class="home-now-icon">🍃</span><div class="home-now-copy"><div class="home-now-title">You’re good for now.</div></div></div>`;
+  }
+}
+function laterRowHTML(h,timeText){
+  return `<button type="button" class="later-row" onclick="openStatusModal('${jsEscape(h.id)}')">${visualHTML(h,"later-row-icon")}<span class="later-row-copy"><span class="later-row-name">${escapeHTML(h.name)}</span><span class="later-row-time">${escapeHTML(timeText)}</span></span></button>`;
+}
+function renderHabitsLater(laterList){
+  const wrap=document.getElementById("habitsLater"),labelEl=document.getElementById("habitsLaterLabel");
+  if(!laterList.length){ wrap.innerHTML="";labelEl.style.display="none";return; }
+  labelEl.style.display="block";
+  wrap.innerHTML=laterList.map(h=>laterRowHTML(h,laterTodayLabel(h))).join("");
+}
+function renderHabitsDone(){
+  const details=document.getElementById("habitsDoneDetails");
+  const done=state.habits.filter(h=>Boolean(getStatus(h.id)));
+  document.getElementById("habitsDoneCount").textContent=String(done.length);
+  details.style.display=done.length?"block":"none";
+  document.getElementById("habitsDoneList").innerHTML=done.map(h=>{
+    const entry=getLogEntry(h.id);
+    const label=statusLabel(entry.status)+(isReturnDay(entry)&&entry.status!=="returned"?" · Return":"");
+    return laterRowHTML(h,label);
+  }).join("");
+}
+function renderHabitsPaused(){
+  const details=document.getElementById("habitsPausedDetails");
+  const paused=state.habits.filter(h=>h.paused);
+  document.getElementById("habitsPausedCount").textContent=String(paused.length);
+  details.style.display=paused.length?"block":"none";
+  document.getElementById("habitsPausedList").innerHTML=paused.map(h=>`<button type="button" class="later-row" onclick="openHabitModal('${jsEscape(h.id)}')">${visualHTML(h,"later-row-icon")}<span class="later-row-copy"><span class="later-row-name">${escapeHTML(h.name)}</span><span class="later-row-time">Paused</span></span></button>`).join("");
+}
 
 let loggingHabitId=null,loggingSelectedDate=dateKey(),loggingDateIsCustom=false;
 let loggingMode="single",loggingMultiDates=new Set(),loggingMultiMonth=new Date(),loggingRangeArmed=false,loggingRangeAnchor=null,loggingPendingStatus=null;
@@ -374,13 +462,6 @@ function closeEasierVersion(){easierVersionModal.classList.remove("show");easier
 document.getElementById("closeEasierVersion").addEventListener("click",closeEasierVersion);
 easierVersionModal.addEventListener("click",e=>{if(e.target===easierVersionModal)closeEasierVersion()});
 
-const habitFilterModal=document.getElementById("habitFilterModal");
-function openHabitFilter(){
-  const options={any:["Everything","No extra filter"],unlogged:["Not logged","Only habits you haven’t checked in with"],logged:["Logged","Only today’s recorded habits"],return:["Return opportunities","Habits after a recorded Not today"]};
-  document.getElementById("habitFilterOptions").innerHTML=Object.entries(options).map(([key,[label,note]])=>`<button class="filter-option ${habitStatusFilter===key?"active":""}" data-status-filter="${key}">${label}<span class="setting-note" style="display:block">${note}</span></button>`).join("");
-  document.querySelectorAll("[data-status-filter]").forEach(button=>button.addEventListener("click",()=>{habitStatusFilter=button.dataset.statusFilter;habitFilterModal.classList.remove("show");renderToday()}));habitFilterModal.classList.add("show");
-}
-document.getElementById("habitFilterBtn").addEventListener("click",openHabitFilter);document.getElementById("closeHabitFilter").addEventListener("click",()=>habitFilterModal.classList.remove("show"));habitFilterModal.addEventListener("click",e=>{if(e.target===habitFilterModal)habitFilterModal.classList.remove("show")});
 document.getElementById("gentleModeBtn").addEventListener("click",()=>setGentleDay(!gentleDayOn()));
 
 function getLast7Days(){
@@ -449,6 +530,15 @@ function renderReviewHistory(days=getLast7Days()){
 }
 document.querySelectorAll("[data-review-filter]").forEach(button=>button.addEventListener("click",()=>{reviewFilter=button.dataset.reviewFilter;document.querySelectorAll("[data-review-filter]").forEach(item=>item.classList.toggle("active",item.dataset.reviewFilter===reviewFilter));button.closest("details").removeAttribute("open");renderReviewHistory()}));
 
+function toggleHabitPaused(id){
+  const h=state.habits.find(x=>x.id===id);
+  if(!h) return;
+  const before=structuredClone(state);
+  h.paused=!h.paused;
+  saveState();
+  showSaved(h.paused?"Paused":"Reactivated",before);
+  renderManage();
+}
 function renderManage(){
   const list=document.getElementById("manageList");
   list.innerHTML="";
@@ -457,12 +547,14 @@ function renderManage(){
     row.className="manage-item";
     row.innerHTML=`
       ${visualHTML(h,"emoji")}
-      <div class="grow"><strong>${escapeHTML(h.name)}</strong><small>${escapeHTML((isReduceGoal(h)?"Reduce · ":"")+scheduleLabel(h))}</small></div>
+      <div class="grow"><strong>${escapeHTML(h.name)}</strong><small>${escapeHTML((isReduceGoal(h)?"Reduce · ":"")+scheduleLabel(h))}${h.paused?" · Paused":""}</small></div>
+      <button class="tiny-btn" data-pause="${escapeAttr(h.id)}">${h.paused?"Resume":"Pause"}</button>
       <button class="tiny-btn" data-edit="${escapeAttr(h.id)}">Edit</button>
     `;
     list.appendChild(row);
   });
   list.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>openHabitModal(btn.dataset.edit)));
+  list.querySelectorAll("[data-pause]").forEach(btn=>btn.addEventListener("click",()=>toggleHabitPaused(btn.dataset.pause)));
 }
 
 let editingId=null;
@@ -549,3 +641,4 @@ const manageModal=document.getElementById("manageModal");
 document.getElementById("manageBtn").addEventListener("click",()=>{renderManage();manageModal.classList.add("show");});
 document.getElementById("closeManage").addEventListener("click",()=>manageModal.classList.remove("show"));
 manageModal.addEventListener("click",e=>{if(e.target===manageModal)manageModal.classList.remove("show");});
+document.getElementById("manageWeeklyDetailBtn").addEventListener("click",()=>{manageModal.classList.remove("show");switchView("practiceView");});

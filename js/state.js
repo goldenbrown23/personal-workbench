@@ -94,7 +94,7 @@ const TIME_BLOCKS = {
 };
 function timeBlockOf(h){ return (h?.timeBlock==="afternoon"||h?.timeBlock==="evening") ? h.timeBlock : "morning"; }
 function normalizeHabit(h){
-  const merged={goalType:"practice",full:"",small2:"",scheduleType:"daily",weekdays:[],weeklyTarget:1,timeBlock:"morning",...h};
+  const merged={goalType:"practice",full:"",small2:"",scheduleType:"daily",weekdays:[],weeklyTarget:1,timeBlock:"morning",paused:false,...h};
   merged.timeBlock=Object.hasOwn(TIME_BLOCKS,merged.timeBlock)?merged.timeBlock:"morning";
   merged.icon=safeIcon(merged.icon,"leaf");
   merged.color=safeTone(merged.color);
@@ -146,9 +146,7 @@ function loadState(){
 let state = loadState();
 localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
 let undoSnapshot=null, toastTimer=null;
-const oldHabitFilter=localStorage.getItem("personal_workbench_habit_filter")||"today";
-let habitScope=["today","week","all"].includes(oldHabitFilter)?oldHabitFilter:"today";
-let habitStatusFilter=["logged","return"].includes(oldHabitFilter)?oldHabitFilter:"any";
+localStorage.removeItem("personal_workbench_habit_filter");
 const GENTLE_KEY="personal_workbench_gentle_day";
 
 function saveState(){
