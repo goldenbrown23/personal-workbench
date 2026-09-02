@@ -7,12 +7,13 @@ function renderSettings(){
   document.getElementById("compactModeState").textContent=document.getElementById("compactMode").checked?"On":"Off";
   document.getElementById("hapticsEnabledState").textContent=document.getElementById("hapticsEnabled").checked?"On":"Off";
   document.getElementById("backupReminderEnabledState").textContent=document.getElementById("backupReminderEnabled").checked?"On":"Off";
-  const last=state.settings?.lastBackupAt?new Date(state.settings.lastBackupAt):null;document.getElementById("backupStatus").textContent=last?`Last backup: ${fmtDate(last)}. A weekly copy is a good safety net.`:"No backup yet. After your first week, the Home screen will remind you gently.";
+  const last=state.settings?.lastBackupAt?new Date(state.settings.lastBackupAt):null,due=backupIsDue();
+  document.getElementById("backupStatus").textContent=last
+    ? (due?`Last backup: ${fmtDate(last)}. It’s been a while — a fresh copy is worth taking.`:`Last backup: ${fmtDate(last)}. A weekly copy is a good safety net.`)
+    : (due?"No backup yet. It’s been about a week — worth taking one now.":"No backup yet. A copy protects what you’ve added on this device.");
   document.getElementById("deviceStatus").textContent=("serviceWorker" in navigator)?"Offline support is available. Your data stays in this browser until you export or clear it.":"Your data stays in this browser. Offline support is limited on this device.";
   renderVersionInfo();
 }
-function openSettings(){switchView("settingsView");renderSettings();}
-document.getElementById("settingsBtn").addEventListener("click",openSettings);
 document.getElementById("startScreen").addEventListener("change",e=>{state.settings.startScreen=e.target.value;saveState();showSaved("Start screen saved")});
 document.getElementById("compactMode").addEventListener("change",e=>{state.settings.compactMode=e.target.checked;applySettings();saveState();showSaved(e.target.checked?"Compact view on":"Comfortable view on")});
 document.getElementById("hapticsEnabled").addEventListener("change",e=>{state.settings.hapticsEnabled=e.target.checked;saveState();showSaved(e.target.checked?"Gentle vibration on":"Gentle vibration off")});
@@ -24,7 +25,7 @@ function exportBackup(){
   const url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}));
   const a=document.createElement("a");a.href=url;a.download=`personal-workbench-${dateKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showSaved("Backup exported");
 }
-document.getElementById("exportDataBtn").addEventListener("click",exportBackup);document.getElementById("backupNowBtn").addEventListener("click",exportBackup);document.getElementById("backupLaterBtn").addEventListener("click",()=>{state.settings.backupRemindAfter=addDays(new Date(),3).toISOString();saveState();showSaved("We’ll remind you again in 3 days")});
+document.getElementById("exportDataBtn").addEventListener("click",exportBackup);
 document.getElementById("importDataBtn").addEventListener("click",()=>document.getElementById("importDataFile").click());
 document.getElementById("importDataFile").addEventListener("change",async e=>{
   const file=e.target.files?.[0];if(!file)return;
