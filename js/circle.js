@@ -221,7 +221,7 @@ function openContactModal(id=null,presetDate=null){
   updateContactSeenRow();
   contactModal.classList.add("show");
 }
-function closeContactModal(){contactModal.classList.remove("show");contactPersonId=null;}
+function closeContactModal(){contactModal.classList.remove("show");contactPersonId=null;returnToPersonDetailIfNeeded();}
 document.getElementById("closeContactModal").addEventListener("click",closeContactModal);document.getElementById("cancelContactBtn").addEventListener("click",closeContactModal);
 document.getElementById("saveContactBtn").addEventListener("click",()=>{
   const chosenId=contactPersonId||document.getElementById("contactPerson").value;if(!chosenId)return;
@@ -243,15 +243,27 @@ document.getElementById("saveContactBtn").addEventListener("click",()=>{
   localStorage.setItem(METHOD_KEY,method);
   closeContactModal();saveState();
   showSaved(date===dateKey()?`Contact logged · ${p.name}`:"Added. Your timeline is more accurate now.",before);
-  refreshOpenCirclePanels(p.id);
 });
 contactModal.addEventListener("click",e=>{if(e.target===contactModal)closeContactModal()});
 
-// Re-renders whichever Circle sheets are currently open for this person so an edit/delete
-// never leaves stale facts, calendar dots, or history rows showing behind a closed sheet —
-// the main Circle list always refreshes on its own via saveState() -> renderAll().
+// Re-renders Person Detail in place if it's currently the visible sheet for this person —
+// covers deleting/editing via the ••• menu directly from the history list, where no other
+// sheet was opened on top of it.
 function refreshOpenCirclePanels(personId){
   if(detailPersonId===personId&&personDetailModal.classList.contains("show")) openPersonDetail(personId);
+}
+
+// IMPORTANT: every .modal-backdrop shares the same z-index, so with two shown at once the
+// one that appears LATER in index.html paints on top regardless of which was opened more
+// recently — personDetailModal is declared after editInteractionModal/dayDetailModal, so
+// simply leaving it "open behind" a newer sheet used to bury that sheet under a stale
+// Person Detail. Sheets reached from Person Detail must HIDE it (not just render on top of
+// it) and explicitly reopen it via this variable when they close.
+let circleReturnPersonId=null;
+function returnToPersonDetailIfNeeded(){
+  const id=circleReturnPersonId;
+  circleReturnPersonId=null;
+  if(id) openPersonDetail(id);
 }
 
 let dayDetailPersonId=null,dayDetailDate=null;
@@ -259,17 +271,27 @@ const dayDetailModal=document.getElementById("dayDetailModal");
 function openDayDetail(personId,dateKeyStr){
   const p=state.people.find(x=>x.id===personId);if(!p)return;
   dayDetailPersonId=personId;dayDetailDate=dateKeyStr;
+  circleReturnPersonId=personId;
+  personDetailModal.classList.remove("show");
   document.getElementById("dayDetailTitle").textContent=new Intl.DateTimeFormat(undefined,{month:"long",day:"numeric"}).format(parseLocalDate(dateKeyStr));
   const items=(p.interactions||[]).filter(x=>x.date===dateKeyStr).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   document.getElementById("dayDetailList").innerHTML=items.length?items.map(item=>interactionRowHTML(personId,item)).join(""):`<div class="empty-notes">Nothing logged for this day yet.</div>`;
   dayDetailModal.classList.add("show");
 }
-function closeDayDetail(){dayDetailModal.classList.remove("show");dayDetailPersonId=null;dayDetailDate=null}
+function closeDayDetail(){
+  dayDetailModal.classList.remove("show");
+  dayDetailPersonId=null;dayDetailDate=null;
+  returnToPersonDetailIfNeeded();
+}
 document.getElementById("closeDayDetail").addEventListener("click",closeDayDetail);
 dayDetailModal.addEventListener("click",e=>{if(e.target===dayDetailModal)closeDayDetail()});
 document.getElementById("dayDetailAddBtn").addEventListener("click",()=>{
   const personId=dayDetailPersonId,date=dayDetailDate;
-  closeDayDetail();
+  // Going straight to Log Contact, not back to Person Detail yet — circleReturnPersonId
+  // (already set when Day Detail opened) carries over so closing/saving that sheet is what
+  // brings the user back.
+  dayDetailModal.classList.remove("show");
+  dayDetailPersonId=null;dayDetailDate=null;
   if(personId) openContactModal(personId,date);
 });
 
@@ -302,13 +324,19 @@ function openEditInteraction(personId,interactionId,focusDate=false){
   document.getElementById("editInteractionNote").value=item.note||"";
   document.getElementById("editInteractionDateDetails").open=Boolean(focusDate);
   renderEditInteractionDatePicker();
-  // Closing the day-detail sheet (if this came from the calendar) keeps only one sheet
-  // stacked at a time; the person-detail sheet is left open behind, since editing there
-  // should feel like correcting a record in place, not leaving the page.
-  if(dayDetailModal.classList.contains("show")) closeDayDetail();
+  // Hide whichever sheet this was opened from (never leave it "open behind" — see the
+  // stacking note above) and remember to come back to Person Detail, refreshed, on close.
+  dayDetailModal.classList.remove("show");
+  dayDetailPersonId=null;dayDetailDate=null;
+  personDetailModal.classList.remove("show");
+  circleReturnPersonId=personId;
   editInteractionModal.classList.add("show");
 }
-function closeEditInteraction(){editInteractionModal.classList.remove("show");editingInteractionPersonId=null;editingInteractionId=null}
+function closeEditInteraction(){
+  editInteractionModal.classList.remove("show");
+  editingInteractionPersonId=null;editingInteractionId=null;
+  returnToPersonDetailIfNeeded();
+}
 document.getElementById("closeEditInteraction").addEventListener("click",closeEditInteraction);
 editInteractionModal.addEventListener("click",e=>{if(e.target===editInteractionModal)closeEditInteraction()});
 document.getElementById("saveEditInteractionBtn").addEventListener("click",()=>{
@@ -321,10 +349,9 @@ document.getElementById("saveEditInteractionBtn").addEventListener("click",()=>{
   item.countsAsSeen=document.getElementById("editInteractionSeenRow").style.display!=="none"&&document.getElementById("editInteractionCountsAsSeen").checked;
   item.updatedAt=new Date().toISOString();
   syncLastContact(p);
-  const personId=p.id;
-  closeEditInteraction();saveState();
+  saveState();
   showSaved("Interaction updated",before);
-  refreshOpenCirclePanels(personId);
+  closeEditInteraction();
 });
 function deleteInteractionConfirm(personId,interactionId){
   if(!confirm("Delete this interaction? This can't be undone.")) return false;
@@ -335,11 +362,17 @@ function deleteInteractionConfirm(personId,interactionId){
   saveState();
   showSaved("Interaction deleted",before);
   refreshOpenCirclePanels(personId);
+  if(dayDetailPersonId===personId&&dayDetailModal.classList.contains("show")) openDayDetail(personId,dayDetailDate);
   return true;
 }
 document.getElementById("deleteInteractionBtn").addEventListener("click",()=>{
   if(!editingInteractionPersonId||!editingInteractionId) return;
-  if(deleteInteractionConfirm(editingInteractionPersonId,editingInteractionId)) closeEditInteraction();
+  const personId=editingInteractionPersonId,interactionId=editingInteractionId;
+  if(deleteInteractionConfirm(personId,interactionId)){
+    editInteractionModal.classList.remove("show");
+    editingInteractionPersonId=null;editingInteractionId=null;
+    returnToPersonDetailIfNeeded();
+  }
 });
 const managePeopleModal=document.getElementById("managePeopleModal");
 function renderManagePeople(){const list=document.getElementById("managePeopleList");list.innerHTML="";state.people.forEach(p=>{const row=document.createElement("div");row.className="manage-item";row.innerHTML=`${visualHTML(p,"avatar","person")}<div class="grow"><strong>${escapeHTML(p.name)}</strong>${p.relation?relationPillHTML(p.relation,"relationship-label small"):`<small>${escapeHTML(frequencyLabel(p.frequency))}</small>`}</div><button class="tiny-btn" data-person="${escapeAttr(p.id)}">Edit</button>`;list.appendChild(row)});if(!state.people.length)list.innerHTML=`<div class="empty-card">No people added yet.</div>`;list.querySelectorAll("[data-person]").forEach(b=>b.addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal(b.dataset.person)}));}
