@@ -346,9 +346,18 @@ document.getElementById("saveEditInteractionBtn").addEventListener("click",()=>{
   const p=state.people.find(x=>x.id===editingInteractionPersonId);if(!p)return;
   const item=(p.interactions||[]).find(x=>x.id===editingInteractionId);if(!item)return;
   const before=structuredClone(state);
-  item.date=editInteractionSelectedDate||item.date;
-  item.method=document.getElementById("editInteractionMethod").value;
-  item.note=document.getElementById("editInteractionNote").value.trim();
+  const nextDate=editInteractionSelectedDate||item.date;
+  const nextMethod=document.getElementById("editInteractionMethod").value;
+  let nextNote=document.getElementById("editInteractionNote").value.trim();
+  const duplicate=(p.interactions||[]).find(x=>x.id!==item.id&&x.date===nextDate&&x.method===nextMethod);
+  if(duplicate){
+    if(!confirm(`That day already has a ${nextMethod} contact logged. Replace the existing entry with these changes?`)) return;
+    if(duplicate.note&&duplicate.note!==nextNote) nextNote=[nextNote,duplicate.note].filter(Boolean).join(" · ");
+    p.interactions=(p.interactions||[]).filter(x=>x.id!==duplicate.id);
+  }
+  item.date=nextDate;
+  item.method=nextMethod;
+  item.note=nextNote;
   item.countsAsSeen=document.getElementById("editInteractionSeenRow").style.display!=="none"&&document.getElementById("editInteractionCountsAsSeen").checked;
   item.updatedAt=new Date().toISOString();
   syncLastContact(p);

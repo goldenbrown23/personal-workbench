@@ -94,14 +94,16 @@ const TIME_BLOCKS = {
 };
 function timeBlockOf(h){ return (h?.timeBlock==="afternoon"||h?.timeBlock==="evening") ? h.timeBlock : "morning"; }
 function normalizeHabit(h){
-  const merged={goalType:"practice",full:"",small2:"",scheduleType:"daily",weekdays:[],weeklyTarget:1,timeBlock:"morning",paused:false,...h};
+  const source=h&&typeof h==="object"&&!Array.isArray(h)?h:{};
+  const merged={goalType:"practice",full:"",small2:"",scheduleType:"daily",weekdays:[],weeklyTarget:1,timeBlock:"morning",paused:false,...source};
   merged.timeBlock=Object.hasOwn(TIME_BLOCKS,merged.timeBlock)?merged.timeBlock:"morning";
   merged.icon=safeIcon(merged.icon,"leaf");
   merged.color=safeTone(merged.color);
   return merged;
 }
 function normalizePerson(p){
-  const merged={interactions:[],notes:[],...p};
+  const source=p&&typeof p==="object"&&!Array.isArray(p)?p:{};
+  const merged={interactions:[],notes:[],...source};
   merged.icon=safeIcon(merged.icon,"person");
   merged.color=safeTone(merged.color);
   if(!RELATIONSHIP_TAGS.some(t=>t.id===merged.relation)){
@@ -111,7 +113,9 @@ function normalizePerson(p){
   }
   const freq=Number(merged.frequency);
   merged.frequency=Number.isFinite(freq)?freq:14;
-  merged.interactions=(merged.interactions||[]).map((item,i)=>({
+  merged.interactions=(Array.isArray(merged.interactions)?merged.interactions:[]).map((item,i)=>{
+    item=item&&typeof item==="object"&&!Array.isArray(item)?item:{};
+    return {
     id:item.id||`i-legacy-${merged.id||"p"}-${i}`,
     date:item.date||dateKey(),
     method:item.method||"Other",
@@ -119,7 +123,9 @@ function normalizePerson(p){
     countsAsSeen:item.countsAsSeen!==undefined?item.countsAsSeen:(item.method||"").toLowerCase()==="in person",
     createdAt:item.createdAt||item.date||new Date().toISOString(),
     updatedAt:item.updatedAt||item.createdAt||item.date||new Date().toISOString()
+    };
   }));
+  merged.notes=Array.isArray(merged.notes)?merged.notes.filter(item=>item&&typeof item==="object"&&!Array.isArray(item)):[];
   return merged;
 }
 
