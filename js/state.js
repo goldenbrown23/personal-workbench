@@ -124,7 +124,7 @@ function normalizePerson(p){
     createdAt:item.createdAt||item.date||new Date().toISOString(),
     updatedAt:item.updatedAt||item.createdAt||item.date||new Date().toISOString()
     };
-  }));
+  });
   merged.notes=Array.isArray(merged.notes)?merged.notes.filter(item=>item&&typeof item==="object"&&!Array.isArray(item)):[];
   return merged;
 }
