@@ -27,6 +27,25 @@
     <div class="home-action-dock" id="homeActionDock"></div>
   </div>
 
+  <div id="workbenchView" class="view">
+    <header>
+      <div>
+        <div class="eyebrow">Your modules</div>
+        <h1>Workbench</h1>
+      </div>
+    </header>
+    <div class="home-grid">
+      <button class="module-card" onclick="switchView('todayView')">
+        <div><div class="module-icon">🌱</div><div class="module-title">Habits</div><div class="module-meta">Today's sequence, versions, and history.</div></div>
+        <div class="module-arrow">→</div>
+      </button>
+      <button class="module-card" onclick="switchView('circleView')">
+        <div><div class="module-icon">💛</div><div class="module-title">My Circle</div><div class="module-meta">People to keep in view.</div></div>
+        <div class="module-arrow">→</div>
+      </button>
+    </div>
+  </div>
+
   <div id="todayView" class="view">
     <header>
       <div>
@@ -34,6 +53,7 @@
         <h1>Habits</h1>
       </div>
       <div style="display:flex;gap:6px">
+        <button class="icon-btn" data-jump="workbenchView" aria-label="Back to Workbench">‹</button>
         <button class="icon-btn" id="gentleModeBtn" aria-label="Gentle day">🌿</button>
         <button class="icon-btn" id="manageBtn" aria-label="Manage habits">⚙️</button>
       </div>
@@ -164,7 +184,7 @@
     <header>
       <div>
         <div class="eyebrow">Last 7 days</div>
-        <h1>📈 Review</h1>
+        <h1>📈 Trends</h1>
       </div>
     </header>
     <div class="trend-insight">
@@ -199,7 +219,10 @@
         <h1>💛 Main Circle</h1>
         <div class="sub">Keep people in view without turning love into administration.</div>
       </div>
-      <button class="icon-btn" id="managePeopleBtn" aria-label="Manage people">⚙️</button>
+      <div style="display:flex;gap:6px">
+        <button class="icon-btn" data-jump="workbenchView" aria-label="Back to Workbench">‹</button>
+        <button class="icon-btn" id="managePeopleBtn" aria-label="Manage people">⚙️</button>
+      </div>
     </header>
     <div class="circle-summary"><div class="circle-summary-label">Your Main Circle</div><div class="circle-summary-value" id="circleSummary">A small, intentional circle</div></div>
     <div id="circleFocus"></div>
@@ -276,7 +299,7 @@
       </details>
 
       <details class="settings-disclosure">
-        <summary><span><strong>📈 Review</strong><small>Notice patterns without judging yourself</small></span><span aria-hidden="true">⌄</span></summary>
+        <summary><span><strong>📈 Trends</strong><small>Notice patterns without judging yourself</small></span><span aria-hidden="true">⌄</span></summary>
         <div class="settings-disclosure-body">
           <ul class="guide-list">
             <li><span class="guide-bullet">🔁</span>Review repeated patterns, not single days</li>
@@ -321,7 +344,7 @@
       <details class="settings-disclosure" open>
         <summary><span><strong>Personalize</strong><small>How the Workbench looks and feels</small></span><span aria-hidden="true">⌄</span></summary>
         <div class="settings-disclosure-body">
-          <div class="form-row"><label for="startScreen">Open to</label><select id="startScreen"><option value="last">Where I left off</option><option value="homeView">Home</option><option value="todayView">Habits</option><option value="circleView">Circle</option><option value="weekView">Trend</option></select></div>
+          <div class="form-row"><label for="startScreen">Open to</label><select id="startScreen"><option value="last">Where I left off</option><option value="homeView">Home</option><option value="workbenchView">Workbench</option><option value="todayView">Habits</option><option value="circleView">Circle</option><option value="weekView">Trends</option></select></div>
           <label class="setting-row" for="compactMode"><span class="grow"><span class="setting-label">Compact cards</span><span class="setting-note">See more with less scrolling</span></span><span class="toggle-state" id="compactModeState" aria-hidden="true">Off</span><input id="compactMode" type="checkbox" /></label>
           <label class="setting-row" for="hapticsEnabled"><span class="grow"><span class="setting-label">Gentle vibration</span><span class="setting-note">A tiny confirmation after quick logging</span></span><span class="toggle-state" id="hapticsEnabledState" aria-hidden="true">On</span><input id="hapticsEnabled" type="checkbox" /></label>
         </div>
@@ -367,9 +390,8 @@
 
 <nav class="tabbar" aria-label="Navigation">
   <button class="tab active" data-view="homeView"><span class="tab-icon">🏡</span><span>Home</span></button>
-  <button class="tab" data-view="todayView"><span class="tab-icon">🌱</span><span>Habits</span></button>
-  <button class="tab" data-view="circleView"><span class="tab-icon">💛</span><span>Circle</span></button>
-  <button class="tab" data-view="weekView"><span class="tab-icon">📈</span><span>Review</span></button>
+  <button class="tab" data-view="workbenchView"><span class="tab-icon">🧰</span><span>Workbench</span></button>
+  <button class="tab" data-view="weekView"><span class="tab-icon">📈</span><span>Trends</span></button>
   <button class="tab" data-view="settingsView"><span class="tab-icon">⚙️</span><span>Settings</span></button>
 </nav>
 

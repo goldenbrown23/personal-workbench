@@ -211,7 +211,7 @@
       width:min(calc(100% - 28px),700px);
       background:rgba(255,255,255,.94);backdrop-filter:blur(18px);
       border:1px solid rgba(225,229,222,.9);border-radius:18px;padding:7px;
-      display:grid;grid-template-columns:repeat(5,1fr);gap:4px;box-shadow:0 12px 40px rgba(28,40,30,.12);
+      display:grid;grid-template-columns:repeat(4,1fr);gap:4px;box-shadow:0 12px 40px rgba(28,40,30,.12);
       z-index:10;
     }
     .tab{
@@ -380,7 +380,7 @@
       /* Same content width as mobile/tablet — desktop gets whitespace around it, not a
          wider dashboard. Centered in the space to the right of the rail, not stretched. */
       .app{max-width:760px;margin:0 0 0 max(112px,calc(92px + (100vw - 852px)/2));padding:34px clamp(24px,4vw,56px) 54px;min-height:100vh}
-      .tabbar{left:0;transform:none;top:0;bottom:0;width:92px;padding:20px 9px;background:rgba(255,255,255,.92);border:0;border-right:1px solid #dceafa;border-radius:0;display:grid;grid-template-columns:1fr;grid-template-rows:auto repeat(5,min-content);align-content:start;gap:9px;box-shadow:7px 0 28px rgba(37,116,190,.06)}
+      .tabbar{left:0;transform:none;top:0;bottom:0;width:92px;padding:20px 9px;background:rgba(255,255,255,.92);border:0;border-right:1px solid #dceafa;border-radius:0;display:grid;grid-template-columns:1fr;grid-template-rows:auto repeat(4,min-content);align-content:start;gap:9px;box-shadow:7px 0 28px rgba(37,116,190,.06)}
       .tabbar::before{content:"WORKBENCH";font-size:9px;letter-spacing:.12em;font-weight:850;color:#6a90b7;text-align:center;padding:4px 0 11px}
       .tab{min-height:68px;padding:9px 3px;border-radius:15px;font-size:10px;gap:5px;color:#6585a6}
       .tab-icon{font-size:22px}.tab.active{background:#e5f2fd;color:#287fc1;box-shadow:inset 0 0 0 1px #cce5fb}
