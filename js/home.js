@@ -60,11 +60,11 @@ function homeHabitsWidgetHTML(){
     const dotClass=status==="done"?"done":status==="counted"?"counted":status==="returned"?"returned":status==="miss"?"miss":"";
     return `<div class="home-widget-row"><span class="home-widget-dot ${dotClass}"></span><span class="home-widget-row-name">${escapeHTML(h.name)}</span></div>`;
   }).join("");
-  return `<div class="home-widget"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon">${iconSVG("leaf")}</span>Habits</span><span class="home-widget-count">${done.length} of ${today.length} today</span></div>${rows}<button class="home-widget-link" onclick="switchView('todayView')">View habits →</button></div>`;
+  return `<div class="home-widget"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon sage">${iconSVG("leaf")}</span>Habits</span><span class="home-widget-count">${done.length} of ${today.length} today</span></div>${rows}<button class="home-widget-link" onclick="switchView('todayView')">View habits →</button></div>`;
 }
 function homeCircleWidgetHTML(nudges){
   if(!state.people.length) return "";
   const shown=[...nudges.map(x=>x.person),...state.people.filter(p=>!nudges.some(x=>x.person.id===p.id))].slice(0,2);
   const rows=shown.map(p=>`<div class="home-widget-row">${visualHTML(p,"home-widget-avatar","person")}<span class="home-widget-row-name">${escapeHTML(p.name)}</span><span class="home-widget-row-meta">${escapeHTML(personTiming(p).label)}</span></div>`).join("");
-  return `<div class="home-widget"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon">${iconSVG("heart")}</span>My Circle</span></div>${rows}<button class="home-widget-link" onclick="switchView('circleView')">View circle →</button></div>`;
+  return `<div class="home-widget"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon peach">${iconSVG("heart")}</span>My Circle</span></div>${rows}<button class="home-widget-link" onclick="switchView('circleView')">View circle →</button></div>`;
 }

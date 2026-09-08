@@ -555,17 +555,33 @@ function reviewHabitEvent(h,entry){
   const note=label+(entry.note?` · ${entry.note}`:"");
   return {type:"habit",status:entry.status,title:h.name,note,icon};
 }
+// Quiet days are valid data, not something to hide — but a full-size empty card per quiet
+// day was the "large card for every quiet day" noise problem. Consecutive quiet days now
+// collapse into one small summary row; a day with actual activity still gets its own card.
 function renderReviewHistory(days=getLast7Days()){
   const list=document.getElementById("reviewHistory");if(!list)return;list.innerHTML="";
+  let quietRun=[];
+  const flushQuiet=()=>{
+    if(!quietRun.length) return;
+    const row=document.createElement("div");
+    row.className="history-quiet-run";
+    row.textContent=quietRun.length===1?`${reviewDateLabel(quietRun[0])} · Quiet day`:`${quietRun.length} quiet days`;
+    list.appendChild(row);
+    quietRun=[];
+  };
   [...days].reverse().forEach(date=>{
     const key=dateKey(date),events=[];
     state.habits.forEach(h=>{const entry=getLogEntry(h.id,key);if(entry?.status)events.push(reviewHabitEvent(h,entry))});
     state.people.forEach(person=>{const interactions=(person.interactions||[]).filter(item=>item.date===key);interactions.forEach(item=>events.push({type:"circle",title:`Connected with ${person.name}`,note:item.method||"Contact",icon:"💬"}));if(!interactions.length&&person.lastContact===key)events.push({type:"circle",title:`Connected with ${person.name}`,note:"Contact",icon:"💬"})});
     const visible=events.filter(event=>reviewFilter==="all"||event.type===reviewFilter);
-    const day=document.createElement("section");day.className="history-day";day.innerHTML=`<div class="history-day-label">${escapeHTML(reviewDateLabel(date))}<span> · ${visible.length?`${visible.length} ${visible.length===1?"entry":"entries"}`:"Quiet day"}</span></div>`;
-    if(visible.length){visible.forEach(event=>{const row=document.createElement("div");row.className=`history-item ${event.type} ${event.status==="miss"?"miss":""}`;row.innerHTML=`<span class="history-item-icon">${escapeHTML(event.icon)}</span><span class="history-item-copy"><span class="history-item-title">${escapeHTML(event.title)}</span><span class="history-item-note">${escapeHTML(event.note)}</span></span>`;day.appendChild(row)})}else{const quiet=document.createElement("div");quiet.className="history-quiet";quiet.textContent=events.length?"Nothing from this view." : "Nothing logged. That day is complete.";day.appendChild(quiet)}
+    if(!visible.length){ quietRun.push(date); return; }
+    flushQuiet();
+    const day=document.createElement("section");day.className="history-day";day.innerHTML=`<div class="history-day-label">${escapeHTML(reviewDateLabel(date))}<span> · ${visible.length} ${visible.length===1?"entry":"entries"}</span></div>`;
+    visible.forEach(event=>{const row=document.createElement("div");row.className=`history-item ${event.type} ${event.status==="miss"?"miss":""}`;row.innerHTML=`<span class="history-item-icon">${escapeHTML(event.icon)}</span><span class="history-item-copy"><span class="history-item-title">${escapeHTML(event.title)}</span><span class="history-item-note">${escapeHTML(event.note)}</span></span>`;day.appendChild(row)});
     list.appendChild(day);
   });
+  flushQuiet();
+  if(!list.children.length) list.innerHTML=`<div class="history-quiet-run">Nothing logged this week yet.</div>`;
 }
 document.querySelectorAll("[data-review-filter]").forEach(button=>button.addEventListener("click",()=>{reviewFilter=button.dataset.reviewFilter;document.querySelectorAll("[data-review-filter]").forEach(item=>item.classList.toggle("active",item.dataset.reviewFilter===reviewFilter));button.closest("details").removeAttribute("open");renderReviewHistory()}));
 
