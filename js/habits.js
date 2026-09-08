@@ -90,7 +90,18 @@ function lastMissDistance(habitId, returnDate){
 }
 function startOfWeek(d=new Date()){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()),day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x}
 function weeklyProgress(h){let count=0;const start=startOfWeek();for(let i=0;i<7;i++){const s=getStatus(h.id,dateKey(addDays(start,i)));if(["done","counted","returned"].includes(s))count++}return count}
-function habitAppliesToday(h){const type=h.scheduleType||"daily";return type==="daily"||(type==="days"&&(h.weekdays||[]).map(Number).includes(new Date().getDay()))}
+// "days" is the only schedule type that's ever NOT available on a given day — daily,
+// weekly-target ("3x this week"), and flexible habits are all fair game any day. This used
+// to default to false for weekly/flexible, which silently removed them from every
+// execution surface (Now, Later, Home's pick) with no other way in the UI to log them at all.
+function habitAppliesToday(h){const type=h.scheduleType||"daily";if(type==="days")return (h.weekdays||[]).map(Number).includes(new Date().getDay());return true;}
+// Beyond "is today a valid day," a weekly-target habit that already met its count for the
+// week (e.g. 3/3) shouldn't keep nagging for a 4th — it drops out of Now/Later once satisfied.
+function habitStillNeedsAttentionToday(h){
+  if(getStatus(h.id)) return false;
+  if(h.scheduleType==="weekly") return weeklyProgress(h)<Number(h.weeklyTarget||1);
+  return true;
+}
 function scheduleLabel(h){
   const type=h.scheduleType||"daily";
   if(type==="daily")return "Daily";
@@ -130,7 +141,7 @@ const BLOCK_SEARCH_ORDER={
   evening:["evening","afternoon","morning"],
   "late-night":["evening","morning","afternoon"]
 };
-function unloggedTodayHabitsInBlock(block){return state.habits.filter(h=>habitAppliesToday(h)&&!h.paused&&timeBlockOf(h)===block&&!getStatus(h.id))}
+function unloggedTodayHabitsInBlock(block){return state.habits.filter(h=>habitAppliesToday(h)&&!h.paused&&timeBlockOf(h)===block&&habitStillNeedsAttentionToday(h))}
 function pickHabitForBlock(block){
   const candidates=unloggedTodayHabitsInBlock(block);
   if(!candidates.length) return null;
@@ -158,7 +169,7 @@ function laterTodayLabel(h){ return LATER_LABEL[timeBlockOf(h)]||"Anytime today"
 function laterTodayHabits(excludeId){
   const order=BLOCK_SEARCH_ORDER[currentTimePeriod()]||BLOCK_SEARCH_ORDER.morning;
   return state.habits
-    .filter(h=>habitAppliesToday(h)&&!h.paused&&!getStatus(h.id)&&h.id!==excludeId)
+    .filter(h=>habitAppliesToday(h)&&!h.paused&&habitStillNeedsAttentionToday(h)&&h.id!==excludeId)
     .sort((a,b)=>order.indexOf(timeBlockOf(a))-order.indexOf(timeBlockOf(b)));
 }
 // The smallest configured version is what the Now card presents and what "I did it" must

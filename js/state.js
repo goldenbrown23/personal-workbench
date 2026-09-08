@@ -135,16 +135,24 @@ const defaultState = {
   settings: {startScreen:"last",compactMode:false,hapticsEnabled:true,backupReminderEnabled:true,guideOpened:false,firstUsedAt:new Date().toISOString(),lastBackupAt:null,backupRemindAfter:null}
 };
 
+let stateLoadWasCorrupted=false;
 function loadState(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return structuredClone(defaultState);
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return structuredClone(defaultState);
     const parsed = JSON.parse(raw);
     return {habits: (parsed.habits || []).map(normalizeHabit), logs: parsed.logs || {}, people:(parsed.people||[]).map(normalizePerson), dayNotes:(parsed.dayNotes&&typeof parsed.dayNotes==="object")?parsed.dayNotes:{}, settings:{...defaultState.settings,...(parsed.settings||{})}};
-  }catch(e){ return structuredClone(defaultState); }
+  }catch(e){
+    // Don't silently discard unreadable data — keep the raw string under a separate key
+    // in case it's recoverable, and skip the immediate re-save below so the ORIGINAL
+    // localStorage entry survives this load too (only an explicit later save overwrites it).
+    stateLoadWasCorrupted=true;
+    try{ localStorage.setItem(STORAGE_KEY+"_corrupted_backup_"+Date.now(), raw); }catch(_e){}
+    return structuredClone(defaultState);
+  }
 }
 let state = loadState();
-localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
+if(!stateLoadWasCorrupted) localStorage.setItem(STORAGE_KEY,JSON.stringify(state));
 let undoSnapshot=null, toastTimer=null;
 localStorage.removeItem("personal_workbench_habit_filter");
 const GENTLE_KEY="personal_workbench_gentle_day";
@@ -161,6 +169,7 @@ function showSaved(message,before=null){
   clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("show"),4500);
   if(state.settings?.hapticsEnabled && navigator.vibrate) navigator.vibrate(18);
 }
+if(stateLoadWasCorrupted) showSaved("Your saved data couldn't be read, so a fresh start was loaded. The old file was kept as a backup in this browser.");
 document.getElementById("undoBtn").addEventListener("click",()=>{if(!undoSnapshot)return;state=undoSnapshot;undoSnapshot=null;saveState();document.getElementById("saveToast").classList.remove("show");});
 
 let visualTarget=null,pendingIcon=null,pendingTone="sage";
@@ -199,13 +208,17 @@ function setupDatePicker({chipsId,customId,summaryId,getState,setState}){
   const presetMatch=!isCustom&&presets.find(([d])=>d===current);
   chips.innerHTML=presets.map(([d,label])=>`<button type="button" class="filter-chip ${!isCustom&&current===d?"active":""}" data-pick="${d}">${label}</button>`).join("")+`<button type="button" class="filter-chip ${isCustom?"active":""}" data-pick="custom">Pick date</button>`;
   custom.style.display=isCustom?"block":"none";
+  // These are logs of what already happened — a future date has no meaning here, and
+  // without this cap the native date picker happily accepts one (throwing off Return
+  // detection and calendar/history readouts, which assume every entry is today or earlier).
+  custom.max=today;
   if(isCustom) custom.value=current||today;
   if(summary) summary.textContent=presetMatch?presetMatch[1]:(current?fmtDate(parseLocalDate(current)):"Pick date");
   chips.querySelectorAll("[data-pick]").forEach(btn=>btn.addEventListener("click",()=>{
     if(btn.dataset.pick==="custom"){setState(custom.value||current||today,true);custom.focus();return;}
     setState(btn.dataset.pick,false);
   }));
-  custom.onchange=()=>{ if(custom.value) setState(custom.value,true); };
+  custom.onchange=()=>{ if(custom.value) setState(custom.value>today?today:custom.value,true); };
 }
 function daysBetween(a,b){ const x=new Date(a.getFullYear(),a.getMonth(),a.getDate()); const y=new Date(b.getFullYear(),b.getMonth(),b.getDate()); return Math.round((y-x)/86400000); }
 function fmtDate(d){ return d ? new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric"}).format(d) : "Not yet"; }
