@@ -217,50 +217,66 @@ function nowCardHTML(pick,{label="Now",gentle=false,blockPeriod=null}={}){
   return `<div class="home-now-label">${escapeHTML(label)}</div><div class="home-now-main">${visualHTML(h,"home-now-icon")}<div class="home-now-copy"><div class="home-now-title">${escapeHTML(h.name)}</div><div class="home-now-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<button class="home-now-action" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ I did it</button>${secondaryRow}`;
 }
 
-// ---- Habits tab: SEE → START → LOG → MOVE ON, not a database view ----
+// ---- Habits tab: a scannable checklist by time of day, not a second "what's next"
+// engine — Home's Start Here already owns "what's most useful right now" (habits.js's
+// pickStartHereHabit/nowCardHTML). This screen is for browsing/logging any habit in a
+// given block, morning/afternoon/evening, matching the Morning|Afternoon|Evening switch.
+let habitsSelectedBlock=null;
+function defaultHabitsBlock(){
+  const period=currentTimePeriod();
+  return period==="late-night"?"evening":period;
+}
 function renderToday(){
   document.getElementById("todayDate").textContent=fmtLong(new Date());
   const gentle=gentleDayOn();
   const gentleBtn=document.getElementById("gentleModeBtn");
   gentleBtn.classList.toggle("active",gentle);
   gentleBtn.setAttribute("aria-label",gentle?"Gentle day · On":"Gentle day");
-  const period=currentTimePeriod();
-  const pick=pickStartHereHabit(period);
-  const laterList=laterTodayHabits(pick?pick.habit.id:null);
-  renderHabitsNow(pick,gentle,period,laterList);
-  renderHabitsLater(laterList);
+  if(!habitsSelectedBlock) habitsSelectedBlock=defaultHabitsBlock();
+  renderHabitsPeriodSwitch();
+  renderHabitsChecklist();
   renderHabitsDone();
   renderHabitsPaused();
 }
-function renderHabitsNow(pick,gentle,period,laterList){
-  const el=document.getElementById("habitsNow");
-  el.classList.remove("quiet");
-  el.classList.toggle("gentle",gentle);
+function renderHabitsPeriodSwitch(){
+  document.querySelectorAll("#habitsPeriodSwitch [data-block]").forEach(btn=>{
+    const active=btn.dataset.block===habitsSelectedBlock;
+    btn.classList.toggle("active",active);
+    btn.setAttribute("aria-selected",String(active));
+  });
+}
+function setHabitsBlock(block){
+  habitsSelectedBlock=block;
+  renderHabitsPeriodSwitch();
+  renderHabitsChecklist();
+}
+document.querySelectorAll("#habitsPeriodSwitch [data-block]").forEach(btn=>btn.addEventListener("click",()=>setHabitsBlock(btn.dataset.block)));
+// Two tap targets per row, not one: the name/icon opens the full picker (versions, Not
+// Today, past/multi-date logging — every existing capability, unabridged); the status
+// circle is a one-tap checkbox for the common case (quickCompleteHabit already existed
+// for exactly this but had nothing wired to it).
+function checklistRowHTML(h){
+  const status=getStatus(h.id);
+  const tier=homePrimaryTier(h);
+  const glyph=status==="returned"?"↩":status==="miss"?"—":status?"✓":"";
+  const label=status?`${escapeAttr(h.name)}, ${statusLabel(status)}. Tap to change.`:`Mark ${escapeAttr(h.name)} done`;
+  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openStatusModal('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name">${escapeHTML(h.name)}</span><span class="checklist-sub">${escapeHTML(tier.text)}</span></span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button></div>`;
+}
+function renderHabitsChecklist(){
+  const wrap=document.getElementById("habitsChecklist");
   if(!state.habits.length){
-    el.classList.add("quiet");
-    el.innerHTML=`<div class="home-now-label">Now</div><div class="home-now-main"><span class="home-now-icon">🌱</span><div class="home-now-copy"><div class="home-now-title">No habits yet.</div><div class="home-now-detail">Add one tiny habit to start.</div></div></div>`;
+    wrap.innerHTML=`<div class="empty-card">No habits yet. Add one tiny habit to start.</div>`;
     return;
   }
-  if(pick){
-    el.innerHTML=nowCardHTML(pick,{label:"Now",gentle,blockPeriod:period});
+  const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock);
+  if(!items.length){
+    wrap.innerHTML=`<div class="empty-card">Nothing scheduled for ${escapeHTML(BLOCK_LABEL[habitsSelectedBlock]||"this")}.</div>`;
     return;
   }
-  el.classList.add("quiet");
-  if(laterList.length){
-    const next=laterList[0];
-    el.innerHTML=`<div class="home-now-label">Now</div><div class="home-now-main"><span class="home-now-icon">🍃</span><div class="home-now-copy"><div class="home-now-title">Nothing needs you right now.</div><div class="home-now-detail">Later today: ${escapeHTML(next.name)} · ${escapeHTML(laterTodayLabel(next))}</div></div></div>`;
-  }else{
-    el.innerHTML=`<div class="home-now-label">Now</div><div class="home-now-main"><span class="home-now-icon">🍃</span><div class="home-now-copy"><div class="home-now-title">You’re good for now.</div></div></div>`;
-  }
+  wrap.innerHTML=items.map(checklistRowHTML).join("");
 }
 function laterRowHTML(h,timeText){
   return `<button type="button" class="later-row" onclick="openStatusModal('${jsEscape(h.id)}')">${visualHTML(h,"later-row-icon")}<span class="later-row-copy"><span class="later-row-name">${escapeHTML(h.name)}</span><span class="later-row-time">${escapeHTML(timeText)}</span></span></button>`;
-}
-function renderHabitsLater(laterList){
-  const wrap=document.getElementById("habitsLater"),labelEl=document.getElementById("habitsLaterLabel");
-  if(!laterList.length){ wrap.innerHTML="";labelEl.style.display="none";return; }
-  labelEl.style.display="block";
-  wrap.innerHTML=laterList.map(h=>laterRowHTML(h,laterTodayLabel(h))).join("");
 }
 function renderHabitsDone(){
   const details=document.getElementById("habitsDoneDetails");

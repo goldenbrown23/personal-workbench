@@ -53,9 +53,16 @@ function renderCircle(){
   const remaining=people.filter(p=>!focus||p.id!==focus.id);
   document.getElementById("circlePeopleTitle").textContent=focus?"Other people":"Your people";
   document.getElementById("circlePeopleHead").style.display=remaining.length||!people.length?"flex":"none";
-  remaining.forEach(p=>{const row=document.createElement("div");row.className="person-row-compact";const rel=relationTag(p.relation);row.innerHTML=`<button class="person-row-open" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="person-row-copy"><span class="person-row-name">${escapeHTML(p.name)}</span><span class="person-row-meta">${escapeHTML(personTiming(p).label)}${rel?`<span class="person-row-relation">${escapeHTML(rel.label)}</span>`:""}</span></span></button><button class="person-row-log" aria-label="Contact ${escapeAttr(p.name)}" onclick="openContactModal('${jsEscape(p.id)}')">💬</button>`;list.appendChild(row)});
+  list.innerHTML=remaining.map(personCardHTML).join("");
   if(!people.length)list.innerHTML=`<div class="empty-card">No people yet. Add one person you want to keep in view.</div>`;
   else if(!remaining.length)list.style.display="none";else list.style.display="block";
+}
+// One card per person, avatar-forward: name/relationship on top, a human-language timing
+// line, then ONE contextual action — never a guilt badge. "Reach out" only appears when
+// a check-in is actually due/soon; otherwise it's the quieter, optional "Log interaction".
+function personCardHTML(p){
+  const t=personTiming(p),rel=relationTag(p.relation),isDue=["due","soon"].includes(t.class);
+  return `<div class="circle-person-card"><button class="circle-person-card-top" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="circle-person-card-identity"><span class="circle-person-card-name">${escapeHTML(p.name)}</span>${rel?relationPillHTML(p.relation,"relationship-label small"):""}</span><span class="circle-person-card-timing ${t.class}">${escapeHTML(t.label)}</span></button><button class="circle-person-action ${isDue?"reach":"log"}" onclick="openContactModal('${jsEscape(p.id)}')">${isDue?"Reach out":"Log interaction"}</button></div>`;
 }
 
 function personIdentityHTML(p,t=personTiming(p)){return `<div class="circle-person-head">${visualHTML(p,"avatar","person")}<div class="circle-person-identity"><div class="circle-person-name">${escapeHTML(p.name)}</div>${relationPillHTML(p.relation)}</div><span class="circle-status ${t.class}">${escapeHTML(t.label)}</span></div>`}
