@@ -22,28 +22,10 @@
         <h1 id="homeGreeting">Personal Workbench</h1>
         <div class="sub" id="homeSub">Start with what matters.</div>
       </div>
+      <div class="home-mood" id="homeMood"></div>
     </header>
     <div class="home-now" id="homeNow"></div>
     <div class="home-widgets" id="homeWidgets"></div>
-  </div>
-
-  <div id="workbenchView" class="view">
-    <header>
-      <div>
-        <div class="eyebrow">Your modules</div>
-        <h1>Workbench</h1>
-      </div>
-    </header>
-    <div class="home-grid">
-      <button class="module-card" onclick="switchView('todayView')">
-        <div><div class="module-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></div><div class="module-title">Habits</div><div class="module-meta">Daily rhythm</div></div>
-        <div class="module-arrow">→</div>
-      </button>
-      <button class="module-card" onclick="switchView('circleView')">
-        <div><div class="module-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></svg></div><div class="module-title">My Circle</div><div class="module-meta">People &amp; connection</div></div>
-        <div class="module-arrow">→</div>
-      </button>
-    </div>
   </div>
 
   <div id="todayView" class="view">
@@ -51,9 +33,9 @@
       <div>
         <div class="eyebrow" id="todayDate"></div>
         <h1>Habits</h1>
+        <div class="sub">Small actions. A calmer, brighter you.</div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="icon-btn" data-jump="workbenchView" aria-label="Back to Workbench">‹</button>
         <button class="icon-btn" id="gentleModeBtn" aria-label="Gentle day">🌿</button>
         <button class="icon-btn" id="manageBtn" aria-label="Manage habits">⚙️</button>
       </div>
@@ -213,18 +195,15 @@
   <div id="circleView" class="view">
     <header>
       <div>
-        <div class="eyebrow">People you want to keep close</div>
-        <h1>💛 Main Circle</h1>
-        <div class="sub">People to keep in view.</div>
+        <h1>My Circle</h1>
+        <div class="sub">Stronger relationships, gently kept.</div>
       </div>
       <div style="display:flex;gap:6px">
-        <button class="icon-btn" data-jump="workbenchView" aria-label="Back to Workbench">‹</button>
+        <button class="icon-btn" id="addPersonBtn" aria-label="Add person">+</button>
         <button class="icon-btn" id="managePeopleBtn" aria-label="Manage people">⚙️</button>
       </div>
     </header>
-    <div class="circle-summary"><div class="circle-summary-label">Your Main Circle</div><div class="circle-summary-value" id="circleSummary">A small, intentional circle</div></div>
-    <div id="circleFocus"></div>
-    <div class="section-head" id="circlePeopleHead"><h2 id="circlePeopleTitle">Your people</h2><button class="link-btn" id="addPersonBtn">+ Add</button></div>
+    <div class="filter-row" id="circleFilterRow"></div>
     <div id="circleList" class="people-list"></div>
   </div>
 
@@ -341,7 +320,7 @@
       <details class="settings-disclosure" open>
         <summary><span><strong>Personalize</strong><small>How the Workbench looks and feels</small></span><span aria-hidden="true">⌄</span></summary>
         <div class="settings-disclosure-body">
-          <div class="form-row"><label for="startScreen">Open to</label><select id="startScreen"><option value="last">Where I left off</option><option value="homeView">Home</option><option value="workbenchView">Workbench</option><option value="todayView">Habits</option><option value="circleView">Circle</option><option value="weekView">Trends</option></select></div>
+          <div class="form-row"><label for="startScreen">Open to</label><select id="startScreen"><option value="last">Where I left off</option><option value="homeView">Home</option><option value="todayView">Habits</option><option value="circleView">Circle</option><option value="weekView">Trends</option></select></div>
           <label class="setting-row" for="compactMode"><span class="grow"><span class="setting-label">Compact cards</span><span class="setting-note">See more with less scrolling</span></span><span class="toggle-state" id="compactModeState" aria-hidden="true">Off</span><input id="compactMode" type="checkbox" /></label>
           <label class="setting-row" for="hapticsEnabled"><span class="grow"><span class="setting-label">Gentle vibration</span><span class="setting-note">A tiny confirmation after quick logging</span></span><span class="toggle-state" id="hapticsEnabledState" aria-hidden="true">On</span><input id="hapticsEnabled" type="checkbox" /></label>
         </div>
@@ -387,7 +366,8 @@
 
 <nav class="tabbar" aria-label="Navigation">
   <button class="tab active" data-view="homeView"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8"></path><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path></svg></span><span>Home</span></button>
-  <button class="tab" data-view="workbenchView"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></span><span>Workbench</span></button>
+  <button class="tab" data-view="todayView"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></span><span>Habits</span></button>
+  <button class="tab" data-view="circleView"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5"></path></svg></span><span>My Circle</span></button>
   <button class="tab" data-view="weekView"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg></span><span>Trends</span></button>
   <button class="tab" data-view="settingsView"><span class="tab-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></span><span>Settings</span></button>
 </nav>

@@ -127,6 +127,7 @@ function currentTimePeriod(hour=new Date().getHours()){
   return "late-night";
 }
 const PERIOD_GREETING={morning:"Good morning",afternoon:"Good afternoon",evening:"Good evening","late-night":"Still up"};
+const PERIOD_MOOD={morning:"A slow start",afternoon:"Steady as you go",evening:"A calmer you","late-night":"Rest counts too"};
 const PERIOD_COPY={
   morning:"Begin with one thing.",
   afternoon:"Reset, gently.",

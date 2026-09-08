@@ -3,7 +3,7 @@
 // updates when sw.js's OWN bytes change; it does not re-check importScripts()
 // targets, so deriving this from version.js silently breaks update detection there.
 const CACHE_PREFIX = "personal-workbench-";
-const CACHE_NAME = "personal-workbench-v0.24.1";
+const CACHE_NAME = "personal-workbench-v0.25.0";
 const APP_SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./attachments/icon.svg", "./attachments/icon-192.png", "./attachments/icon-512.png",
   "./styles.css",

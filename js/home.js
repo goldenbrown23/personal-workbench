@@ -6,6 +6,7 @@ function renderHome(){
   const now=new Date(),period=currentTimePeriod(now.getHours());
   document.getElementById("homeDate").textContent=fmtLong(now);
   document.getElementById("homeGreeting").textContent=PERIOD_GREETING[period];
+  document.getElementById("homeMood").textContent=PERIOD_MOOD[period]||"";
   const gentle=gentleDayOn();
   document.getElementById("homeSub").textContent=gentle?"Gentle day is on. Smaller still counts.":PERIOD_COPY[period];
 

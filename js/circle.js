@@ -42,20 +42,37 @@ function personTiming(p){
   if(remaining>=0) return {class:"soon",label:"Coming up",text:remaining===0?"Around your usual check-in time.":`Usual rhythm is coming up in ${remaining} day${remaining===1?"":"s"}.`};
   return {class:"due",label:"Reconnect",text:"Haven’t connected in a bit. A small hello is enough."};
 }
+// Filters are a lens over the same relation data already stored per person — not a new
+// concept, matching what RELATIONSHIP_TAGS already tracks. "Friends"/"Work" group two
+// adjacent tags each since the mockup's five chips don't map 1:1 to all nine tag ids.
+const CIRCLE_FILTERS=[
+  {id:"all",label:"All"},
+  {id:"family",label:"Family",match:["family"]},
+  {id:"friends",label:"Friends",match:["friend","close-friend"]},
+  {id:"partner",label:"Partner",match:["partner"]},
+  {id:"work",label:"Work",match:["coworker","work-contact"]}
+];
+let circleActiveFilter="all";
+function renderCircleFilters(){
+  const wrap=document.getElementById("circleFilterRow");
+  if(!wrap) return;
+  wrap.innerHTML=CIRCLE_FILTERS.map(f=>`<button type="button" class="filter-chip ${circleActiveFilter===f.id?"active":""}" data-filter="${f.id}">${escapeHTML(f.label)}</button>`).join("");
+  wrap.querySelectorAll("[data-filter]").forEach(btn=>btn.addEventListener("click",()=>{circleActiveFilter=btn.dataset.filter;renderCircle();}));
+}
+// No summary card, no separately-elevated "focus" card — one flat list of uniform person
+// cards, ranked by who's due/soon first. The mockup shows Circle as people, immediately;
+// the previous multi-layer intro (summary line, singled-out focus card, "Other people"
+// section head) added reading before any person appeared.
 function renderCircle(){
-  const list=document.getElementById("circleList"); list.innerHTML="";list.style.display="block";
+  renderCircleFilters();
+  const list=document.getElementById("circleList");
+  if(!state.people.length){ list.innerHTML=`<div class="empty-card">No people yet. Add one person you want to keep in view.</div>`; return; }
+  const filterDef=CIRCLE_FILTERS.find(f=>f.id===circleActiveFilter);
+  const visible=filterDef?.match?state.people.filter(p=>filterDef.match.includes(p.relation)):state.people;
+  if(!visible.length){ list.innerHTML=`<div class="empty-card">No one in this group yet.</div>`; return; }
   const rank=x=>x.class==="due"?0:x.class==="soon"?1:x.class==="good"?2:3;
-  const people=[...state.people].sort((a,b)=>rank(personTiming(a))-rank(personTiming(b)));
-  const radar=people.filter(p=>["due","soon"].includes(personTiming(p).class));
-  document.getElementById("circleSummary").innerHTML=people.length?`${people.length} ${people.length===1?"person":"people"}<span class="circle-summary-note">${radar.length?radar.length+" gently on your radar":"Nothing pressing"}</span>`:"A small, intentional circle";
-  const focus=radar[0],focusEl=document.getElementById("circleFocus");
-  if(focus){const t=personTiming(focus);focusEl.innerHTML=`<div class="circle-focus"><div class="focus-eyebrow">A connection in view</div>${personIdentityHTML(focus,t)}<div class="circle-focus-detail">${escapeHTML(t.text)}</div>${personSecondaryLine(focus)}<div class="circle-card-actions two"><button class="primary-soft" onclick="openContactModal('${jsEscape(focus.id)}')">💬 Contact</button><button onclick="openPersonDetail('${jsEscape(focus.id)}')">Details</button></div></div>`}else if(people.length){focusEl.innerHTML=`<div class="focus-done"><strong style="color:var(--text)">Your Circle is quiet.</strong><br>No relationship needs to be turned into a task right now.</div>`}else{focusEl.innerHTML=""}
-  const remaining=people.filter(p=>!focus||p.id!==focus.id);
-  document.getElementById("circlePeopleTitle").textContent=focus?"Other people":"Your people";
-  document.getElementById("circlePeopleHead").style.display=remaining.length||!people.length?"flex":"none";
-  list.innerHTML=remaining.map(personCardHTML).join("");
-  if(!people.length)list.innerHTML=`<div class="empty-card">No people yet. Add one person you want to keep in view.</div>`;
-  else if(!remaining.length)list.style.display="none";else list.style.display="block";
+  const people=[...visible].sort((a,b)=>rank(personTiming(a))-rank(personTiming(b)));
+  list.innerHTML=people.map(personCardHTML).join("");
 }
 // One card per person, avatar-forward: name/relationship on top, a human-language timing
 // line, then ONE contextual action — never a guilt badge. "Reach out" only appears when
