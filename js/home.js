@@ -12,7 +12,7 @@ function renderHome(){
   const nudges=state.people.map(p=>({person:p,timing:personTiming(p)})).filter(x=>["due","soon"].includes(x.timing.class));
 
   renderStartHere(period,gentle,nudges);
-  renderHomeQuickActions(period);
+  renderHomeWidgets(nudges);
 }
 
 // Home is a minimal launchpad, not a dashboard: Start Here renders the same shared
@@ -40,9 +40,30 @@ function renderStartHere(period,gentle,nudges){
   homeNow.innerHTML=`<div class="home-now-label">Start here</div><div class="home-now-main"><span class="home-now-icon">🍃</span><div class="home-now-copy"><div class="home-now-title">Nothing urgent right now.</div><div class="home-now-detail">You can close the app.</div></div></div>`;
 }
 
-function renderHomeQuickActions(period){
-  const dock=document.getElementById("homeActionDock");
-  if(!dock) return;
-  const habitsLabel=period==="morning"?"☀️ Morning habits":period==="afternoon"?"☀️ Afternoon habits":period==="late-night"?"🌙 Tonight’s habits":"🌙 Evening habits";
-  dock.innerHTML=`<button class="dock-action" onclick="switchView('todayView')">${habitsLabel}</button><button class="dock-action" onclick="openContactModal()">💬 Log contact</button>`;
+// Level 2 of Home's hierarchy — small read-only previews of what's useful right now,
+// not a second copy of the Habits/Circle screens. Tapping "View" always routes through
+// the existing switchView/openPersonDetail entry points, so this never becomes a second
+// place habit/person data has to be kept in sync.
+function renderHomeWidgets(nudges){
+  const wrap=document.getElementById("homeWidgets");
+  if(!wrap) return;
+  wrap.innerHTML=[homeHabitsWidgetHTML(),homeCircleWidgetHTML(nudges)].filter(Boolean).join("");
+}
+function homeHabitsWidgetHTML(){
+  if(!state.habits.length) return "";
+  const today=state.habits.filter(h=>habitAppliesToday(h)&&!h.paused);
+  if(!today.length) return "";
+  const done=today.filter(h=>["done","counted","returned"].includes(getStatus(h.id)));
+  const rows=today.slice(0,3).map(h=>{
+    const status=getStatus(h.id);
+    const dotClass=status==="done"?"done":status==="counted"?"counted":status==="returned"?"returned":status==="miss"?"miss":"";
+    return `<div class="home-widget-row"><span class="home-widget-dot ${dotClass}"></span><span class="home-widget-row-name">${escapeHTML(h.name)}</span></div>`;
+  }).join("");
+  return `<div class="home-widget"><div class="home-widget-head"><span class="home-widget-title">🌿 Habits</span><span class="home-widget-count">${done.length} of ${today.length} today</span></div>${rows}<button class="home-widget-link" onclick="switchView('todayView')">View habits →</button></div>`;
+}
+function homeCircleWidgetHTML(nudges){
+  if(!state.people.length) return "";
+  const shown=[...nudges.map(x=>x.person),...state.people.filter(p=>!nudges.some(x=>x.person.id===p.id))].slice(0,2);
+  const rows=shown.map(p=>`<div class="home-widget-row">${visualHTML(p,"home-widget-avatar","person")}<span class="home-widget-row-name">${escapeHTML(p.name)}</span><span class="home-widget-row-meta">${escapeHTML(personTiming(p).label)}</span></div>`).join("");
+  return `<div class="home-widget"><div class="home-widget-head"><span class="home-widget-title">💛 My Circle</span></div>${rows}<button class="home-widget-link" onclick="switchView('circleView')">View circle →</button></div>`;
 }
