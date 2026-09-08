@@ -20,7 +20,7 @@
       <div>
         <div class="eyebrow" id="homeDate"></div>
         <h1 id="homeGreeting">Personal Workbench</h1>
-        <div class="sub" id="homeSub">Only what is useful right now. The rest can stay quiet.</div>
+        <div class="sub" id="homeSub">Start with what matters.</div>
       </div>
     </header>
     <div class="home-now" id="homeNow"></div>
@@ -36,11 +36,11 @@
     </header>
     <div class="home-grid">
       <button class="module-card" onclick="switchView('todayView')">
-        <div><div class="module-icon">🌱</div><div class="module-title">Habits</div><div class="module-meta">Today's sequence, versions, and history.</div></div>
+        <div><div class="module-icon">🌱</div><div class="module-title">Habits</div><div class="module-meta">Daily rhythm</div></div>
         <div class="module-arrow">→</div>
       </button>
       <button class="module-card" onclick="switchView('circleView')">
-        <div><div class="module-icon">💛</div><div class="module-title">My Circle</div><div class="module-meta">People to keep in view.</div></div>
+        <div><div class="module-icon">💛</div><div class="module-title">My Circle</div><div class="module-meta">People &amp; connection</div></div>
         <div class="module-arrow">→</div>
       </button>
     </div>
@@ -88,7 +88,7 @@
     </header>
 
     <div class="practice-intro">
-      <div class="practice-intro-title">🔒 One miss isn’t a system failure — return, don’t redesign.</div>
+      <div class="practice-intro-title">🔒 Return, don’t redesign.</div>
       <details class="goal-plan">
         <summary><span class="goal-plan-title">Why we track this way</span></summary>
         <div class="goal-plan-help">Our goal is connection, not perfection. Stay engaged and return quickly — a single miss is data, not a broken streak. A system change needs 3+ repeated problems in a row; until then, return rather than redesign.</div>
@@ -148,12 +148,7 @@
     <div class="section-head"><h2>Recent Returns</h2></div>
     <div class="stat-list" id="practiceRecentReturns"></div>
 
-    <div class="reminder-card">
-      <div class="settings-title">💗 Reminder</div>
-      <div class="settings-help">A miss is data, not failure. The win is returning.</div>
-    </div>
-
-    <div class="section-head"><h2>System Lock</h2></div>
+    <div class="section-head"><h2>Repeated pattern</h2></div>
     <div class="lock-card" id="practiceSystemLock"></div>
 
     <details class="settings-disclosure">
@@ -217,7 +212,7 @@
       <div>
         <div class="eyebrow">People you want to keep close</div>
         <h1>💛 Main Circle</h1>
-        <div class="sub">Keep people in view without turning love into administration.</div>
+        <div class="sub">People to keep in view.</div>
       </div>
       <div style="display:flex;gap:6px">
         <button class="icon-btn" data-jump="workbenchView" aria-label="Back to Workbench">‹</button>
@@ -228,7 +223,6 @@
     <div id="circleFocus"></div>
     <div class="section-head" id="circlePeopleHead"><h2 id="circlePeopleTitle">Your people</h2><button class="link-btn" id="addPersonBtn">+ Add</button></div>
     <div id="circleList" class="people-list"></div>
-    <div class="home-rule">A reminder is an invitation to connect—not evidence that you failed someone.</div>
   </div>
 
   <div id="aboutView" class="view">
@@ -338,7 +332,7 @@
   </div>
 
   <div id="settingsView" class="view">
-    <header><div><div class="eyebrow">Make it yours</div><h1>⚙️ Settings</h1><div class="sub">Adjust the Workbench without turning it into another project.</div></div></header>
+    <header><div><div class="eyebrow">Make it yours</div><h1>⚙️ Settings</h1><div class="sub">Small adjustments, not a project.</div></div></header>
     <div class="settings-page settings-calm">
 
       <details class="settings-disclosure" open>
@@ -580,7 +574,7 @@
 <div id="personNoteModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="personNoteTitle">
   <div class="modal">
     <div class="modal-head"><h3 id="personNoteTitle">Add a note</h3><button class="icon-btn" id="closePersonNote" aria-label="Close note">✕</button></div>
-    <div class="settings-help">Save the thought without turning it into another contact log.</div>
+    <div class="settings-help">Just the thought — not another contact log.</div>
     <div class="form-row"><label for="personNoteType">What kind of note?</label><select id="personNoteType"><option>Remember</option><option>Life update</option><option>Gift idea</option><option>Follow-up</option><option>Favorite</option></select></div>
     <div class="form-row"><label for="personNoteText">Note</label><textarea id="personNoteText" rows="4" placeholder="Something worth remembering about them…"></textarea></div>
     <div class="modal-actions"><button class="btn" id="cancelPersonNote">Cancel</button><button class="btn primary" id="savePersonNote">Save note</button></div>
@@ -590,7 +584,7 @@
 <div id="dayNoteModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="dayNoteTitle">
   <div class="modal">
     <div class="modal-head"><h3 id="dayNoteTitle">Day note</h3><button class="icon-btn" id="closeDayNote" aria-label="Close day note">✕</button></div>
-    <div class="settings-help">A quick word about the day, if it helps. Nothing required.</div>
+    <div class="settings-help">Optional — a quick word about the day.</div>
     <div class="form-row"><label for="dayNoteText">Note</label><textarea id="dayNoteText" rows="3" placeholder="e.g. Felt good"></textarea></div>
     <div class="modal-actions"><button class="btn danger" id="clearDayNoteBtn">Clear note</button><button class="btn" id="cancelDayNote">Cancel</button><button class="btn primary" id="saveDayNoteBtn">Save</button></div>
   </div>
@@ -599,11 +593,11 @@
 <div id="clearDataModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="clearDataTitle">
   <div class="modal">
     <div class="modal-head"><h3 id="clearDataTitle">Clear data</h3><button class="icon-btn" id="closeClearData" aria-label="Close clear data">✕</button></div>
-    <div class="settings-help">Choose exactly what to remove. Each option asks again before anything is deleted.</div>
+    <div class="settings-help">Choose what to clear. We’ll ask before deleting.</div>
     <div class="clear-options">
-      <button class="clear-option" id="clearHabitHistoryBtn" type="button"><strong>Habit history</strong><span>Clears check-ins and streak history, but keeps your habits and goal plans.</span></button>
-      <button class="clear-option" id="clearContactHistoryBtn" type="button"><strong>Circle contact history</strong><span>Clears last-contact dates and contact logs, but keeps people, notes, and profile details.</span></button>
-      <button class="clear-option total" id="resetDataBtn" type="button"><strong>Entire Workbench</strong><span>Removes habits, history, people, notes, and settings from this browser.</span></button>
+      <button class="clear-option" id="clearHabitHistoryBtn" type="button"><strong>Habit history</strong><span>Clears check-ins, keeps habits</span></button>
+      <button class="clear-option" id="clearContactHistoryBtn" type="button"><strong>Circle contact history</strong><span>Clears logs, keeps people</span></button>
+      <button class="clear-option total" id="resetDataBtn" type="button"><strong>Entire Workbench</strong><span>Removes everything from this browser</span></button>
     </div>
     <div class="modal-actions"><button class="btn" id="cancelClearData">Cancel</button></div>
   </div>

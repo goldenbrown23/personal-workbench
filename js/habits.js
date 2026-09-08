@@ -128,13 +128,15 @@ function currentTimePeriod(hour=new Date().getHours()){
 }
 const PERIOD_GREETING={morning:"Good morning",afternoon:"Good afternoon",evening:"Good evening","late-night":"Still up"};
 const PERIOD_COPY={
-  morning:"Only what helps you begin. The rest can wait.",
-  afternoon:"Only what helps you reset. The rest can wait.",
-  evening:"Only what supports tonight. The rest can wait.",
-  "late-night":"Only tiny closing steps. Nothing to prove."
+  morning:"Begin with one thing.",
+  afternoon:"Reset, gently.",
+  evening:"Wind down slowly.",
+  "late-night":"Small steps only."
 };
 const BLOCK_LABEL={morning:"morning",afternoon:"afternoon",evening:"evening"};
 const LATER_LABEL={morning:"This morning",afternoon:"This afternoon",evening:"Tonight"};
+const EARLIER_LABEL={morning:"Earlier this morning",afternoon:"Earlier this afternoon",evening:"Earlier tonight"};
+const CHRONO_ORDER=["morning","afternoon","evening"];
 const BLOCK_SEARCH_ORDER={
   morning:["morning","afternoon","evening"],
   afternoon:["afternoon","evening","morning"],
@@ -163,7 +165,16 @@ function pickStartHereHabit(period){
   }
   return null;
 }
-function laterTodayLabel(h){ return LATER_LABEL[timeBlockOf(h)]||"Anytime today"; }
+// A habit whose time block already passed today (e.g. a morning habit, unlogged, viewed in
+// the evening) reads as "Earlier this morning" — not "This morning," which implies it's
+// still coming up and left people confused about why a "later" habit was already in the past.
+function laterTodayLabel(h){
+  const block=timeBlockOf(h),period=currentTimePeriod();
+  const chronoNow=CHRONO_ORDER.indexOf(period);
+  const chronoBlock=CHRONO_ORDER.indexOf(block);
+  if(chronoNow>=0&&chronoBlock>=0&&chronoBlock<chronoNow) return EARLIER_LABEL[block]||"Earlier today";
+  return LATER_LABEL[block]||"Anytime today";
+}
 // Everything else applicable today, not yet logged, not the current pick — previews for
 // "Later today," not competing calls to action, ordered by how soon their block comes up.
 function laterTodayHabits(excludeId){
@@ -564,7 +575,10 @@ function renderManage(){
     `;
     list.appendChild(row);
   });
-  list.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>openHabitModal(btn.dataset.edit)));
+  // Close Manage first — same stacking rule as the "+ Add habit" button below: two
+  // .modal-backdrop sheets share one z-index, so leaving Manage open behind Edit just
+  // buries it (Manage renders later in the DOM and wins the tie).
+  list.querySelectorAll("[data-edit]").forEach(btn=>btn.addEventListener("click",()=>{document.getElementById("manageModal").classList.remove("show");openHabitModal(btn.dataset.edit)}));
   list.querySelectorAll("[data-pause]").forEach(btn=>btn.addEventListener("click",()=>toggleHabitPaused(btn.dataset.pause)));
 }
 

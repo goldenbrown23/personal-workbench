@@ -219,11 +219,11 @@ function renderPracticeSystemLock(){
   const card = document.getElementById("practiceSystemLock");
   const ready = top.streak>=3;
   card.innerHTML = `
-    <div class="lock-card-head"><span>🔒 Problems in a row</span><strong>${top.streak} / 3</strong></div>
+    <div class="lock-card-head"><span>🔒 Coming up, gently</span><strong>${top.streak} / 3</strong></div>
     <div class="progress-track"><div class="progress-fill lock" style="width:${Math.min(100, Math.round((n/3)*100))}%"></div></div>
     <div class="settings-help">${ready
-      ? `${escapeHTML(top.habit?.name||"A habit")} has come up ${top.streak} times in a row. This might be worth a gentle look — maybe a smaller version — not a redesign.`
-      : "Need 3+ to review system."}</div>
+      ? `${escapeHTML(top.habit?.name||"A habit")} keeps coming up. Worth a gentle look — maybe a smaller version.`
+      : "Taking shape. Nothing to act on yet."}</div>
   `;
 }
 
