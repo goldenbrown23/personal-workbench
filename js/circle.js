@@ -62,7 +62,14 @@ function renderCircle(){
 // a check-in is actually due/soon; otherwise it's the quieter, optional "Log interaction".
 function personCardHTML(p){
   const t=personTiming(p),rel=relationTag(p.relation),isDue=["due","soon"].includes(t.class);
-  return `<div class="circle-person-card"><button class="circle-person-card-top" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="circle-person-card-identity"><span class="circle-person-card-name">${escapeHTML(p.name)}</span>${rel?relationPillHTML(p.relation,"relationship-label small"):""}</span><span class="circle-person-card-timing ${t.class}">${escapeHTML(t.label)}</span></button><button class="circle-person-action ${isDue?"reach":"log"}" onclick="openContactModal('${jsEscape(p.id)}')">${isDue?"Reach out":"Log interaction"}</button></div>`;
+  // The card shows the actual relative date when one exists ("6 days ago," "Today") rather
+  // than only the category word — matches how specific the mockup's cards are — and falls
+  // back to the category label ("Start anytime," "Flexible") when there's no contact yet
+  // to date, since there is nothing to caption with "Last contact" in that case.
+  const last=latestContactDate(p);
+  const timingValue=last?relativeContactLabel(last):t.label;
+  const timingNote=last?"Last contact":"";
+  return `<div class="circle-person-card"><button class="circle-person-card-top" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="circle-person-card-identity"><span class="circle-person-card-name">${escapeHTML(p.name)}</span>${rel?`<span class="circle-person-card-relation">${escapeHTML(rel.label)}</span>`:""}</span><span class="circle-person-card-timing-block"><span class="circle-person-card-timing ${t.class}">${escapeHTML(timingValue)}</span>${timingNote?`<span class="circle-person-card-timing-note">${timingNote}</span>`:""}</span></button><button class="circle-person-action ${isDue?"reach":"log"}" onclick="openContactModal('${jsEscape(p.id)}')">${isDue?"Reach out":"Log interaction"}</button></div>`;
 }
 
 function personIdentityHTML(p,t=personTiming(p)){return `<div class="circle-person-head">${visualHTML(p,"avatar","person")}<div class="circle-person-identity"><div class="circle-person-name">${escapeHTML(p.name)}</div>${relationPillHTML(p.relation)}</div><span class="circle-status ${t.class}">${escapeHTML(t.label)}</span></div>`}
