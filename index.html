@@ -514,6 +514,31 @@
     <div class="modal-actions"><button class="btn" id="cancelContactBtn">Cancel</button><button class="btn primary" id="saveContactBtn">Log contact</button></div>
   </div>
 </div>
+
+<div id="editInteractionModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="editInteractionTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="editInteractionTitle">Edit Interaction</h3><button class="icon-btn" id="closeEditInteraction" aria-label="Close">✕</button></div>
+    <div class="form-row"><label for="editInteractionMethod">How did you connect?</label><select id="editInteractionMethod"><option>Text</option><option>Call</option><option>In person</option><option>Video</option><option>Voice note</option><option>Social media</option><option>Other</option></select></div>
+    <div class="setting-row" id="editInteractionSeenRow" style="display:none"><label class="setting-label" for="editInteractionCountsAsSeen">This counts as seeing them</label><input type="checkbox" id="editInteractionCountsAsSeen" /></div>
+    <details class="goal-plan" id="editInteractionDateDetails">
+      <summary><span class="goal-plan-title">When</span><span class="goal-plan-summary-note" id="editInteractionDateSummary">Today</span></summary>
+      <div class="date-chip-row" id="editInteractionDateChips"></div>
+      <input id="editInteractionDateCustom" type="date" style="display:none;margin-top:8px" />
+    </details>
+    <div class="form-row"><label for="editInteractionNote">Notes <span style="font-weight:500">(optional)</span></label><textarea id="editInteractionNote" rows="3" placeholder="What came up during this interaction?"></textarea></div>
+    <button type="button" class="status-clear-link" id="deleteInteractionBtn">Delete interaction</button>
+    <div class="modal-actions"><button class="btn primary" id="saveEditInteractionBtn">Save changes</button></div>
+  </div>
+</div>
+
+<div id="dayDetailModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="dayDetailTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="dayDetailTitle">Day</h3><button class="icon-btn" id="closeDayDetail" aria-label="Close">✕</button></div>
+    <div id="dayDetailList" class="interaction-list"></div>
+    <button type="button" class="link-btn habits-add-link" id="dayDetailAddBtn">+ Add Interaction</button>
+  </div>
+</div>
+
 <div id="managePeopleModal" class="modal-backdrop" role="dialog" aria-modal="true">
   <div class="modal">
     <div class="modal-head"><h3>Manage Main Circle</h3><button class="icon-btn" id="closeManagePeople">✕</button></div>

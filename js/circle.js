@@ -21,6 +21,13 @@ function relativeContactLabel(d){
   if(age>1) return `${age} days ago`;
   return fmtDate(d);
 }
+// Keeps p.lastContact (a cached mirror used as a fallback when interactions is empty,
+// and by the day-count-badge fallback in the review timeline) in sync with the actual
+// interaction list — call this after any create/edit/delete so no stale date lingers.
+function syncLastContact(p){
+  const last=latestContactDate(p);
+  p.lastContact=last?dateKey(last):null;
+}
 function nextContactDate(p){
   const freq=Number(p.frequency||0), last=latestContactDate(p);
   if(!freq || !last) return null;
@@ -65,18 +72,51 @@ function contactCalendarHTML(p,month=detailCalendarMonth||new Date()){
   const start=new Date(month.getFullYear(),month.getMonth(),1),days=new Date(month.getFullYear(),month.getMonth()+1,0).getDate(),events=new Map();
   (p.interactions||[]).forEach(item=>{const d=parseLocalDate(item.date);if(!d||d.getFullYear()!==start.getFullYear()||d.getMonth()!==start.getMonth())return;const day=d.getDate(),items=events.get(day)||[];items.push(item);events.set(day,items)});
   if(!(p.interactions||[]).length&&p.lastContact){const d=parseLocalDate(p.lastContact);if(d&&d.getFullYear()===start.getFullYear()&&d.getMonth()===start.getMonth())events.set(d.getDate(),[{date:p.lastContact,method:"Contact"}])}
-  const cells=[];for(let i=0;i<start.getDay();i++)cells.push('<span class="calendar-day" aria-hidden="true"></span>');for(let day=1;day<=days;day++){const items=events.get(day)||[],inPerson=items.some(x=>(x.method||"").toLowerCase()==="in person"),isToday=dateKey(new Date(start.getFullYear(),start.getMonth(),day))===dateKey(),methods=[...new Set(items.map(x=>x.method||"Contact"))].join(", ");cells.push(`<span class="calendar-day ${items.length?"contact":""} ${inPerson?"in-person":""} ${isToday?"today":""}" ${items.length?`title="${escapeAttr(`${methods} · ${items.length} contact${items.length===1?"":"s"}`)}"`:""}>${day}${items.length>1?`<span class="contact-count">${items.length}</span>`:""}</span>`)}
+  // Every real day is tappable — not just days with a contact — so a date with nothing
+  // logged still opens the day-detail sheet with a ready "+ Add Interaction" for it.
+  const cells=[];for(let i=0;i<start.getDay();i++)cells.push('<span class="calendar-day" aria-hidden="true"></span>');for(let day=1;day<=days;day++){const d=new Date(start.getFullYear(),start.getMonth(),day),key=dateKey(d);const items=events.get(day)||[],inPerson=items.some(x=>(x.method||"").toLowerCase()==="in person"),isToday=key===dateKey(),methods=[...new Set(items.map(x=>x.method||"Contact"))].join(", ");cells.push(`<button type="button" class="calendar-day tappable ${items.length?"contact":""} ${inPerson?"in-person":""} ${isToday?"today":""}" onclick="openDayDetail('${jsEscape(p.id)}','${key}')" aria-label="${escapeAttr(fmtLong(d))}${items.length?`, ${methods}, ${items.length} contact${items.length===1?"":"s"}`:""}">${day}${items.length>1?`<span class="contact-count">${items.length}</span>`:""}</button>`)}
   const current=new Date(),atCurrent=start.getFullYear()===current.getFullYear()&&start.getMonth()===current.getMonth(),label=new Intl.DateTimeFormat(undefined,{month:"long",year:"numeric"}).format(start);
   return `<div class="calendar-head"><div><div class="calendar-title">Contact calendar</div><div class="calendar-month">${escapeHTML(label)}</div></div><div class="calendar-nav"><button onclick="shiftPersonCalendar(-1)" aria-label="Previous month">‹</button><button onclick="shiftPersonCalendar(1)" aria-label="Next month" ${atCurrent?"disabled":""}>›</button></div></div><div class="calendar-grid">${["S","M","T","W","T","F","S"].map(x=>`<span class="calendar-weekday">${x}</span>`).join("")}${cells.join("")}</div><div class="calendar-legend"><span><i class="legend-mark"></i>Contact</span><span><i class="legend-mark in-person"></i>In person</span></div>`
 }
 function renderPersonCalendar(){const p=state.people.find(x=>x.id===detailPersonId),el=document.getElementById("personContactCalendar");if(p&&el)el.innerHTML=contactCalendarHTML(p)}
 function shiftPersonCalendar(delta){if(!detailCalendarMonth)return;const next=new Date(detailCalendarMonth.getFullYear(),detailCalendarMonth.getMonth()+delta,1),current=new Date(),currentStart=new Date(current.getFullYear(),current.getMonth(),1);detailCalendarMonth=next>currentStart?currentStart:next;renderPersonCalendar()}
+// Tapping the row opens Edit Interaction directly (the fast path); the ••• menu is a
+// secondary, discoverable way to reach the same edit, plus Change date and Delete.
+function interactionRowHTML(personId,item){
+  const title=`${escapeHTML(fmtDate(parseLocalDate(item.date)))} · ${escapeHTML(item.method||"Contact")}`;
+  return `<div class="interaction-row">
+    <button type="button" class="interaction-row-main" onclick="openEditInteraction('${jsEscape(personId)}','${jsEscape(item.id)}')">
+      <span class="interaction-row-title">${title}</span>
+      ${item.note?`<span class="interaction-row-note">${escapeHTML(item.note)}</span>`:""}
+    </button>
+    <details class="interaction-menu">
+      <summary aria-label="More options for this interaction">•••</summary>
+      <div class="interaction-menu-list">
+        <button type="button" onclick="this.closest('details').removeAttribute('open');openEditInteraction('${jsEscape(personId)}','${jsEscape(item.id)}')">Edit</button>
+        <button type="button" onclick="this.closest('details').removeAttribute('open');openEditInteraction('${jsEscape(personId)}','${jsEscape(item.id)}',true)">Change date</button>
+        <button type="button" class="danger" onclick="this.closest('details').removeAttribute('open');deleteInteractionConfirm('${jsEscape(personId)}','${jsEscape(item.id)}')">Delete</button>
+      </div>
+    </details>
+  </div>`;
+}
+function interactionHistoryHTML(p){
+  const items=[...(p.interactions||[])].sort((a,b)=>(b.date||"").localeCompare(a.date||"")||(b.createdAt||"").localeCompare(a.createdAt||""));
+  if(!items.length) return `<div class="empty-notes">No interactions logged yet.</div>`;
+  return `<div class="interaction-list">${items.map(item=>interactionRowHTML(p.id,item)).join("")}</div>`;
+}
 function openPersonDetail(id){
-  detailPersonId=id;const p=state.people.find(x=>x.id===id);if(!p)return;const t=personTiming(p),latest=latestInteraction(p),last=latestContactDate(p),inPerson=parseLocalDate(latestSeenInteraction(p)?.date),next=nextContactDate(p);detailCalendarMonth=last?new Date(last.getFullYear(),last.getMonth(),1):new Date(new Date().getFullYear(),new Date().getMonth(),1);
+  const p=state.people.find(x=>x.id===id);if(!p)return;
+  const isRefresh=detailPersonId===id;
+  detailPersonId=id;
+  const t=personTiming(p),latest=latestInteraction(p),last=latestContactDate(p),inPerson=parseLocalDate(latestSeenInteraction(p)?.date),next=nextContactDate(p);
+  // Only jump the calendar to the latest-contact month on a fresh open — refreshing in
+  // place after an edit (e.g. from Edit Interaction) shouldn't discard the month the
+  // user was already looking at.
+  if(!isRefresh||!detailCalendarMonth) detailCalendarMonth=last?new Date(last.getFullYear(),last.getMonth(),1):new Date(new Date().getFullYear(),new Date().getMonth(),1);
   const notes=[...(p.notes||[])].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   const notesHTML=notes.length?`<div class="note-list">${notes.map(n=>`<div class="memory-note"><div class="memory-note-type">${escapeHTML(n.type||"Remember")}</div><div class="memory-note-text">${escapeHTML(n.text||"")}</div><div class="memory-note-date">${n.createdAt?escapeHTML(fmtDate(new Date(n.createdAt))):""}</div></div>`).join("")}</div>`:`<div class="empty-notes">No personal notes yet. Save a memory, gift idea, life update, or follow-up when it naturally comes up.</div>`;
   document.getElementById("personDetailTitle").textContent=p.name;
-  document.getElementById("personDetailBody").innerHTML=`<div class="person-detail-hero">${visualHTML(p,"avatar","person")}<div><div class="person-name">${escapeHTML(p.name)}</div><div class="person-chips">${relationPillHTML(p.relation,"person-chip relation")}<span class="person-chip ${t.class}">${escapeHTML(t.label)}</span></div></div></div><div class="detail-facts"><div class="detail-fact"><span>💬</span><span class="detail-fact-copy"><span class="detail-fact-label">Last contact</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(last))}${latest?.method?` · ${escapeHTML(latest.method)}`:""}</span></span></div><div class="detail-fact"><span>👥</span><span class="detail-fact-copy"><span class="detail-fact-label">Last seen in person</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(inPerson))}</span></span></div><div class="detail-fact"><span>📅</span><span class="detail-fact-copy"><span class="detail-fact-label">Usual rhythm</span><span class="detail-fact-value">${escapeHTML(frequencyLabel(p.frequency))}${next?` · around ${escapeHTML(fmtDate(next))}`:""}</span></span></div></div><div class="contact-calendar" id="personContactCalendar">${contactCalendarHTML(p)}</div>${latest?.note?`<div class="detail-note"><strong>Latest contact note</strong><br>${escapeHTML(latest.note)}</div>`:""}<div class="notes-section"><div class="notes-head"><div class="notes-title">Notes to remember</div><button class="tiny-btn" onclick="openPersonNote('${jsEscape(p.id)}',true)">＋ Add</button></div>${notesHTML}</div>`;
+  document.getElementById("personDetailBody").innerHTML=`<div class="person-detail-hero">${visualHTML(p,"avatar","person")}<div><div class="person-name">${escapeHTML(p.name)}</div><div class="person-chips">${relationPillHTML(p.relation,"person-chip relation")}<span class="person-chip ${t.class}">${escapeHTML(t.label)}</span></div></div></div><div class="detail-facts"><div class="detail-fact"><span>💬</span><span class="detail-fact-copy"><span class="detail-fact-label">Last contact</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(last))}${latest?.method?` · ${escapeHTML(latest.method)}`:""}</span></span></div><div class="detail-fact"><span>👥</span><span class="detail-fact-copy"><span class="detail-fact-label">Last seen in person</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(inPerson))}</span></span></div><div class="detail-fact"><span>📅</span><span class="detail-fact-copy"><span class="detail-fact-label">Usual rhythm</span><span class="detail-fact-value">${escapeHTML(frequencyLabel(p.frequency))}${next?` · around ${escapeHTML(fmtDate(next))}`:""}</span></span></div></div><div class="contact-calendar" id="personContactCalendar">${contactCalendarHTML(p)}</div><div class="notes-section"><div class="notes-head"><div class="notes-title">Interaction history</div></div>${interactionHistoryHTML(p)}</div><div class="notes-section"><div class="notes-head"><div class="notes-title">Notes to remember</div><button class="tiny-btn" onclick="openPersonNote('${jsEscape(p.id)}',true)">＋ Add</button></div>${notesHTML}</div>`;
   personDetailModal.classList.add("show");
 }
 function closePersonDetail(){personDetailModal.classList.remove("show");detailPersonId=null;detailCalendarMonth=null}
@@ -161,7 +201,7 @@ function updateContactSeenRow(){
   box.checked=method==="In person";
 }
 document.getElementById("contactMethod").addEventListener("change",updateContactSeenRow);
-function openContactModal(id=null){
+function openContactModal(id=null,presetDate=null){
   if(!state.people.length){switchView("circleView");openPersonModal();showSaved("Add someone first");return;}
   contactPersonId=id;
   const p=state.people.find(x=>x.id===id);
@@ -172,9 +212,11 @@ function openContactModal(id=null){
   document.getElementById("contactModalTitle").textContent=p?`Log contact · ${p.name}`:"Log contact";
   document.getElementById("contactMethod").value=localStorage.getItem(METHOD_KEY)||"Text";
   document.getElementById("contactNote").value="";
-  contactSelectedDate=dateKey();
-  contactDateIsCustom=false;
-  document.getElementById("contactDateDetails").open=false;
+  contactSelectedDate=presetDate||dateKey();
+  contactDateIsCustom=Boolean(presetDate&&presetDate!==dateKey());
+  // When a date was preselected (tapped from the calendar's day-detail sheet), expand the
+  // date row so it's visibly the date being logged for — never a silent, invisible preset.
+  document.getElementById("contactDateDetails").open=contactDateIsCustom;
   renderContactDatePicker();
   updateContactSeenRow();
   contactModal.classList.add("show");
@@ -197,12 +239,108 @@ document.getElementById("saveContactBtn").addEventListener("click",()=>{
   }else{
     p.interactions.push({id:"i-"+Date.now(),date,method,note,countsAsSeen,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
   }
-  p.lastContact=dateKey(latestContactDate(p))||date;
+  syncLastContact(p);
   localStorage.setItem(METHOD_KEY,method);
   closeContactModal();saveState();
   showSaved(date===dateKey()?`Contact logged · ${p.name}`:"Added. Your timeline is more accurate now.",before);
+  refreshOpenCirclePanels(p.id);
 });
 contactModal.addEventListener("click",e=>{if(e.target===contactModal)closeContactModal()});
+
+// Re-renders whichever Circle sheets are currently open for this person so an edit/delete
+// never leaves stale facts, calendar dots, or history rows showing behind a closed sheet —
+// the main Circle list always refreshes on its own via saveState() -> renderAll().
+function refreshOpenCirclePanels(personId){
+  if(detailPersonId===personId&&personDetailModal.classList.contains("show")) openPersonDetail(personId);
+}
+
+let dayDetailPersonId=null,dayDetailDate=null;
+const dayDetailModal=document.getElementById("dayDetailModal");
+function openDayDetail(personId,dateKeyStr){
+  const p=state.people.find(x=>x.id===personId);if(!p)return;
+  dayDetailPersonId=personId;dayDetailDate=dateKeyStr;
+  document.getElementById("dayDetailTitle").textContent=new Intl.DateTimeFormat(undefined,{month:"long",day:"numeric"}).format(parseLocalDate(dateKeyStr));
+  const items=(p.interactions||[]).filter(x=>x.date===dateKeyStr).sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+  document.getElementById("dayDetailList").innerHTML=items.length?items.map(item=>interactionRowHTML(personId,item)).join(""):`<div class="empty-notes">Nothing logged for this day yet.</div>`;
+  dayDetailModal.classList.add("show");
+}
+function closeDayDetail(){dayDetailModal.classList.remove("show");dayDetailPersonId=null;dayDetailDate=null}
+document.getElementById("closeDayDetail").addEventListener("click",closeDayDetail);
+dayDetailModal.addEventListener("click",e=>{if(e.target===dayDetailModal)closeDayDetail()});
+document.getElementById("dayDetailAddBtn").addEventListener("click",()=>{
+  const personId=dayDetailPersonId,date=dayDetailDate;
+  closeDayDetail();
+  if(personId) openContactModal(personId,date);
+});
+
+let editingInteractionPersonId=null,editingInteractionId=null;
+let editInteractionSelectedDate=dateKey(),editInteractionDateIsCustom=false;
+const editInteractionModal=document.getElementById("editInteractionModal");
+function renderEditInteractionDatePicker(){
+  setupDatePicker({
+    chipsId:"editInteractionDateChips",customId:"editInteractionDateCustom",summaryId:"editInteractionDateSummary",
+    getState:()=>({date:editInteractionSelectedDate,isCustom:editInteractionDateIsCustom}),
+    setState:(d,isCustom)=>{editInteractionSelectedDate=d;editInteractionDateIsCustom=isCustom;renderEditInteractionDatePicker();}
+  });
+}
+function updateEditInteractionSeenRow(){
+  const method=document.getElementById("editInteractionMethod").value;
+  document.getElementById("editInteractionSeenRow").style.display=(method==="In person"||method==="Video")?"flex":"none";
+}
+document.getElementById("editInteractionMethod").addEventListener("change",updateEditInteractionSeenRow);
+// Tapping the interaction itself is the fast path into this sheet; the ••• "Change date"
+// option is the same sheet with the date row already expanded (focusDate), not a separate flow.
+function openEditInteraction(personId,interactionId,focusDate=false){
+  const p=state.people.find(x=>x.id===personId);if(!p)return;
+  const item=(p.interactions||[]).find(x=>x.id===interactionId);if(!item)return;
+  editingInteractionPersonId=personId;editingInteractionId=interactionId;
+  editInteractionSelectedDate=item.date||dateKey();
+  editInteractionDateIsCustom=editInteractionSelectedDate!==dateKey();
+  document.getElementById("editInteractionMethod").value=item.method||"Text";
+  updateEditInteractionSeenRow();
+  document.getElementById("editInteractionCountsAsSeen").checked=Boolean(item.countsAsSeen);
+  document.getElementById("editInteractionNote").value=item.note||"";
+  document.getElementById("editInteractionDateDetails").open=Boolean(focusDate);
+  renderEditInteractionDatePicker();
+  // Closing the day-detail sheet (if this came from the calendar) keeps only one sheet
+  // stacked at a time; the person-detail sheet is left open behind, since editing there
+  // should feel like correcting a record in place, not leaving the page.
+  if(dayDetailModal.classList.contains("show")) closeDayDetail();
+  editInteractionModal.classList.add("show");
+}
+function closeEditInteraction(){editInteractionModal.classList.remove("show");editingInteractionPersonId=null;editingInteractionId=null}
+document.getElementById("closeEditInteraction").addEventListener("click",closeEditInteraction);
+editInteractionModal.addEventListener("click",e=>{if(e.target===editInteractionModal)closeEditInteraction()});
+document.getElementById("saveEditInteractionBtn").addEventListener("click",()=>{
+  const p=state.people.find(x=>x.id===editingInteractionPersonId);if(!p)return;
+  const item=(p.interactions||[]).find(x=>x.id===editingInteractionId);if(!item)return;
+  const before=structuredClone(state);
+  item.date=editInteractionSelectedDate||item.date;
+  item.method=document.getElementById("editInteractionMethod").value;
+  item.note=document.getElementById("editInteractionNote").value.trim();
+  item.countsAsSeen=document.getElementById("editInteractionSeenRow").style.display!=="none"&&document.getElementById("editInteractionCountsAsSeen").checked;
+  item.updatedAt=new Date().toISOString();
+  syncLastContact(p);
+  const personId=p.id;
+  closeEditInteraction();saveState();
+  showSaved("Interaction updated",before);
+  refreshOpenCirclePanels(personId);
+});
+function deleteInteractionConfirm(personId,interactionId){
+  if(!confirm("Delete this interaction? This can't be undone.")) return false;
+  const p=state.people.find(x=>x.id===personId);if(!p)return false;
+  const before=structuredClone(state);
+  p.interactions=(p.interactions||[]).filter(x=>x.id!==interactionId);
+  syncLastContact(p);
+  saveState();
+  showSaved("Interaction deleted",before);
+  refreshOpenCirclePanels(personId);
+  return true;
+}
+document.getElementById("deleteInteractionBtn").addEventListener("click",()=>{
+  if(!editingInteractionPersonId||!editingInteractionId) return;
+  if(deleteInteractionConfirm(editingInteractionPersonId,editingInteractionId)) closeEditInteraction();
+});
 const managePeopleModal=document.getElementById("managePeopleModal");
 function renderManagePeople(){const list=document.getElementById("managePeopleList");list.innerHTML="";state.people.forEach(p=>{const row=document.createElement("div");row.className="manage-item";row.innerHTML=`${visualHTML(p,"avatar","person")}<div class="grow"><strong>${escapeHTML(p.name)}</strong>${p.relation?relationPillHTML(p.relation,"relationship-label small"):`<small>${escapeHTML(frequencyLabel(p.frequency))}</small>`}</div><button class="tiny-btn" data-person="${escapeAttr(p.id)}">Edit</button>`;list.appendChild(row)});if(!state.people.length)list.innerHTML=`<div class="empty-card">No people added yet.</div>`;list.querySelectorAll("[data-person]").forEach(b=>b.addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal(b.dataset.person)}));}
 document.getElementById("managePeopleBtn").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show")});document.getElementById("closeManagePeople").addEventListener("click",()=>managePeopleModal.classList.remove("show"));document.getElementById("managePersonAdd").addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal()});managePeopleModal.addEventListener("click",e=>{if(e.target===managePeopleModal)managePeopleModal.classList.remove("show")});
