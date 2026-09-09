@@ -577,7 +577,7 @@ function renderReviewHistory(days=getLast7Days()){
     if(!visible.length){ quietRun.push(date); return; }
     flushQuiet();
     const day=document.createElement("section");day.className="history-day";day.innerHTML=`<div class="history-day-label">${escapeHTML(reviewDateLabel(date))}<span> · ${visible.length} ${visible.length===1?"entry":"entries"}</span></div>`;
-    visible.forEach(event=>{const row=document.createElement("div");row.className=`history-item ${event.type} ${event.status==="miss"?"miss":""}`;row.innerHTML=`<span class="history-item-icon">${escapeHTML(event.icon)}</span><span class="history-item-copy"><span class="history-item-title">${escapeHTML(event.title)}</span><span class="history-item-note">${escapeHTML(event.note)}</span></span>`;day.appendChild(row)});
+    visible.forEach(event=>{const row=document.createElement("div");row.className=`history-item ${event.type} ${event.status==="miss"?"miss":""}`;const iconHTML=event.type==="circle"?iconSVG("message"):escapeHTML(event.icon);row.innerHTML=`<span class="history-item-icon">${iconHTML}</span><span class="history-item-copy"><span class="history-item-title">${escapeHTML(event.title)}</span><span class="history-item-note">${escapeHTML(event.note)}</span></span>`;day.appendChild(row)});
     list.appendChild(day);
   });
   flushQuiet();
