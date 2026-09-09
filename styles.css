@@ -238,7 +238,8 @@
     .tab.active{color:var(--accent);font-weight:820}
     .view{display:none}
     .view.active{display:block}
-    .legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+    .legend{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px;margin-bottom:14px}
+    #practiceView>.settings-disclosure{margin-top:14px}
     .legend span{font-size:11px;padding:6px 8px;border-radius:999px;background:#f4f5f2;color:var(--muted)}
 
     .home-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}

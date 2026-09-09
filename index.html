@@ -80,64 +80,62 @@
       </details>
     </div>
 
-    <div class="metric-grid">
-      <div class="metric-card">
-        <div class="metric-label">Engagement</div>
-        <div class="metric-value" id="metricEngagement">—</div>
-        <div class="metric-note" id="metricEngagementNote">Nothing logged yet</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">↩ Returns</div>
-        <div class="metric-value" id="metricReturns">—</div>
-        <div class="metric-note">You came back!</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Avg. Time to Return</div>
-        <div class="metric-value" id="metricReturnTime">—</div>
-        <div class="metric-note" id="metricReturnTimeNote">Not enough data yet</div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-label">Longest Active</div>
-        <div class="metric-value" id="metricLongestActive">—</div>
-        <div class="metric-note">Keep going</div>
-      </div>
-    </div>
-
-    <div class="section-head">
-      <h2 id="practiceWeekLabel">This Week</h2>
-      <div class="week-nav">
-        <button class="icon-btn" id="practicePrevWeek" aria-label="Previous week">←</button>
-        <button class="icon-btn" id="practiceNextWeek" aria-label="Next week">→</button>
-      </div>
-    </div>
-
-    <div class="practice-table-wrap">
-      <table class="practice-table">
-        <thead>
-          <tr><th>Date</th><th>Day</th><th>🌅 Morning</th><th>☀️ Afternoon</th><th>🌙 Evening</th><th>↩ Re-entry</th><th>Notes</th></tr>
-        </thead>
-        <tbody id="practiceGridBody"></tbody>
-      </table>
-    </div>
-
-    <div class="legend">
-      <span>✓ Done = Regular version</span>
-      <span>○ Counted = Smaller version</span>
-      <span>— Not Today = Didn’t happen</span>
-      <span>↩ Returned = First engagement after a miss</span>
-    </div>
-
-    <div class="section-head"><h2>This Week Overview</h2></div>
+    <div class="section-head"><h2 id="practiceWeekLabel">This Week</h2></div>
     <div class="overview-card" id="practiceOverview"></div>
 
-    <div class="section-head"><h2>Recent Returns</h2></div>
-    <div class="stat-list" id="practiceRecentReturns"></div>
-
-    <div class="section-head"><h2>Repeated pattern</h2></div>
+    <div class="section-head"><h2>Worth noticing</h2></div>
     <div class="lock-card" id="practiceSystemLock"></div>
 
+    <details class="settings-disclosure" id="practiceDetailDisclosure">
+      <summary><span><strong>Detailed history</strong><small>Day-by-day log, longer-range metrics, recent returns</small></span><span aria-hidden="true">⌄</span></summary>
+      <div class="settings-disclosure-body">
+        <div class="week-nav" style="justify-content:flex-end;margin-bottom:10px">
+          <button class="icon-btn" id="practicePrevWeek" aria-label="Previous week">←</button>
+          <button class="icon-btn" id="practiceNextWeek" aria-label="Next week">→</button>
+        </div>
+        <div class="practice-table-wrap">
+          <table class="practice-table">
+            <thead>
+              <tr><th>Date</th><th>Day</th><th>🌅 Morning</th><th>☀️ Afternoon</th><th>🌙 Evening</th><th>↩ Re-entry</th><th>Notes</th></tr>
+            </thead>
+            <tbody id="practiceGridBody"></tbody>
+          </table>
+        </div>
+        <div class="legend">
+          <span>✓ Done = Regular version</span>
+          <span>○ Counted = Smaller version</span>
+          <span>— Not Today = Didn’t happen</span>
+          <span>↩ Returned = First engagement after a miss</span>
+        </div>
+        <div class="metric-grid">
+          <div class="metric-card">
+            <div class="metric-label">Engagement</div>
+            <div class="metric-value" id="metricEngagement">—</div>
+            <div class="metric-note" id="metricEngagementNote">Nothing logged yet</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">↩ Returns</div>
+            <div class="metric-value" id="metricReturns">—</div>
+            <div class="metric-note">You came back!</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Avg. Time to Return</div>
+            <div class="metric-value" id="metricReturnTime">—</div>
+            <div class="metric-note" id="metricReturnTimeNote">Not enough data yet</div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-label">Longest Active</div>
+            <div class="metric-value" id="metricLongestActive">—</div>
+            <div class="metric-note">Keep going</div>
+          </div>
+        </div>
+        <div class="section-head" style="margin-top:14px"><h2>Recent Returns</h2></div>
+        <div class="stat-list" id="practiceRecentReturns"></div>
+      </div>
+    </details>
+
     <details class="settings-disclosure">
-      <summary><span><strong>Why we track this way</strong><small>The idea behind Done, Counted, and Returned</small></span><span aria-hidden="true">⌄</span></summary>
+      <summary><span><strong>The idea behind Done, Counted, and Returned</strong><small>Why we track this way</small></span><span aria-hidden="true">⌄</span></summary>
       <div class="settings-disclosure-body">
         <ul class="guide-list">
           <li><span class="guide-bullet">↩</span>Builds the muscle of re-entry</li>
