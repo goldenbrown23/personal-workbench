@@ -1,5 +1,6 @@
 function applySettings(){document.body.classList.toggle("compact",Boolean(state.settings?.compactMode));}
 function renderSettings(){
+  document.getElementById("settingsDate").textContent=fmtLong(new Date());
   document.getElementById("startScreen").value=state.settings?.startScreen||"last";
   document.getElementById("compactMode").checked=Boolean(state.settings?.compactMode);
   document.getElementById("hapticsEnabled").checked=state.settings?.hapticsEnabled!==false;
@@ -7,10 +8,13 @@ function renderSettings(){
   document.getElementById("compactModeState").textContent=document.getElementById("compactMode").checked?"On":"Off";
   document.getElementById("hapticsEnabledState").textContent=document.getElementById("hapticsEnabled").checked?"On":"Off";
   document.getElementById("backupReminderEnabledState").textContent=document.getElementById("backupReminderEnabled").checked?"On":"Off";
+  document.getElementById("notificationsStateBadge").textContent=document.getElementById("backupReminderEnabled").checked?"On":"Off";
   const last=state.settings?.lastBackupAt?new Date(state.settings.lastBackupAt):null,due=backupIsDue();
   document.getElementById("backupStatus").textContent=last
     ? (due?`Last backup: ${fmtDate(last)}. It’s been a while — a fresh copy is worth taking.`:`Last backup: ${fmtDate(last)}. A weekly copy is a good safety net.`)
     : (due?"No backup yet. It’s been about a week — worth taking one now.":"No backup yet. A copy protects what you’ve added on this device.");
+  document.getElementById("backupShortStatus").textContent=last?fmtDate(last):"Not yet";
+  document.getElementById("appVersionShort").textContent=`Version ${APP_VERSION.replace(/^v/i,"")}`;
   document.getElementById("deviceStatus").textContent=("serviceWorker" in navigator)?"Offline support is available. Your data stays in this browser until you export or clear it.":"Your data stays in this browser. Offline support is limited on this device.";
   renderVersionInfo();
 }

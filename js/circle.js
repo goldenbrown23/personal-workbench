@@ -42,63 +42,91 @@ function personTiming(p){
   if(remaining>=0) return {class:"soon",label:"Coming up",text:remaining===0?"Around your usual check-in time.":`Usual rhythm is coming up in ${remaining} day${remaining===1?"":"s"}.`};
   return {class:"due",label:"Reconnect",text:"Haven’t connected in a bit. A small hello is enough."};
 }
-// Filters are a lens over the same relation data already stored per person — not a new
-// concept, matching what RELATIONSHIP_TAGS already tracks. "Friends"/"Work" group two
-// adjacent tags each since the mockup's five chips don't map 1:1 to all nine tag ids.
-const CIRCLE_FILTERS=[
-  {id:"all",label:"All"},
-  {id:"family",label:"Family",match:["family"]},
-  {id:"friends",label:"Friends",match:["friend","close-friend"]},
-  {id:"partner",label:"Partner",match:["partner"]},
-  {id:"work",label:"Work",match:["coworker","work-contact"]}
-];
-let circleActiveFilter="all";
-function renderCircleFilters(){
-  const wrap=document.getElementById("circleFilterRow");
-  if(!wrap) return;
-  wrap.innerHTML=CIRCLE_FILTERS.map(f=>`<button type="button" class="filter-chip ${circleActiveFilter===f.id?"active":""}" data-filter="${f.id}">${escapeHTML(f.label)}</button>`).join("");
-  wrap.querySelectorAll("[data-filter]").forEach(btn=>btn.addEventListener("click",()=>{circleActiveFilter=btn.dataset.filter;renderCircle();}));
+// A per-relation low-effort reach-out idea — the "Contact ideas" feature the Guide has
+// documented ("a low-effort way to reach out") but nothing previously implemented.
+const CONTACT_IDEAS={
+  family:"A little hello is enough.",
+  partner:"Share your day.",
+  "close-friend":"Check in and catch up.",
+  friend:"Check in and catch up.",
+  coworker:"A short message goes a long way.",
+  "work-contact":"A short message goes a long way.",
+  pet:"Give them a little extra love today.",
+  acquaintance:"A quick hello, nothing more needed.",
+  other:"Reach out, even briefly."
+};
+function contactIdea(p){ return CONTACT_IDEAS[p.relation]||"A quick hello keeps things warm."; }
+const CIRCLE_RANK=t=>t.class==="due"?0:t.class==="soon"?1:t.class==="good"?2:3;
+let circleSearchQuery="",circleShowAllCheckins=false,circleShowAllRecent=false;
+function circleMatches(p){
+  if(!circleSearchQuery) return true;
+  return p.name.toLowerCase().includes(circleSearchQuery);
 }
-// No summary card, no separately-elevated "focus" card — one flat list of uniform person
-// cards, ranked by who's due/soon first. The mockup shows Circle as people, immediately;
-// the previous multi-layer intro (summary line, singled-out focus card, "Other people"
-// section head) added reading before any person appeared.
+// Screenshot-style Circle: one featured "next check-in" person, a ranked list of who to
+// check in with, and a feed of recent interactions across everyone — rather than the
+// single flat list this view used before. Superseded per explicit direction: the flat
+// list had replaced an earlier version of this same layout, but the current mockup asks
+// for it back.
 function renderCircle(){
-  renderCircleFilters();
-  const list=document.getElementById("circleList");
-  if(!state.people.length){ list.innerHTML=`<div class="empty-card">No people yet. Add one person you want to keep in view.</div>`; return; }
-  const filterDef=CIRCLE_FILTERS.find(f=>f.id===circleActiveFilter);
-  const visible=filterDef?.match?state.people.filter(p=>filterDef.match.includes(p.relation)):state.people;
-  if(!visible.length){ list.innerHTML=`<div class="empty-card">No one in this group yet.</div>`; return; }
-  const rank=x=>x.class==="due"?0:x.class==="soon"?1:x.class==="good"?2:3;
-  const people=[...visible].sort((a,b)=>rank(personTiming(a))-rank(personTiming(b)));
-  list.innerHTML=people.map(personCardHTML).join("");
+  const hero=document.getElementById("circleHeroCard");
+  const checkinList=document.getElementById("circleCheckinList");
+  const recentList=document.getElementById("circleRecentList");
+  if(!state.people.length){
+    hero.innerHTML="";
+    checkinList.innerHTML=`<div class="circle-empty-row">No people yet. Add one person you want to keep in view.</div>`;
+    recentList.innerHTML=`<div class="circle-empty-row">Nothing logged yet.</div>`;
+    return;
+  }
+  const matching=state.people.filter(circleMatches);
+  const ranked=[...matching].sort((a,b)=>CIRCLE_RANK(personTiming(a))-CIRCLE_RANK(personTiming(b)));
+  hero.innerHTML=ranked.length?circleHeroHTML(ranked[0]):`<div class="circle-empty-row">No one matches that search.</div>`;
+  const checkinRest=ranked.slice(1);
+  const checkinShown=circleShowAllCheckins?checkinRest:checkinRest.slice(0,4);
+  checkinList.innerHTML=checkinShown.length?checkinShown.map(circleCheckinRowHTML).join(""):`<div class="circle-empty-row">Everyone's caught up.</div>`;
+  document.getElementById("circleCheckinViewAll").style.display=checkinRest.length>4?"":"none";
+  document.getElementById("circleCheckinViewAll").textContent=circleShowAllCheckins?"Show less ›":"View all ›";
+  const interactions=matching.flatMap(p=>(p.interactions||[]).map(item=>({p,item})))
+    .sort((a,b)=>(b.item.date||"").localeCompare(a.item.date||"")||(b.item.createdAt||"").localeCompare(a.item.createdAt||""));
+  const recentShown=circleShowAllRecent?interactions:interactions.slice(0,4);
+  recentList.innerHTML=recentShown.length?recentShown.map(circleRecentRowHTML).join(""):`<div class="circle-empty-row">No interactions logged yet.</div>`;
+  document.getElementById("circleRecentViewAll").style.display=interactions.length>4?"":"none";
+  document.getElementById("circleRecentViewAll").textContent=circleShowAllRecent?"Show less ›":"View all ›";
 }
-// One card per person, avatar-forward: name/relationship on top, a human-language timing
-// line, then ONE contextual action — never a guilt badge. "Reach out" only appears when
-// a check-in is actually due/soon; otherwise it's the quieter, optional "Log interaction".
-function personCardHTML(p){
-  const t=personTiming(p),rel=relationTag(p.relation),isDue=["due","soon"].includes(t.class);
-  // The card shows the actual relative date when one exists ("6 days ago," "Today") rather
-  // than only the category word — matches how specific the mockup's cards are — and falls
-  // back to the category label ("Start anytime," "Flexible") when there's no contact yet
-  // to date, since there is nothing to caption with "Last contact" in that case.
-  const last=latestContactDate(p);
-  const timingValue=last?relativeContactLabel(last):t.label;
-  const timingNote=last?"Last contact":"";
-  return `<div class="circle-person-card"><button class="circle-person-card-top" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="circle-person-card-identity"><span class="circle-person-card-name">${escapeHTML(p.name)}</span>${rel?`<span class="circle-person-card-relation">${escapeHTML(rel.label)}</span>`:""}</span><span class="circle-person-card-timing-block"><span class="circle-person-card-timing ${t.class}">${escapeHTML(timingValue)}</span>${timingNote?`<span class="circle-person-card-timing-note">${timingNote}</span>`:""}</span></button><button class="circle-person-action ${isDue?"reach":"log"}" onclick="openContactModal('${jsEscape(p.id)}')">${isDue?"Reach out":"Log interaction"}</button></div>`;
+function circleHeroHTML(p){
+  const t=personTiming(p),last=latestContactDate(p);
+  return `<div class="circle-hero-card">
+    <div class="circle-hero-eyebrow">✦ Your next check-in</div>
+    <div class="circle-hero-main">
+      ${visualHTML(p,"avatar","person")}
+      <div class="circle-hero-copy">
+        <div class="circle-hero-name">${escapeHTML(p.name)}</div>
+        <div class="circle-hero-note">${escapeHTML(contactIdea(p))}</div>
+        <span class="circle-hero-pill">${last?`Last talked ${escapeHTML(relativeContactLabel(last).toLowerCase())}`:escapeHTML(t.label)}</span>
+      </div>
+    </div>
+    <div class="circle-hero-actions">
+      <button type="button" class="circle-hero-btn primary" onclick="openContactModal('${jsEscape(p.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 15.2c1 1 2.2 1.9 3.5 2.5.4.2.9 0 1.2-.3l1-1.3c.3-.4.9-.6 1.4-.4l3.5 1.4c.5.2.8.7.7 1.2-.4 2.4-2.5 4.1-4.9 3.9C12.8 21.9 4.1 13.2 3.5 6.2c-.2-2.4 1.5-4.5 3.9-4.9.5-.1 1 .2 1.2.7l1.4 3.5c.2.5 0 1.1-.4 1.4L8.3 8c-.3.3-.5.8-.3 1.2.6 1.3 1.5 2.5 2.5 3.5.3.3.6.6.9.5Z"></path></svg>Reach out</button>
+      <button type="button" class="circle-hero-btn secondary" onclick="openContactModal('${jsEscape(p.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>Log</button>
+    </div>
+  </div>`;
 }
-
-function personIdentityHTML(p,t=personTiming(p)){return `<div class="circle-person-head">${visualHTML(p,"avatar","person")}<div class="circle-person-identity"><div class="circle-person-name">${escapeHTML(p.name)}</div>${relationPillHTML(p.relation)}</div><span class="circle-status ${t.class}">${escapeHTML(t.label)}</span></div>`}
-// Each fact gets its own line — joining "Last contact" and "Last seen" into one string
-// with a separator read as a single wall of text; stacked, each is scannable on its own.
-function personSecondaryLine(p){
-  const last=latestContactDate(p),seen=parseLocalDate(latestSeenInteraction(p)?.date);
-  const parts=[];
-  if(last) parts.push(`Last contact: ${relativeContactLabel(last).toLowerCase()}`);
-  if(seen) parts.push(`Last seen: ${relativeContactLabel(seen).toLowerCase()}`);
-  return parts.length?`<div class="circle-focus-secondary">${parts.map(x=>`<span>${escapeHTML(x)}</span>`).join("")}</div>`:"";
+function circleCheckinRowHTML(p){
+  const t=personTiming(p),last=latestContactDate(p),pillText=last?relativeContactLabel(last):t.label;
+  return `<button type="button" class="circle-row" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="circle-row-copy"><span class="circle-row-name">${escapeHTML(p.name)}</span><span class="circle-row-note">${escapeHTML(contactIdea(p))}</span></span><span class="circle-row-pill ${t.class}">${escapeHTML(pillText)}</span><span class="circle-row-chevron" aria-hidden="true">›</span></button>`;
 }
+function circleRecentRowHTML({p,item}){
+  const note=item.note||item.method||"Contact";
+  const when=relativeContactLabel(parseLocalDate(item.date));
+  return `<button type="button" class="circle-row" onclick="openEditInteraction('${jsEscape(p.id)}','${jsEscape(item.id)}')">${visualHTML(p,"avatar","person")}<span class="circle-row-copy"><span class="circle-row-name">${escapeHTML(p.name)}</span><span class="circle-row-note">${escapeHTML(note)} · ${escapeHTML(when)}</span></span><span class="circle-row-chevron" aria-hidden="true">›</span></button>`;
+}
+document.getElementById("circleSearchBtn").addEventListener("click",()=>{
+  const row=document.getElementById("circleSearchRow"),input=document.getElementById("circleSearchInput");
+  row.hidden=!row.hidden;
+  if(!row.hidden) input.focus(); else { input.value=""; circleSearchQuery=""; renderCircle(); }
+});
+document.getElementById("circleSearchInput").addEventListener("input",e=>{circleSearchQuery=e.target.value.trim().toLowerCase();renderCircle();});
+document.getElementById("circleCheckinViewAll").addEventListener("click",()=>{circleShowAllCheckins=!circleShowAllCheckins;renderCircle();});
+document.getElementById("circleRecentViewAll").addEventListener("click",()=>{circleShowAllRecent=!circleShowAllRecent;renderCircle();});
 
 let detailPersonId=null,detailCalendarMonth=null;const personDetailModal=document.getElementById("personDetailModal");
 function contactCalendarHTML(p,month=detailCalendarMonth||new Date()){
