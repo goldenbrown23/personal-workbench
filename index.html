@@ -47,6 +47,9 @@
       <button type="button" class="segmented-btn" data-block="evening" role="tab">Evening</button>
     </div>
 
+    <div class="habits-banner" id="habitsBanner"></div>
+
+    <div class="habits-count-row"><span id="habitsCountLabel"></span></div>
     <div id="habitsChecklist" class="checklist"></div>
 
     <details class="goal-plan" id="habitsDoneDetails" style="display:none">
@@ -583,6 +586,26 @@
     <div class="modal-actions">
       <button class="btn primary" id="multiLogBtn" style="display:none" disabled>Log entries</button>
       <button type="button" class="status-clear-link" id="clearStatusBtn" style="display:none">Clear this day’s log</button>
+    </div>
+  </div>
+</div>
+
+<div id="habitSheetModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="habitSheetTitle">
+  <div class="modal habit-sheet">
+    <div class="habit-sheet-head">
+      <span id="habitSheetIcon"></span>
+      <span class="habit-sheet-head-copy">
+        <span class="habit-sheet-title" id="habitSheetTitle">Habit</span>
+        <span class="habit-sheet-sub" id="habitSheetSub"></span>
+      </span>
+      <button class="icon-btn" id="closeHabitSheet" aria-label="Close">✕</button>
+    </div>
+    <div class="version-option-list habit-sheet-list" id="habitSheetList"></div>
+    <button class="btn primary habit-sheet-complete" id="habitSheetCompleteBtn">Complete</button>
+    <div class="habit-sheet-quick-actions">
+      <button type="button" id="habitSheetLaterBtn"><span class="habit-sheet-quick-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg></span>Do later</button>
+      <button type="button" id="habitSheetMoveBtn"><span class="habit-sheet-quick-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"></rect><path d="M3 10h18"></path><path d="M8 2v4"></path><path d="M16 2v4"></path></svg></span>Move time</button>
+      <button type="button" id="habitSheetEditBtn"><span class="habit-sheet-quick-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span>Edit habit</button>
     </div>
   </div>
 </div>

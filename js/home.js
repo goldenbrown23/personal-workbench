@@ -1,7 +1,6 @@
-// The time-period model, the "what's next" picker (pickStartHereHabit), the shared
-// action card (nowCardHTML), and the logging entry point (homeLogStatus/homePrimaryTier)
-// all live in habits.js now — the Habits tab's "Now" section uses the exact same
-// functions, so there is exactly one definition of "next" for the whole app.
+// The time-period model, the "what's next" picker (pickStartHereHabit), and the logging
+// entry point (homeLogStatus/homePrimaryTier) live in habits.js — this file only owns how
+// Home presents that pick (doNextHTML below) and its two compact summary widgets.
 function renderHome(){
   const now=new Date(),period=currentTimePeriod(now.getHours());
   document.getElementById("homeDate").textContent=fmtLong(now);
@@ -16,9 +15,12 @@ function renderHome(){
   renderHomeWidgets(nudges);
 }
 
+const CHEVRON_SVG=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>`;
 // Home is a minimal launchpad, not a dashboard: Start Here renders the same shared
-// action card the Habits tab's "Now" section uses (nowCardHTML, habits.js) — one
-// completion interaction, not two independently maintained ones.
+// "Do this next" module the mockup calls out as the page's one clear focal point — a
+// tight eyebrow + row + two actions, not a tall explanatory card. Habit picking logic
+// (pickStartHereHabit, habits.js) and the completion/versions data are unchanged; only
+// the presentation here is new.
 function renderStartHere(period,gentle,nudges){
   const homeNow=document.getElementById("homeNow");
   homeNow.classList.remove("quiet");
@@ -26,25 +28,39 @@ function renderStartHere(period,gentle,nudges){
 
   const pick=pickStartHereHabit(period);
   if(pick){
-    homeNow.innerHTML=nowCardHTML(pick,{label:"Start here",gentle,blockPeriod:period});
+    homeNow.innerHTML=doNextHTML(pick,{gentle,blockPeriod:period});
     return;
   }
 
   const personNudge=nudges.sort((a,b)=>(a.timing.class==="due"?0:1)-(b.timing.class==="due"?0:1))[0];
   if(personNudge){
     const p=personNudge.person;
-    homeNow.innerHTML=`<div class="home-now-label">Start here</div><div class="home-now-main">${visualHTML(p,"home-now-icon","person")}<div class="home-now-copy"><div class="home-now-title">A small hello to ${escapeHTML(p.name)}</div><div class="home-now-detail">An opportunity to reconnect—not something overdue.</div></div></div><button class="home-now-action" onclick="openContactModal('${jsEscape(p.id)}')">💬 Log a connection</button>`;
+    homeNow.innerHTML=`<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">🎯</span>Do this next</span></div><div class="do-next-row">${visualHTML(p,"do-next-icon","person")}<div class="do-next-copy"><div class="do-next-title">A small hello to ${escapeHTML(p.name)}</div><div class="do-next-detail">An opportunity to reconnect—not something overdue.</div></div></div><div class="do-next-actions"><button class="do-next-btn primary" onclick="openContactModal('${jsEscape(p.id)}')">💬 Log a connection</button></div>`;
     return;
   }
 
   homeNow.classList.add("quiet");
-  homeNow.innerHTML=`<div class="home-now-label">Start here</div><div class="home-now-main"><span class="home-now-icon">🍃</span><div class="home-now-copy"><div class="home-now-title">Nothing urgent right now.</div><div class="home-now-detail">You can close the app.</div></div></div>`;
+  homeNow.innerHTML=`<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">🍃</span>Do this next</span></div><div class="do-next-row"><span class="do-next-icon">🍃</span><div class="do-next-copy"><div class="do-next-title">Nothing urgent right now.</div><div class="do-next-detail">You can close the app.</div></div></div>`;
+}
+// Easier version stays a first-class, equally-sized action next to Done — never a small
+// text link — since a smaller version is a normal choice, not a fallback.
+function doNextHTML(pick,{gentle=false,blockPeriod=null}={}){
+  const h=pick.habit,tier=homePrimaryTier(h);
+  const blockNote=pick.isCurrentBlock?"":`<div class="do-next-block-note">Nothing left from ${escapeHTML(BLOCK_LABEL[blockPeriod]||"now")}, so here’s one from ${escapeHTML(BLOCK_LABEL[pick.block]||"elsewhere")} instead.</div>`;
+  let detail,primaryStatus;
+  if(pick.isReturn){ detail=isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."; primaryStatus=tier.status; }
+  else if(gentle){ detail="Doing less still keeps the connection."; primaryStatus="counted"; }
+  else{ detail=tier.text; primaryStatus=tier.status; }
+  const hasVersions=versionRowsForHabit(h).length>1;
+  const easierBtn=hasVersions?`<button class="do-next-btn secondary" onclick="openEasierVersion('${jsEscape(h.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>Easier version</button>`:"";
+  return `<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">🎯</span>Do this next</span><button type="button" class="do-next-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div><div class="do-next-row">${visualHTML(h,"do-next-icon")}<div class="do-next-copy"><div class="do-next-title">${escapeHTML(h.name)}</div><div class="do-next-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<div class="do-next-actions"><button class="do-next-btn primary" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ Done</button>${easierBtn}</div>`;
 }
 
-// Level 2 of Home's hierarchy — small read-only previews of what's useful right now,
-// not a second copy of the Habits/Circle screens. Tapping "View" always routes through
-// the existing switchView/openPersonDetail entry points, so this never becomes a second
-// place habit/person data has to be kept in sync.
+// Level 2 of Home's hierarchy — compact, fully-tappable summary cards, not a second copy
+// of the Habits/Circle screens: one header line (icon, title, one-glance meta, chevron)
+// plus at most one preview row, the single most relevant item. Tapping anywhere on the
+// card routes through the existing switchView/openPersonDetail entry points, so this
+// never becomes a second place habit/person data has to be kept in sync.
 function renderHomeWidgets(nudges){
   const wrap=document.getElementById("homeWidgets");
   if(!wrap) return;
@@ -55,16 +71,16 @@ function homeHabitsWidgetHTML(){
   const today=state.habits.filter(h=>habitAppliesToday(h)&&!h.paused);
   if(!today.length) return "";
   const done=today.filter(h=>["done","counted","returned"].includes(getStatus(h.id)));
-  const rows=today.slice(0,3).map(h=>{
-    const status=getStatus(h.id);
-    const dotClass=status==="done"?"done":status==="counted"?"counted":status==="returned"?"returned":status==="miss"?"miss":"";
-    return `<div class="home-widget-row"><span class="home-widget-dot ${dotClass}"></span><span class="home-widget-row-name">${escapeHTML(h.name)}</span></div>`;
-  }).join("");
-  return `<div class="home-widget"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon sage">${iconSVG("leaf")}</span>Habits</span><span class="home-widget-count">${done.length} of ${today.length} today</span></div>${rows}<button class="home-widget-link" onclick="switchView('todayView')">View habits →</button></div>`;
+  const next=today.find(h=>!["done","counted","returned"].includes(getStatus(h.id)))||today[0];
+  const status=getStatus(next.id);
+  const dotClass=status==="done"?"done":status==="counted"?"counted":status==="returned"?"returned":status==="miss"?"miss":"";
+  const row=`<div class="home-widget-row"><span class="home-widget-dot ${dotClass}"></span><span class="home-widget-row-name">${escapeHTML(next.name)}</span></div>`;
+  return `<button type="button" class="home-widget" onclick="switchView('todayView')"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon sage">${iconSVG("leaf")}</span>Habits</span><span class="home-widget-meta">${done.length} of ${today.length} today${CHEVRON_SVG}</span></div>${row}</button>`;
 }
 function homeCircleWidgetHTML(nudges){
   if(!state.people.length) return "";
-  const shown=[...nudges.map(x=>x.person),...state.people.filter(p=>!nudges.some(x=>x.person.id===p.id))].slice(0,2);
-  const rows=shown.map(p=>`<div class="home-widget-row">${visualHTML(p,"home-widget-avatar","person")}<span class="home-widget-row-name">${escapeHTML(p.name)}</span><span class="home-widget-row-meta">${escapeHTML(personTiming(p).label)}</span></div>`).join("");
-  return `<div class="home-widget"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon peach">${iconSVG("heart")}</span>My Circle</span></div>${rows}<button class="home-widget-link" onclick="switchView('circleView')">View circle →</button></div>`;
+  const top=(nudges[0]&&nudges[0].person)||state.people[0];
+  const meta=nudges.length?`${nudges.length} to reach out`:personTiming(top).label;
+  const row=`<div class="home-widget-row">${visualHTML(top,"home-widget-avatar","person")}<span class="home-widget-row-name">${escapeHTML(top.name)}</span></div>`;
+  return `<button type="button" class="home-widget" onclick="switchView('circleView')"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon peach">${iconSVG("heart")}</span>My Circle</span><span class="home-widget-meta">${escapeHTML(meta)}${CHEVRON_SVG}</span></div>${row}</button>`;
 }

@@ -113,7 +113,7 @@ function isReduceGoal(h){return h?.goalType==="reduce"}
 function statusOptions(h){return isReduceGoal(h)?[["done","✓ Within plan"],["counted","○ Reduced"],["miss","— Over plan"],["returned","↩ Back to plan"]]:[["done","✓ Full version"],["counted","○ Smaller version"],["miss","— Not today"],["returned","↩ Returned"]]}
 function gentleDayOn(){try{const value=JSON.parse(localStorage.getItem(GENTLE_KEY)||"{}");return value.date===dateKey()&&value.on===true}catch{return false}}
 function setGentleDay(on){localStorage.setItem(GENTLE_KEY,JSON.stringify({date:dateKey(),on}));renderToday();showSaved(on?"Gentle day on":"Standard day on")}
-function quickCompleteHabit(id){const current=getStatus(id);if(current){openStatusModal(id);return}setStatus(id,gentleDayOn()?"counted":"done")}
+function quickCompleteHabit(id){const current=getStatus(id);if(current){openHabitSheet(id);return}setStatus(id,gentleDayOn()?"counted":"done")}
 function habitStatusIcon(status){return ({done:"✓",counted:"○",miss:"—",returned:"↩"})[status]||""}
 function statusLabel(status){return ({done:"✓ Done",counted:"○ Counted",miss:"— Not today",returned:"↩ Returned"})[status]||""}
 
@@ -204,28 +204,25 @@ function homeLogStatus(habitId,status){
   lastHomeActionAt=now;
   setStatus(habitId,status);
 }
-// The single dominant action card, shared verbatim by Home's "Start here" and the Habits
-// tab's "Now" — one completion interaction, not two independently maintained ones.
-function nowCardHTML(pick,{label="Now",gentle=false,blockPeriod=null}={}){
-  const h=pick.habit,tier=homePrimaryTier(h);
-  const blockNote=pick.isCurrentBlock?"":`<div class="home-now-block-note">Nothing left from ${escapeHTML(BLOCK_LABEL[blockPeriod]||"now")}, so here’s one from ${escapeHTML(BLOCK_LABEL[pick.block]||"elsewhere")} instead.</div>`;
-  let detail,primaryStatus;
-  if(pick.isReturn){ detail=isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."; primaryStatus=tier.status; }
-  else if(gentle){ detail="Doing less still keeps the connection."; primaryStatus="counted"; }
-  else{ detail=tier.text; primaryStatus=tier.status; }
-  const hasVersions=Boolean(versionRowsForHabit(h).length);
-  const secondaryRow=`<div class="home-now-secondary-row">${hasVersions?`<button class="home-now-link" onclick="openEasierVersion('${jsEscape(h.id)}')">Need an easier version?</button>`:"<span></span>"}<button class="home-now-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
-  return `<div class="home-now-label">${escapeHTML(label)}</div><div class="home-now-main">${visualHTML(h,"home-now-icon")}<div class="home-now-copy"><div class="home-now-title">${escapeHTML(h.name)}</div><div class="home-now-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<button class="home-now-action" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ I did it</button>${secondaryRow}`;
-}
-
 // ---- Habits tab: a scannable checklist by time of day, not a second "what's next"
 // engine — Home's Start Here already owns "what's most useful right now" (habits.js's
-// pickStartHereHabit/nowCardHTML). This screen is for browsing/logging any habit in a
-// given block, morning/afternoon/evening, matching the Morning|Afternoon|Evening switch.
+// pickStartHereHabit, presented by home.js's doNextHTML). This screen is for browsing/
+// logging any habit in a given block, morning/afternoon/evening, matching the switch.
 let habitsSelectedBlock=null;
 function defaultHabitsBlock(){
   const period=currentTimePeriod();
   return period==="late-night"?"evening":period;
+}
+// Short, contextual, no-guilt copy per time block — same voice as PERIOD_COPY, just
+// sized for a one-line banner under the Morning/Afternoon/Evening switch.
+const HABITS_BLOCK_BANNER={
+  morning:"Mornings set the tone. Pick one small thing.",
+  afternoon:"Afternoon is a good time to reset. Doing a little is enough.",
+  evening:"Evenings are for winding down slowly. One thing counts."
+};
+function renderHabitsBanner(){
+  const el=document.getElementById("habitsBanner");
+  el.innerHTML=`<span class="habits-banner-icon" aria-hidden="true">🌿</span><span>${escapeHTML(HABITS_BLOCK_BANNER[habitsSelectedBlock]||HABITS_BLOCK_BANNER.morning)}</span>`;
 }
 function renderToday(){
   document.getElementById("todayDate").textContent=fmtLong(new Date());
@@ -235,6 +232,7 @@ function renderToday(){
   gentleBtn.setAttribute("aria-label",gentle?"Gentle day · On":"Gentle day");
   if(!habitsSelectedBlock) habitsSelectedBlock=defaultHabitsBlock();
   renderHabitsPeriodSwitch();
+  renderHabitsBanner();
   renderHabitsChecklist();
   renderHabitsDone();
   renderHabitsPaused();
@@ -249,27 +247,33 @@ function renderHabitsPeriodSwitch(){
 function setHabitsBlock(block){
   habitsSelectedBlock=block;
   renderHabitsPeriodSwitch();
+  renderHabitsBanner();
   renderHabitsChecklist();
 }
 document.querySelectorAll("#habitsPeriodSwitch [data-block]").forEach(btn=>btn.addEventListener("click",()=>setHabitsBlock(btn.dataset.block)));
-// Two tap targets per row, not one: the name/icon opens the full picker (versions, Not
-// Today, past/multi-date logging — every existing capability, unabridged); the status
-// circle is a one-tap checkbox for the common case (quickCompleteHabit already existed
-// for exactly this but had nothing wired to it).
+// Three tap targets per row: the name/icon opens the compact action sheet (full/easier
+// versions, Complete, Do later, Move time, Edit habit — the common path); the status
+// circle is a one-tap checkbox for the fastest case (quickCompleteHabit); the overflow
+// ••• reaches the full picker (multi-date backfill, notes, clearing a log) unabridged.
 function checklistRowHTML(h){
   const status=getStatus(h.id);
   const tier=homePrimaryTier(h);
   const glyph=status==="returned"?"↩":status==="miss"?"—":status?"✓":"";
   const label=status?`${escapeAttr(h.name)}, ${statusLabel(status)}. Tap to change.`:`Mark ${escapeAttr(h.name)} done`;
-  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openStatusModal('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name">${escapeHTML(h.name)}</span><span class="checklist-sub">${escapeHTML(tier.text)}</span></span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button></div>`;
+  const hasEasier=Boolean((h.full||"").trim())&&Boolean((h.small||"").trim()||(h.small2||"").trim());
+  const easierPill=hasEasier?`<span class="checklist-easier-pill">Easier</span>`:"";
+  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openHabitSheet('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name-row"><span class="checklist-name">${escapeHTML(h.name)}</span>${easierPill}</span><span class="checklist-sub">${escapeHTML(tier.text)}</span></span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button><button type="button" class="checklist-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
 }
 function renderHabitsChecklist(){
   const wrap=document.getElementById("habitsChecklist");
+  const countLabel=document.getElementById("habitsCountLabel");
   if(!state.habits.length){
-    wrap.innerHTML=`<div class="empty-card">No habits yet. Add one tiny habit to start.</div>`;
+    countLabel.textContent="";
+    wrap.innerHTML=`<div class="empty-card">No habits yet.<button type="button" class="btn primary" style="margin-top:10px;width:100%" onclick="openHabitModal()">+ Add your first habit</button></div>`;
     return;
   }
   const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock);
+  countLabel.textContent=`Today · ${items.length}`;
   if(!items.length){
     wrap.innerHTML=`<div class="empty-card">Nothing scheduled for ${escapeHTML(BLOCK_LABEL[habitsSelectedBlock]||"this")}.</div>`;
     return;
@@ -480,6 +484,54 @@ function versionRowsForHabit(h){
   if(small2) rows.push({status:"counted",label:reduce?"Another smaller win":"Minimum version",text:small2});
   return rows;
 }
+// Compact bottom sheet for the Habits tab's row tap / re-tap: full + easier versions as
+// equally-valid choices (never a failure ladder), Complete, and three quick actions that
+// reuse the existing full statusModal (move time) and habit editor (edit) rather than
+// inventing new state — "Do later" is intentionally a no-op dismiss, since there is no
+// snooze concept in the data model and leaving the habit unlogged already means it stays
+// on the checklist.
+let habitSheetHabitId=null,habitSheetSelectedStatus=null;
+const habitSheetModal=document.getElementById("habitSheetModal");
+function openHabitSheet(id){
+  const h=state.habits.find(x=>x.id===id);if(!h)return;
+  habitSheetHabitId=id;
+  const current=getStatus(id);
+  const rows=versionRowsForHabit(h).length?versionRowsForHabit(h):[{status:"counted",label:"Check-in",text:"A tiny check-in counts."}];
+  habitSheetSelectedStatus=current||rows[0].status;
+  document.getElementById("habitSheetIcon").innerHTML=visualHTML(h,"checklist-icon");
+  document.getElementById("habitSheetTitle").textContent=h.name;
+  document.getElementById("habitSheetSub").textContent=rows[0].text;
+  renderHabitSheetList();
+  habitSheetModal.classList.add("show");
+}
+function renderHabitSheetList(){
+  const h=state.habits.find(x=>x.id===habitSheetHabitId);if(!h)return;
+  const rows=versionRowsForHabit(h).length?versionRowsForHabit(h):[{status:"counted",label:"Check-in",text:"A tiny check-in counts."}];
+  document.getElementById("habitSheetList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${habitSheetSelectedStatus===r.status?"active":""}" onclick="setHabitSheetSelection('${jsEscape(r.status)}')"><span><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></span><span class="habit-sheet-check" aria-hidden="true">✓</span></button>`).join("");
+}
+function setHabitSheetSelection(status){ habitSheetSelectedStatus=status; renderHabitSheetList(); }
+function closeHabitSheet(){ habitSheetModal.classList.remove("show"); habitSheetHabitId=null; habitSheetSelectedStatus=null; }
+document.getElementById("closeHabitSheet").addEventListener("click",closeHabitSheet);
+habitSheetModal.addEventListener("click",e=>{if(e.target===habitSheetModal)closeHabitSheet()});
+document.getElementById("habitSheetCompleteBtn").addEventListener("click",()=>{
+  if(!habitSheetHabitId||!habitSheetSelectedStatus) return;
+  const h=state.habits.find(x=>x.id===habitSheetHabitId);
+  const existing=getLogEntry(habitSheetHabitId);
+  // A direct set (not the quick-tap checkbox's toggle-off), so confirming the same
+  // status the habit is already logged with is a no-op, never an accidental un-log.
+  saveHabitLogEntry(habitSheetHabitId,{date:dateKey(),timeBlock:existing?.timeBlock||timeBlockOf(h),status:habitSheetSelectedStatus,note:existing?.note||""});
+  closeHabitSheet();
+});
+document.getElementById("habitSheetLaterBtn").addEventListener("click",closeHabitSheet);
+document.getElementById("habitSheetMoveBtn").addEventListener("click",()=>{
+  const id=habitSheetHabitId;closeHabitSheet();if(!id)return;
+  openStatusModal(id);
+  document.getElementById("statusDateDetails").open=true;
+});
+document.getElementById("habitSheetEditBtn").addEventListener("click",()=>{
+  const id=habitSheetHabitId;closeHabitSheet();if(id)openHabitModal(id);
+});
+
 let easierVersionHabitId=null;
 const easierVersionModal=document.getElementById("easierVersionModal");
 function openEasierVersion(habitId){
