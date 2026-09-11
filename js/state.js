@@ -140,7 +140,7 @@ const defaultState = {
   logs: {},
   people: [],
   dayNotes: {},
-  settings: {startScreen:"last",compactMode:false,hapticsEnabled:true,backupReminderEnabled:true,guideOpened:false,firstUsedAt:new Date().toISOString(),lastBackupAt:null,backupRemindAfter:null}
+  settings: {startScreen:"last",compactMode:false,hapticsEnabled:true,backupReminderEnabled:true,guideOpened:false,firstUsedAt:new Date().toISOString(),lastBackupAt:null,backupRemindAfter:null,pinnedModules:[]}
 };
 
 let stateLoadWasCorrupted=false;
