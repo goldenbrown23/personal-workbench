@@ -81,8 +81,6 @@
       text-transform:uppercase;
     }
     h1{font-size:32px;line-height:1.05;margin:5px 0 6px;letter-spacing:-.03em}
-    .h1-icon{display:inline-grid;place-items:center;width:26px;height:26px;margin-right:6px;vertical-align:-5px;color:var(--accent)}
-    .h1-icon svg{width:24px;height:24px}
     .sub{color:var(--muted);font-size:15px;line-height:1.45}
     #homeView header{margin:6px 0 14px}
     .home-mood{font-size:12px;color:var(--muted);font-style:italic;text-align:right;flex:0 0 auto;max-width:120px;line-height:1.4;padding-top:2px}
@@ -256,7 +254,11 @@
        arriving on a tab reads as the content settling into focus, not just sliding over. */
     @keyframes viewSlideFromRight{from{transform:translateX(20px) scale(.985);opacity:0;filter:blur(5px)}to{transform:translateX(0) scale(1);opacity:1;filter:blur(0)}}
     @keyframes viewSlideFromLeft{from{transform:translateX(-20px) scale(.985);opacity:0;filter:blur(5px)}to{transform:translateX(0) scale(1);opacity:1;filter:blur(0)}}
-    .view.active.slide-from-right,.view.active.slide-from-left{will-change:transform,opacity,filter}
+    /* No will-change here: a persistent transform-related hint on an ancestor establishes
+       a new containing block for any position:fixed descendant (like .floating-menu-panel
+       below), silently detaching it from the viewport — and since these classes are only
+       ever removed right before the NEXT transition (never on animationend), that hijack
+       would otherwise outlive the animation for as long as the tab stays open. */
     .view.active.slide-from-right{animation:viewSlideFromRight .32s cubic-bezier(.22,1,.36,1)}
     .view.active.slide-from-left{animation:viewSlideFromLeft .32s cubic-bezier(.22,1,.36,1)}
     @media (prefers-reduced-motion: reduce){
@@ -379,10 +381,9 @@
 .circle-hero-name{font-size:18px;font-weight:840}
 .circle-hero-note{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.4}
 .circle-hero-pill{display:inline-block;margin-top:9px;background:#fbe7e3;color:var(--danger);font-size:11px;font-weight:780;border-radius:999px;padding:5px 11px}
-.circle-hero-actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:9px;margin-top:15px}
-.circle-hero-btn{border:0;border-radius:14px;min-height:48px;padding:10px 16px;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px}
+.circle-hero-actions{margin-top:15px}
+.circle-hero-btn{width:100%;border:0;border-radius:14px;min-height:48px;padding:10px 16px;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:center;gap:8px}
 .circle-hero-btn.primary{background:var(--accent);color:#fff}
-.circle-hero-btn.secondary{background:var(--gray);color:var(--grayText)}
 .circle-hero-btn svg{width:16px;height:16px}
 .circle-section-card{padding:0}
 .circle-section-head{display:flex;align-items:center;gap:12px;padding:15px 16px}
@@ -412,12 +413,24 @@
     .interaction-menu summary{list-style:none;cursor:pointer;width:42px;height:42px;border-radius:12px;display:grid;place-items:center;color:var(--muted);font-weight:800}
     .interaction-menu summary::-webkit-details-marker{display:none}
     .interaction-menu summary:hover{background:#f3e6d8}
-    .interaction-menu-list{position:absolute;right:0;top:42px;z-index:3;width:150px;padding:7px;background:var(--card);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);display:grid;gap:4px}
-    .interaction-menu-list button{border:0;background:transparent;color:var(--text);border-radius:9px;padding:9px 10px;text-align:left;font-size:12px;font-weight:750;min-height:38px}
-    .interaction-menu-list button:hover{background:#f1e9dc}
-    .interaction-menu-list button.danger{color:#a2564f}
+    .interaction-menu-list{width:150px}
+    /* Shared floating-popover component (Trends' Filter, this interaction menu, and any
+       future one): fixed to the viewport and positioned by JS (positionFloatingPanel in
+       app.js), never CSS-absolute against an ancestor — that's what let a panel render
+       underneath/behind the floating tab bar before. JS flips it above the trigger when
+       there's no room below, or moves its buttons into #floatingMenuSheet as a bottom
+       sheet when there isn't room in either direction. */
+    /* Hidden until JS (positionFloatingPanel, app.js) places it — <details>'s "toggle"
+       event fires as a queued task, not synchronously with the click, so without this a
+       panel would flash at its native in-flow position for a frame before being moved. */
+    .floating-menu-panel{position:fixed;visibility:hidden;z-index:1000;padding:7px;background:var(--card);border:1px solid var(--line);border-radius:13px;box-shadow:var(--shadow);display:grid;gap:4px;max-height:min(60vh,360px);overflow:auto}
+    .floating-menu-option{border:0;background:transparent;color:var(--text);border-radius:9px;padding:9px 10px;text-align:left;font-size:12px;font-weight:750;min-height:38px;width:100%}
+    .floating-menu-option:hover{background:#f1e9dc}
+    .floating-menu-option.active{background:#f3e6d8;color:var(--accent)}
+    .floating-menu-option.danger{color:#a2564f}
+    .floating-menu-sheet-list{display:grid;gap:5px}
     .trend-insight{background:linear-gradient(145deg,#eee6d6,#faf7f0);border:1px solid #ddceac;border-radius:23px;padding:16px;margin-bottom:14px}.trend-kicker{font-size:11px;text-transform:uppercase;letter-spacing:.055em;color:var(--purpleText);font-weight:820}.trend-headline{font-size:22px;font-weight:860;letter-spacing:-.025em;margin-top:8px}.trend-copy{font-size:13px;color:var(--muted);line-height:1.42;margin-top:5px}.rhythm-card{background:var(--card);border:1px solid var(--line);border-radius:20px;padding:14px;box-shadow:var(--shadow)}.rhythm-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:7px}.rhythm-day{text-align:center;min-width:0}.rhythm-name{font-size:10px;color:var(--muted);font-weight:760}.rhythm-orb{width:34px;height:34px;margin:7px auto 0;border-radius:12px;background:#f0f2ee;color:#9aa19b;display:grid;place-items:center;font-size:12px;font-weight:820;border:1px solid #e6e9e3}.rhythm-day.active .rhythm-orb{background:#e4f2e6;color:var(--greenText);border-color:#cee4d1}.rhythm-day.returned .rhythm-orb{background:var(--purple);color:var(--purpleText);border-color:#d9cdf0}.rhythm-day.today .rhythm-orb{outline:2px solid #e0c9a8;outline-offset:2px}.rhythm-help{font-size:11px;color:var(--muted);line-height:1.4;margin-top:12px}.stat-list{background:var(--card);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:var(--shadow)}.stat-row{display:flex;align-items:center;gap:12px;padding:13px;border-bottom:1px solid var(--line)}.stat-row:last-child{border-bottom:0}.stat-icon{width:38px;height:38px;border-radius:12px;background:#f1e9dc;display:grid;place-items:center;flex:0 0 auto}.stat-icon svg{width:18px;height:18px}.stat-icon.sage{background:var(--green);color:var(--greenText)}.stat-copy{flex:1}.stat-label{font-size:13px;font-weight:780}.stat-help{font-size:11px;color:var(--muted);margin-top:2px}.stat-value{font-size:18px;font-weight:850}.pattern-card{margin-top:14px;border:1px solid var(--line);background:#fbf7ef;border-radius:18px;padding:14px}.pattern-label{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:820}.pattern-text{font-size:14px;line-height:1.45;margin-top:6px}
-    .review-history{margin-top:18px}.review-history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 10px}.review-history-head h2{margin:0;font-size:18px}.review-history-head p{margin:3px 0 0;color:var(--muted);font-size:12px}.review-filter{position:relative}.review-filter summary{list-style:none;border:1px solid var(--line);border-radius:12px;min-height:42px;padding:10px 12px;background:var(--card);font-size:12px;font-weight:800;color:var(--muted);cursor:pointer}.review-filter summary::-webkit-details-marker{display:none}.review-filter-menu{position:absolute;right:0;top:48px;z-index:3;width:180px;padding:8px;background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);display:grid;gap:5px}.review-filter-menu button{border:0;background:transparent;color:var(--text);border-radius:9px;padding:11px 10px;text-align:left;font-size:12px;font-weight:750;min-height:42px}.review-filter-menu button.active{background:#f3e6d8;color:var(--accent)}.history-list{display:grid;gap:10px}.history-day{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}.history-day-label{padding:11px 13px;background:#fbf7ef;border-bottom:1px solid var(--line);font-size:12px;font-weight:720;color:var(--text)}.history-day-label span{color:var(--muted);font-weight:560}.history-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line)}.history-item:last-child{border-bottom:0}.history-item-icon{width:34px;height:34px;border-radius:11px;background:var(--gray);display:grid;place-items:center;flex:0 0 auto;font-size:15px}.history-item-icon svg{width:16px;height:16px}.history-item.habit .history-item-icon{background:var(--green);color:var(--greenText)}.history-item.circle .history-item-icon{background:var(--purple);color:var(--purpleText)}.history-item.miss .history-item-icon{background:var(--gray);color:var(--muted)}.history-item-copy{min-width:0;flex:1;display:flex;flex-direction:column}.history-item-title{font-size:13px;font-weight:660}.history-item-note{font-size:11px;color:var(--muted);margin-top:3px}.history-quiet{padding:13px;color:var(--muted);font-size:12px;line-height:1.4}
+    .review-history{margin-top:18px}.review-history-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 2px 10px}.review-history-head h2{margin:0;font-size:18px}.review-history-head p{margin:3px 0 0;color:var(--muted);font-size:12px}.review-filter{position:relative}.review-filter summary{list-style:none;border:1px solid var(--line);border-radius:12px;min-height:42px;padding:10px 12px;background:var(--card);font-size:12px;font-weight:800;color:var(--muted);cursor:pointer}.review-filter summary::-webkit-details-marker{display:none}.review-filter-menu{width:180px}.history-list{display:grid;gap:10px}.history-day{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden;box-shadow:var(--shadow)}.history-day-label{padding:11px 13px;background:#fbf7ef;border-bottom:1px solid var(--line);font-size:12px;font-weight:720;color:var(--text)}.history-day-label span{color:var(--muted);font-weight:560}.history-item{display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid var(--line)}.history-item:last-child{border-bottom:0}.history-item-icon{width:34px;height:34px;border-radius:11px;background:var(--gray);display:grid;place-items:center;flex:0 0 auto;font-size:15px}.history-item-icon svg{width:16px;height:16px}.history-item.habit .history-item-icon{background:var(--green);color:var(--greenText)}.history-item.circle .history-item-icon{background:var(--purple);color:var(--purpleText)}.history-item.miss .history-item-icon{background:var(--gray);color:var(--muted)}.history-item-copy{min-width:0;flex:1;display:flex;flex-direction:column}.history-item-title{font-size:13px;font-weight:660}.history-item-note{font-size:11px;color:var(--muted);margin-top:3px}.history-quiet{padding:13px;color:var(--muted);font-size:12px;line-height:1.4}
     .history-quiet-run{padding:10px 13px;color:var(--muted);font-size:12px;font-weight:600;background:transparent;text-align:center}
     .quick-card{background:var(--card);border:1px solid var(--line);border-radius:22px;padding:15px;box-shadow:var(--shadow);margin-bottom:14px}
     .quick-title{font-size:14px;font-weight:800;margin-bottom:10px}.quick-actions{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}

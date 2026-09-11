@@ -635,7 +635,7 @@ function renderReviewHistory(days=getLast7Days()){
   flushQuiet();
   if(!list.children.length) list.innerHTML=`<div class="history-quiet-run">Nothing logged this week yet.</div>`;
 }
-document.querySelectorAll("[data-review-filter]").forEach(button=>button.addEventListener("click",()=>{reviewFilter=button.dataset.reviewFilter;document.querySelectorAll("[data-review-filter]").forEach(item=>item.classList.toggle("active",item.dataset.reviewFilter===reviewFilter));button.closest("details").removeAttribute("open");renderReviewHistory()}));
+document.querySelectorAll("[data-review-filter]").forEach(button=>button.addEventListener("click",()=>{reviewFilter=button.dataset.reviewFilter;document.querySelectorAll("[data-review-filter]").forEach(item=>item.classList.toggle("active",item.dataset.reviewFilter===reviewFilter));button.closest("details")?.removeAttribute("open");renderReviewHistory()}));
 
 function toggleHabitPaused(id){
   const h=state.habits.find(x=>x.id===id);

@@ -69,7 +69,7 @@
     <header>
       <div>
         <div class="eyebrow">See your patterns</div>
-        <h1><span class="h1-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg></span>Weekly Detail</h1>
+        <h1>Weekly Detail</h1>
         <div class="sub">Patterns from your check-ins, not a scoreboard.</div>
       </div>
       <button class="icon-btn" data-jump="todayView" aria-label="Close weekly detail">✕</button>
@@ -165,7 +165,8 @@
     <header>
       <div>
         <div class="eyebrow">Last 7 days</div>
-        <h1><span class="h1-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg></span>Trends</h1>
+        <h1>Trends</h1>
+        <div class="sub">A calmer look at your patterns, not a scoreboard.</div>
       </div>
     </header>
     <div class="trend-insight">
@@ -187,7 +188,7 @@
     </div>
     <div class="pattern-card"><div class="pattern-label">A useful pattern</div><div class="pattern-text" id="trendPattern">We’re still gathering a little context.</div></div>
     <section class="review-history" aria-labelledby="reviewHistoryTitle">
-      <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div><details class="review-filter"><summary>Filter</summary><div class="review-filter-menu"><button type="button" class="active" data-review-filter="all">All activity</button><button type="button" data-review-filter="habits">Habits</button><button type="button" data-review-filter="circle">Circle</button></div></details></div>
+      <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div><details class="review-filter floating-menu" data-sheet-title="Filter activity"><summary>Filter</summary><div class="review-filter-menu floating-menu-panel"><button type="button" class="floating-menu-option active" data-review-filter="all">All activity</button><button type="button" class="floating-menu-option" data-review-filter="habits">Habits</button><button type="button" class="floating-menu-option" data-review-filter="circle">Circle</button></div></details></div>
       <div class="history-list" id="reviewHistory"></div>
     </section>
   </div>
@@ -196,6 +197,7 @@
   <div id="circleView" class="view">
     <header>
       <div>
+        <div class="eyebrow" id="circleDate"></div>
         <h1>My Circle</h1>
         <div class="sub">Small reach-outs keep people close.</div>
       </div>
@@ -618,6 +620,17 @@
       <button type="button" id="habitSheetMoveBtn"><span class="habit-sheet-quick-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="3"></rect><path d="M3 10h18"></path><path d="M8 2v4"></path><path d="M16 2v4"></path></svg></span>Move time</button>
       <button type="button" id="habitSheetEditBtn"><span class="habit-sheet-quick-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg></span>Edit habit</button>
     </div>
+  </div>
+</div>
+
+<!-- Shared fallback for any .floating-menu popover (Trends' Filter, an interaction row's
+     ••• menu, and any future one): when there isn't enough room to open the dropdown
+     without it landing under/behind the floating tab bar, its options move here instead
+     of into an overflowing/clipped fixed-positioned panel. -->
+<div id="floatingMenuSheet" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="floatingMenuSheetTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="floatingMenuSheetTitle">Options</h3><button class="icon-btn" id="closeFloatingMenuSheet" aria-label="Close">✕</button></div>
+    <div class="floating-menu-sheet-list" id="floatingMenuSheetList"></div>
   </div>
 </div>
 

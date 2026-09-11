@@ -61,7 +61,13 @@ function switchView(viewId){
     v.classList.toggle("active",willBeActive);
     if(willBeActive&&direction){
       void v.offsetWidth; // restart the animation even if the same class was left over
-      v.classList.add(direction==="next"?"slide-from-right":"slide-from-left");
+      const cls=direction==="next"?"slide-from-right":"slide-from-left";
+      v.classList.add(cls);
+      // Clean up once the transition finishes rather than leaving it until the tab is
+      // next switched away from — a class that lingers is one animation-end tweak away
+      // from silently reintroducing containing-block bugs for any position:fixed content
+      // rendered inside this view in the meantime (see the .floating-menu-panel note).
+      v.addEventListener("animationend",()=>v.classList.remove(cls),{once:true});
     }
   });
   localStorage.setItem(VIEW_KEY,viewId);
@@ -159,6 +165,96 @@ function onSwipeCancel(e){
   swipeSurface.addEventListener("touchend",onSwipeEnd,{passive:true});
   swipeSurface.addEventListener("touchcancel",onSwipeCancel,{passive:true});
 });
+
+// ---- Shared floating-popover positioning (Trends' Filter, an interaction row's ••• menu,
+// and any future <details class="floating-menu"> dropdown) ----
+// One component, not a per-instance patch: every .floating-menu-panel is measured and
+// placed here, in viewport (position:fixed) coordinates, never CSS-absolute against a
+// scrolling ancestor — that mismatch is exactly what let a panel render underneath/behind
+// the floating tab bar before. The tab bar's own live bounding rect (not a re-derived
+// safe-area/nav-height calc()) is the hard lower boundary, so it's automatically correct
+// on every device without duplicating that math in JS.
+function positionFloatingPanel(trigger,panel){
+  const margin=8;
+  const triggerRect=trigger.getBoundingClientRect();
+  const navEl=document.querySelector(".tabbar");
+  const navTop=navEl?navEl.getBoundingClientRect().top:window.innerHeight;
+  const bottomLimit=navTop-margin,topLimit=margin;
+  // Measure the panel's natural size off-screen before deciding where (or whether) it fits.
+  panel.style.visibility="hidden";
+  panel.style.top="-9999px";panel.style.left="0px";panel.style.right="auto";panel.style.bottom="auto";
+  const panelHeight=panel.offsetHeight,panelWidth=panel.offsetWidth;
+  const spaceBelow=bottomLimit-triggerRect.bottom,spaceAbove=triggerRect.top-topLimit;
+  let mode;
+  if(panelHeight<=spaceBelow) mode="below";
+  else if(panelHeight<=spaceAbove) mode="above";
+  else mode="sheet"; // doesn't fit either way — hand off to the bottom-sheet fallback
+  if(mode==="sheet"){ return mode; } // stays hidden — the sheet fallback takes over and this panel is never shown
+  let top=mode==="below"?triggerRect.bottom+6:triggerRect.top-panelHeight-6;
+  top=Math.max(topLimit,Math.min(top,bottomLimit-panelHeight));
+  let left=triggerRect.right-panelWidth;
+  left=Math.max(margin,Math.min(left,window.innerWidth-panelWidth-margin));
+  panel.style.top=top+"px";panel.style.left=left+"px";
+  panel.style.visibility="visible";
+  return mode;
+}
+// Moves a panel's actual option buttons into the shared sheet (preserving their real
+// onclick handlers/data attributes — no cloning, no second copy to keep in sync) and
+// moves them back home when the sheet closes, so the source panel works again next time.
+function openFloatingMenuSheet(panel,title){
+  const sheet=document.getElementById("floatingMenuSheet");
+  const list=document.getElementById("floatingMenuSheetList");
+  document.getElementById("floatingMenuSheetTitle").textContent=title;
+  list.innerHTML="";
+  [...panel.children].forEach(child=>list.appendChild(child));
+  // Every .modal-backdrop shares one z-index and stacks by DOM order — an interaction
+  // menu lives inside Person Detail, so if that's already open and appears later in the
+  // document it would otherwise bury this sheet instead of the other way around. Hide it
+  // here (same pattern circle.js already uses for its own nested sheets) and restore it
+  // when this one closes.
+  const coveredParent=[...document.querySelectorAll(".modal-backdrop.show")].find(el=>el!==sheet);
+  coveredParent?.classList.remove("show");
+  const restore=()=>{
+    [...list.children].forEach(child=>panel.appendChild(child));
+    sheet.classList.remove("show");
+    coveredParent?.classList.add("show");
+    closeBtn.removeEventListener("click",restore);
+    sheet.removeEventListener("click",onBackdropClick);
+  };
+  const closeBtn=document.getElementById("closeFloatingMenuSheet");
+  const onBackdropClick=e=>{ if(e.target===sheet) restore(); };
+  closeBtn.addEventListener("click",restore);
+  sheet.addEventListener("click",onBackdropClick);
+  list.querySelectorAll("button").forEach(btn=>btn.addEventListener("click",restore,{once:true}));
+  sheet.classList.add("show");
+}
+// "toggle" doesn't bubble, so this listener is registered on the CAPTURE phase — the
+// standard way to delegate a non-bubbling event from a single ancestor listener, which is
+// what lets this cover every current and future .floating-menu without re-wiring each one
+// after a dynamic re-render (e.g. the interaction list rebuilding on every open).
+document.addEventListener("toggle",e=>{
+  const details=e.target;
+  if(!(details instanceof HTMLDetailsElement)||!details.classList.contains("floating-menu")||!details.open) return;
+  const trigger=details.querySelector("summary"),panel=details.querySelector(".floating-menu-panel");
+  if(!trigger||!panel) return;
+  if(positionFloatingPanel(trigger,panel)==="sheet"){
+    details.removeAttribute("open");
+    openFloatingMenuSheet(panel,details.dataset.sheetTitle||"Options");
+  }
+},true);
+document.addEventListener("click",e=>{
+  document.querySelectorAll("details.floating-menu[open]").forEach(details=>{
+    if(!details.contains(e.target)) details.removeAttribute("open");
+  });
+});
+document.addEventListener("keydown",e=>{
+  if(e.key!=="Escape") return;
+  const open=document.querySelector("details.floating-menu[open]");
+  if(open) open.removeAttribute("open");
+});
+window.addEventListener("scroll",()=>{
+  document.querySelectorAll("details.floating-menu[open]").forEach(details=>details.removeAttribute("open"));
+},{passive:true,capture:true});
 
 const sheets=[...document.querySelectorAll(".modal-backdrop")];
 const FOCUSABLE_SELECTOR='a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),summary,[tabindex]:not([tabindex="-1"])';

@@ -68,6 +68,7 @@ function circleMatches(p){
 // list had replaced an earlier version of this same layout, but the current mockup asks
 // for it back.
 function renderCircle(){
+  document.getElementById("circleDate").textContent=fmtLong(new Date());
   const hero=document.getElementById("circleHeroCard");
   const checkinList=document.getElementById("circleCheckinList");
   const recentList=document.getElementById("circleRecentList");
@@ -105,8 +106,7 @@ function circleHeroHTML(p){
       </div>
     </div>
     <div class="circle-hero-actions">
-      <button type="button" class="circle-hero-btn primary" onclick="openContactModal('${jsEscape(p.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M13.4 15.2c1 1 2.2 1.9 3.5 2.5.4.2.9 0 1.2-.3l1-1.3c.3-.4.9-.6 1.4-.4l3.5 1.4c.5.2.8.7.7 1.2-.4 2.4-2.5 4.1-4.9 3.9C12.8 21.9 4.1 13.2 3.5 6.2c-.2-2.4 1.5-4.5 3.9-4.9.5-.1 1 .2 1.2.7l1.4 3.5c.2.5 0 1.1-.4 1.4L8.3 8c-.3.3-.5.8-.3 1.2.6 1.3 1.5 2.5 2.5 3.5.3.3.6.6.9.5Z"></path></svg>Reach out</button>
-      <button type="button" class="circle-hero-btn secondary" onclick="openContactModal('${jsEscape(p.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>Log</button>
+      <button type="button" class="circle-hero-btn primary" onclick="openContactModal('${jsEscape(p.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>Log interaction</button>
     </div>
   </div>`;
 }
@@ -153,12 +153,12 @@ function interactionRowHTML(personId,item){
       <span class="interaction-row-title">${title}</span>
       ${item.note?`<span class="interaction-row-note">${escapeHTML(item.note)}</span>`:""}
     </button>
-    <details class="interaction-menu">
+    <details class="interaction-menu floating-menu" data-sheet-title="Interaction options">
       <summary aria-label="More options for this interaction">•••</summary>
-      <div class="interaction-menu-list">
-        <button type="button" onclick="this.closest('details').removeAttribute('open');openEditInteraction('${jsEscape(personId)}','${jsEscape(item.id)}')">Edit</button>
-        <button type="button" onclick="this.closest('details').removeAttribute('open');openEditInteraction('${jsEscape(personId)}','${jsEscape(item.id)}',true)">Change date</button>
-        <button type="button" class="danger" onclick="this.closest('details').removeAttribute('open');deleteInteractionConfirm('${jsEscape(personId)}','${jsEscape(item.id)}')">Delete</button>
+      <div class="interaction-menu-list floating-menu-panel">
+        <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');openEditInteraction('${jsEscape(personId)}','${jsEscape(item.id)}')">Edit</button>
+        <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');openEditInteraction('${jsEscape(personId)}','${jsEscape(item.id)}',true)">Change date</button>
+        <button type="button" class="floating-menu-option danger" onclick="this.closest('details')?.removeAttribute('open');deleteInteractionConfirm('${jsEscape(personId)}','${jsEscape(item.id)}')">Delete</button>
       </div>
     </details>
   </div>`;
