@@ -127,12 +127,14 @@ function currentTimePeriod(hour=new Date().getHours()){
   return "late-night";
 }
 const PERIOD_GREETING={morning:"Good morning",afternoon:"Good afternoon",evening:"Good evening","late-night":"Still up"};
-const PERIOD_MOOD={morning:"A slow start",afternoon:"Steady as you go",evening:"A calmer you","late-night":"Rest counts too"};
+// Evening and late-night share one sentence (and one Home illustration/accent, see
+// HOME_ILLUSTRATION in home.js) — only the greeting word changes for the very-late hours,
+// per PERIOD_GREETING above ("Still up" rather than forcing "Good evening" at 1am).
 const PERIOD_COPY={
-  morning:"Begin with one thing.",
-  afternoon:"Reset, gently.",
-  evening:"Wind down slowly.",
-  "late-night":"Small steps only."
+  morning:"A new day, a fresh start.",
+  afternoon:"Keep going. Progress doesn't have to be big to be meaningful.",
+  evening:"You made it through today. Rest is also progress.",
+  "late-night":"You made it through today. Rest is also progress."
 };
 const BLOCK_LABEL={morning:"morning",afternoon:"afternoon",evening:"evening"};
 const LATER_LABEL={morning:"This morning",afternoon:"This afternoon",evening:"Tonight"};

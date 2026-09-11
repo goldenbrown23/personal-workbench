@@ -1,19 +1,43 @@
 // The time-period model, the "what's next" picker (pickStartHereHabit), and the logging
 // entry point (homeLogStatus/homePrimaryTier) live in habits.js — this file only owns how
 // Home presents that pick (doNextHTML below) and its two compact summary widgets.
+//
+// The illustration follows its OWN 3-way schedule (morning/afternoon/evening), separate
+// from currentTimePeriod's 4-way greeting split (which keeps "Still up" for late-night
+// instead of forcing "Good evening") — evening's illustration and warm accent cover both.
+function illustrationPeriod(hour=new Date().getHours()){
+  if(hour>=5&&hour<12) return "morning";
+  if(hour>=12&&hour<18) return "afternoon";
+  return "evening";
+}
+const HOME_ILLUSTRATION={
+  morning:{src:"attachments/home-morning.jpg",accent:"You got this ♡"},
+  afternoon:{src:"attachments/home-afternoon.jpg",accent:"Small effort, big future ♡"},
+  evening:{src:"attachments/home-evening.jpg",accent:"A calmer tomorrow is still possible ♡"}
+};
 function renderHome(){
   const now=new Date(),period=currentTimePeriod(now.getHours());
   document.getElementById("homeDate").textContent=fmtLong(now);
   document.getElementById("homeGreeting").textContent=PERIOD_GREETING[period];
-  document.getElementById("homeMood").textContent=PERIOD_MOOD[period]||"";
   const gentle=gentleDayOn();
   document.getElementById("homeSub").textContent=gentle?"Gentle day is on. Smaller still counts.":PERIOD_COPY[period];
+
+  const illus=HOME_ILLUSTRATION[illustrationPeriod(now.getHours())];
+  document.getElementById("homeIllustrationAccent").textContent=illus.accent;
+  const img=document.getElementById("homeIllustrationImg");
+  if(!img.src.endsWith(illus.src)) img.src=illus.src; // avoid an unnecessary reload/flicker when nothing changed
 
   const nudges=state.people.map(p=>({person:p,timing:personTiming(p)})).filter(x=>["due","soon"].includes(x.timing.class));
 
   renderStartHere(period,gentle,nudges);
   renderHomeWidgets(nudges);
 }
+// Keeps the greeting/illustration correct across a period boundary (e.g. the app left
+// open from 11:58am into the afternoon) without needing the user to navigate away and
+// back — renderHome is cheap enough to just re-run on a slow interval.
+setInterval(()=>{
+  if(document.getElementById("homeView")?.classList.contains("active")) renderHome();
+},60000);
 
 const CHEVRON_SVG=`<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>`;
 // Home is a minimal launchpad, not a dashboard: Start Here renders the same shared

@@ -82,8 +82,30 @@
     }
     h1{font-size:32px;line-height:1.05;margin:5px 0 6px;letter-spacing:-.03em}
     .sub{color:var(--muted);font-size:15px;line-height:1.45}
-    #homeView header{margin:6px 0 14px}
-    .home-mood{font-size:12px;color:var(--muted);font-style:italic;text-align:right;flex:0 0 auto;max-width:120px;line-height:1.4;padding-top:2px}
+    #homeView header{margin:6px 0 10px;flex-wrap:wrap}
+    /* A time-of-day companion moment, not a banner or a card. On mobile it wraps onto its
+       own centered row below the greeting (flex:1 1 100% forces the wrap) so the header
+       stays a single readable column; from ~521px up there's room for it to sit beside the
+       text instead, on the right, without shrinking to a thumbnail. The radial mask feathers
+       the source photo's rectangular edge into transparency — no crop line, no border, no
+       card — so it reads as printed onto the cream page rather than pasted on top of it.
+       Fixed width/height on the <img> itself (not just CSS) reserves its box before the
+       file loads, so there's no layout shift either way. */
+    .home-hero-illustration{display:flex;flex-direction:column;align-items:center;gap:3px;flex:1 1 100%;margin-top:2px}
+    .home-hero-accent{font-size:12px;color:var(--muted);font-style:italic;text-align:center;line-height:1.4}
+    .home-hero-img{
+      width:210px;height:140px;object-fit:contain;display:block;
+      /* The source photos carry their own sky/backdrop color (afternoon's blue, evening's
+         navy) — a light warmth pass pulls those toward the page's cream tone so the fade
+         reads as one surface instead of a color patch dissolving into another. */
+      filter:saturate(.82) sepia(.12);
+      -webkit-mask-image:radial-gradient(ellipse 58% 56% at 50% 48%,#000 32%,rgba(0,0,0,.45) 58%,transparent 86%);
+      mask-image:radial-gradient(ellipse 58% 56% at 50% 48%,#000 32%,rgba(0,0,0,.45) 58%,transparent 86%);
+    }
+    @media(min-width:521px){
+      .home-hero-illustration{flex:0 0 auto;align-items:flex-end;margin-top:0}
+      .home-hero-accent{text-align:right}
+    }
     #homeView h1{font-size:26px;margin:3px 0 4px}
     #homeView .sub{font-size:13px}
     .icon-btn{
@@ -590,6 +612,7 @@
          plain text at a larger scale, same treatment as mobile, just bigger. */
       #homeView header{min-height:0;margin-bottom:22px;padding:4px 3px 0}
       #homeView h1{font-size:38px;margin-top:6px}
+      .home-hero-img{width:260px;height:173px}
       .home-now{padding:18px;border-radius:22px;box-shadow:var(--shadow)}
       .do-next-title{font-size:19px}
       .home-section-title{margin-top:24px;color:var(--accent);font-size:14px;letter-spacing:.02em}
