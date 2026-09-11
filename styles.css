@@ -655,6 +655,13 @@
       .icon-group-grid{grid-template-columns:repeat(5,1fr)}
       h1{font-size:29px}
       .app{padding-left:14px;padding-right:14px}
+      /* Home reference: the mobile hero is a tall, full-screen art-directed scene. */
+      .home-hero-banner{height:460px;margin:-18px -14px 0}
+      #homeView .home-hero-banner header{padding:140px 28px 52px}
+      .home-hero-accent{right:28px;bottom:30px;left:28px}
+      .home-hero-banner.period-morning .home-hero-bg{object-position:32% 78%;transform:scale(1.12)}
+      .home-hero-banner.period-afternoon .home-hero-bg{object-position:52% 70%;transform:scale(1.08)}
+      .home-hero-banner.period-evening .home-hero-bg{object-position:72% 58%;transform:scale(1.08)}
       .home-grid{grid-template-columns:1fr}
       .module-card{min-height:112px;padding:15px}
       .metrics{grid-template-columns:1fr}
@@ -692,4 +699,3 @@
     .multi-date-summary{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.4}
     .multi-date-controls{display:flex;gap:10px;margin-top:11px}
     .multi-date-controls .btn{flex:1;min-height:40px;padding:8px 10px;font-size:12px}
-
