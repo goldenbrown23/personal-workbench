@@ -1,0 +1,107 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - generic [ref=f2e202]:
+      - banner [ref=f2e203]:
+        - generic [ref=f2e204]:
+          - generic [ref=f2e205]: Friday, September 11
+          - heading "Habits" [level=1] [ref=f2e206]
+          - generic [ref=f2e207]: Small actions. A calmer, brighter you.
+        - generic [ref=f2e208]:
+          - button "Gentle day" [ref=f2e209] [cursor=pointer]
+          - button "Manage habits" [ref=f2e213] [cursor=pointer]
+      - tablist "Time of day" [ref=f2e217]:
+        - tab "Morning" [ref=f2e218] [cursor=pointer]
+        - tab "Afternoon" [selected] [ref=f2e219] [cursor=pointer]
+        - tab "Evening" [ref=f2e220] [cursor=pointer]
+      - generic [ref=f2e221]:
+        - generic [aria-hidden] [ref=f2e222]: 🌿
+        - generic [ref=f2e223]: Afternoon is a good time to reset. Doing a little is enough.
+      - generic [ref=f2e224]: Today · 0
+      - generic [ref=f2e226]: Nothing scheduled for afternoon.
+      - text: ＋ ＋
+      - button "+ Add habit" [ref=f2e228] [cursor=pointer]
+    - text: ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes ＋
+  - navigation "Navigation" [ref=f2e72]:
+    - button "Home" [ref=f2e73] [cursor=pointer]
+    - button "Habits" [ref=f2e79] [cursor=pointer]
+    - button "My Circle" [ref=f2e85] [cursor=pointer]
+    - button "Trends" [ref=f2e90] [cursor=pointer]
+    - button "More" [ref=f2e96] [cursor=pointer]
+  - dialog [ref=f2e229]:
+    - generic [ref=f2e230]:
+      - generic [ref=f2e231]:
+        - heading "Add habit" [level=3] [ref=f2e232]
+        - button "✕" [ref=f2e233] [cursor=pointer]
+      - generic [ref=f2e234]:
+        - generic [ref=f2e235]: Habit name
+        - textbox "Habit name" [ref=f2e236]:
+          - /placeholder: e.g. Morning Face Wash
+      - generic [ref=f2e237]:
+        - generic [ref=f2e242]:
+          - generic [ref=f2e243]: Visual
+          - generic [ref=f2e244]: Choose an icon and color to recognize this quickly.
+        - button "Customize" [ref=f2e245] [cursor=pointer]
+      - generic [ref=f2e246]:
+        - generic [ref=f2e247]: What kind of goal?
+        - combobox "What kind of goal?" [ref=f2e248]:
+          - option "Practice something" [selected]
+          - option "Reduce something"
+      - generic [ref=f2e249]:
+        - generic [ref=f2e250]: When
+        - combobox "When" [ref=f2e251]:
+          - option "Morning" [selected]
+          - option "Afternoon"
+          - option "Evening"
+      - group [ref=f2e252]:
+        - generic "Goal plan Define what counts −" [active] [ref=f2e262] [cursor=pointer]:
+          - generic [ref=f2e254]: Goal plan
+          - generic [ref=f2e255]: Define what counts
+          - text: −
+        - generic [ref=f2e263]: Define the versions once so you do not have to renegotiate what counts each day.
+        - generic [ref=f2e264]:
+          - generic [ref=f2e265]: Full version (optional)
+          - textbox "Full version (optional)" [ref=f2e266]:
+            - /placeholder: e.g. Wash face for 60 seconds
+        - generic [ref=f2e267]:
+          - generic [ref=f2e268]: Smaller valid version
+          - textbox "Smaller valid version" [ref=f2e269]:
+            - /placeholder: e.g. A quick 30-second wash
+        - generic [ref=f2e270]:
+          - generic [ref=f2e271]: Another smaller option (optional)
+          - textbox "Another smaller option (optional)" [ref=f2e272]:
+            - /placeholder: e.g. Rinse and moisturize
+      - generic [ref=f2e256]:
+        - generic [ref=f2e257]: How often?
+        - combobox "How often?" [ref=f2e258]:
+          - option "Daily"
+          - option "Specific days" [selected]
+          - option "Times per week"
+          - option "Flexible / no schedule"
+      - generic [ref=f2e273]:
+        - generic [ref=f2e274]: Which days?
+        - generic [ref=f2e275]:
+          - generic [ref=f2e276]:
+            - checkbox "Mon"
+            - generic [ref=f2e277]: Mon
+          - generic [ref=f2e278]:
+            - checkbox "Tue"
+            - generic [ref=f2e279]: Tue
+          - generic [ref=f2e280]:
+            - checkbox "Wed"
+            - generic [ref=f2e281]: Wed
+          - generic [ref=f2e282]:
+            - checkbox "Thu"
+            - generic [ref=f2e283]: Thu
+          - generic [ref=f2e284]:
+            - checkbox "Fri" [checked]
+            - generic [ref=f2e285]: Fri
+          - generic [ref=f2e286]:
+            - checkbox "Sat"
+            - generic [ref=f2e287]: Sat
+          - generic [ref=f2e288]:
+            - checkbox "Sun"
+            - generic [ref=f2e289]: Sun
+      - generic [ref=f2e259]:
+        - button "Cancel" [ref=f2e260] [cursor=pointer]
+        - button "Save" [ref=f2e261] [cursor=pointer]
+  - text: ＋ ＋ ＋

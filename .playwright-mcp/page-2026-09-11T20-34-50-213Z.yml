@@ -1,0 +1,102 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - text: ＋ ＋ ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes ＋
+    - generic [ref=f1e325]:
+      - button "Your Workbench" [ref=f1e326] [cursor=pointer]:
+        - generic [aria-hidden] [ref=f1e327]: ‹
+        - text: Your Workbench
+      - banner [ref=f1e328]:
+        - generic [ref=f1e329]:
+          - generic [ref=f1e330]: Friday, September 11
+          - heading "Settings" [level=1] [ref=f1e331]
+          - generic [ref=f1e332]: Small adjustments, not a project.
+      - generic [ref=f1e352]:
+        - generic [ref=f1e353]:
+          - generic [aria-hidden] [ref=f1e354]: 🌱
+          - generic [ref=f1e355]:
+            - generic [ref=f1e356]: Personal Workbench
+            - generic [ref=f1e357]: Take care of yourself, step by step.
+          - button "Guide" [ref=f1e358] [cursor=pointer]:
+            - text: Guide
+            - generic [aria-hidden] [ref=f1e359]: ›
+        - generic [ref=f1e360]:
+          - group [ref=f1e361]:
+            - generic "Personalize Themes, and display preferences" [ref=f1e362] [cursor=pointer]:
+              - generic [ref=f1e367]:
+                - strong [ref=f1e368]: Personalize
+                - generic [ref=f1e369]: Themes, and display preferences
+              - generic [aria-hidden] [ref=f1e370]: ›
+            - generic [ref=f1e371]:
+              - generic [ref=f1e372]:
+                - generic [ref=f1e373]: Open to
+                - combobox "Open to" [ref=f1e374]:
+                  - option "Where I left off" [selected]
+                  - option "Home"
+                  - option "Habits"
+                  - option "Circle"
+                  - option "Trends"
+              - generic [ref=f1e375]:
+                - generic [ref=f1e376]:
+                  - generic [ref=f1e377]: Compact cards
+                  - generic [ref=f1e378]: See more with less scrolling
+                - generic [aria-hidden] [ref=f1e379]: "Off"
+                - checkbox "Compact cards See more with less scrolling" [ref=f1e380] [cursor=pointer]
+              - generic [ref=f1e381]:
+                - generic [ref=f1e382]:
+                  - generic [ref=f1e383]: Gentle vibration
+                  - generic [ref=f1e384]: A tiny confirmation after quick logging
+                - generic [aria-hidden] [ref=f1e385]: "On"
+                - checkbox "Gentle vibration A tiny confirmation after quick logging" [checked] [ref=f1e386] [cursor=pointer]
+          - group [ref=f1e387]:
+            - generic "Notifications Gentle reminders to keep you on track On" [ref=f1e388] [cursor=pointer]:
+              - generic [ref=f1e393]:
+                - strong [ref=f1e394]: Notifications
+                - generic [ref=f1e395]: Gentle reminders to keep you on track
+              - generic [ref=f1e396]: "On"
+              - generic [aria-hidden] [ref=f1e397]: ›
+        - generic [ref=f1e398]:
+          - group [ref=f1e399]:
+            - generic "App Updates Keep enjoying a better experience Version 0.30.0" [ref=f1e400] [cursor=pointer]:
+              - generic [ref=f1e405]:
+                - strong [ref=f1e406]: App Updates
+                - generic [ref=f1e407]: Keep enjoying a better experience
+              - generic [ref=f1e408]: Version 0.30.0
+              - generic [aria-hidden] [ref=f1e409]: ›
+          - group [ref=f1e410]:
+            - generic "Backup & Restore Keep your data safe and with you Not yet" [ref=f1e411] [cursor=pointer]:
+              - generic [ref=f1e416]:
+                - strong [ref=f1e417]: Backup & Restore
+                - generic [ref=f1e418]: Keep your data safe and with you
+              - generic [ref=f1e419]: Not yet
+              - generic [aria-hidden] [ref=f1e420]: ›
+            - generic [ref=f1e421]:
+              - generic [ref=f1e422]: No backup yet. A copy protects what you’ve added on this device.
+              - generic [ref=f1e423]:
+                - button "Export backup" [ref=f1e424] [cursor=pointer]
+                - button "Import backup" [ref=f1e425] [cursor=pointer]
+        - generic [ref=f1e426]:
+          - group [ref=f1e427]:
+            - generic "Privacy & Data Your data. Your peace of mind." [ref=f1e428] [cursor=pointer]:
+              - generic [ref=f1e433]:
+                - strong [ref=f1e434]: Privacy & Data
+                - generic [ref=f1e435]: Your data. Your peace of mind.
+              - generic [aria-hidden] [ref=f1e436]: ›
+          - group [ref=f1e437]:
+            - generic "Guide & Help FAQs, tips, and support" [ref=f1e438] [cursor=pointer]:
+              - generic [ref=f1e443]:
+                - strong [ref=f1e444]: Guide & Help
+                - generic [ref=f1e445]: FAQs, tips, and support
+              - generic [aria-hidden] [ref=f1e446]: ›
+        - button "Clear all data This will permanently delete your data" [ref=f1e447] [cursor=pointer]:
+          - generic [ref=f1e452]:
+            - strong [ref=f1e453]: Clear all data
+            - generic [ref=f1e454]: This will permanently delete your data
+          - generic [aria-hidden] [ref=f1e455]: ›
+      - generic [ref=f1e456]: Personal Workbench · Pilot version
+  - navigation "Navigation" [ref=f1e43]:
+    - button "Home" [ref=f1e44] [cursor=pointer]
+    - button "Habits" [ref=f1e50] [cursor=pointer]
+    - button "My Circle" [ref=f1e56] [cursor=pointer]
+    - button "Trends" [ref=f1e61] [cursor=pointer]
+    - button "More" [ref=f1e67] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

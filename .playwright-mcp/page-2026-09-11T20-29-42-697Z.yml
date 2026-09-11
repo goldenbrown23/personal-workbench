@@ -1,0 +1,31 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - banner [ref=e5]:
+          - generic [ref=e6]: Friday, September 11
+          - heading "Good afternoon" [level=1] [ref=e7]
+          - generic [ref=e8]: You can begin again from here.
+        - generic [ref=e9]: Keep a little momentum ♡
+      - generic [ref=e10]:
+        - generic [ref=e11]:
+          - generic [ref=e12]: Do this next
+          - button "More options for Night Face Wash" [ref=e18] [cursor=pointer]: •••
+        - generic [ref=e23]:
+          - generic [ref=e24]: Night Face Wash
+          - generic [ref=e25]: A smaller valid version still counts.
+        - generic [ref=e26]: Nothing left from afternoon, so here’s one from evening instead.
+        - button "✓ Done" [ref=e28] [cursor=pointer]
+      - button "Habits 0 of 3 today Morning Face Wash" [ref=e30] [cursor=pointer]:
+        - generic [ref=e31]:
+          - generic [ref=e32]: Habits
+          - generic [ref=e37]: 0 of 3 today
+        - generic [ref=e40]: Morning Face Wash
+    - text: ＋ ＋ ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes ＋
+  - navigation "Navigation" [ref=e43]:
+    - button "Home" [ref=e44] [cursor=pointer]
+    - button "Habits" [ref=e50] [cursor=pointer]
+    - button "My Circle" [ref=e56] [cursor=pointer]
+    - button "Trends" [ref=e61] [cursor=pointer]
+    - button "More" [ref=e67] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

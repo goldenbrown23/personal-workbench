@@ -1,0 +1,65 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - text: ＋ ＋ ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes
+    - generic [ref=f1e232]:
+      - banner [ref=f1e233]:
+        - generic [ref=f1e234]:
+          - generic [ref=f1e235]: Last 7 days
+          - heading "Trends" [level=1] [ref=f1e236]
+          - generic [ref=f1e237]: A calmer look at your patterns, not a scoreboard.
+      - generic [ref=f1e238]:
+        - generic [ref=f1e239]: A miss is data. Returning is the skill.
+        - generic [ref=f1e240]: Not enough check-ins yet.
+        - generic [ref=f1e241]: Patterns will show up after a few days.
+        - group [ref=f1e242]:
+          - generic "Why we track this way ＋" [ref=f1e243] [cursor=pointer]:
+            - generic [ref=f1e244]: Why we track this way
+            - text: ＋
+      - heading "Your rhythm" [level=2] [ref=f1e246]
+      - generic [ref=f1e247]:
+        - generic [ref=f1e248]:
+          - generic [ref=f1e249]: Sa
+          - generic [ref=f1e252]: Su
+          - generic [ref=f1e255]: Mo
+          - generic [ref=f1e258]: Tu
+          - generic [ref=f1e261]: We
+          - generic [ref=f1e264]: Th
+          - generic [ref=f1e267]: Fr
+        - generic [ref=f1e270]: A filled day means at least one check-in. Purple marks a return.
+      - heading "What matters" [level=2] [ref=f1e272]
+      - generic [ref=f1e273]:
+        - generic [ref=f1e274]:
+          - generic [ref=f1e279]:
+            - generic [ref=f1e280]: Engagement
+            - generic [ref=f1e281]: Normal, smaller, and returned versions
+          - generic [ref=f1e282]: —
+        - generic [ref=f1e283]:
+          - generic [ref=f1e284]: ↩
+          - generic [ref=f1e285]:
+            - generic [ref=f1e286]: Returns
+            - generic [ref=f1e287]: Check-ins that followed a missed day
+          - generic [ref=f1e288]: "0"
+        - generic [ref=f1e289]:
+          - generic [ref=f1e290]: ⏱
+          - generic [ref=f1e291]:
+            - generic [ref=f1e292]: Time to return
+            - generic [ref=f1e293]: Only shown when there is enough data
+          - generic [ref=f1e294]: —
+      - generic [ref=f1e295]:
+        - generic [ref=f1e296]: A useful pattern
+        - generic [ref=f1e297]: Not enough information yet.
+      - region [ref=f1e298]:
+        - generic [ref=f1e299]:
+          - generic [ref=f1e300]:
+            - heading "Recent activity" [level=2] [ref=f1e301]
+            - paragraph [ref=f1e302]: Only what happened. Nothing to catch up on.
+          - group [ref=f1e303]:
+            - generic "Filter" [ref=f1e304] [cursor=pointer]
+        - generic [ref=f1e305]: 7 quiet days
+  - navigation "Navigation" [ref=f1e43]:
+    - button "Home" [ref=f1e44] [cursor=pointer]
+    - button "Habits" [ref=f1e50] [cursor=pointer]
+    - button "My Circle" [ref=f1e56] [cursor=pointer]
+    - button "Trends" [active] [ref=f1e61] [cursor=pointer]
+    - button "More" [ref=f1e67] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

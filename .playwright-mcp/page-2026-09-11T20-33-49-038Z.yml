@@ -1,0 +1,42 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - text: ＋ ＋ ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes ＋
+    - generic [ref=f1e167]:
+      - banner [ref=f1e168]:
+        - generic [ref=f1e169]:
+          - generic [ref=f1e170]: Friday, September 11
+          - heading "My Circle" [level=1] [ref=f1e171]
+          - generic [ref=f1e172]: Small reach-outs keep people close.
+        - generic [ref=f1e173]:
+          - button "Search people" [ref=f1e174] [cursor=pointer]
+          - button "Add person" [ref=f1e178] [cursor=pointer]
+          - button "Manage people" [ref=f1e182] [cursor=pointer]
+      - generic [ref=f1e186]: Good people makea brighter you. ♥
+      - generic [ref=f1e199]:
+        - generic [ref=f1e200]:
+          - generic [ref=f1e205]:
+            - strong [ref=f1e206]: People to check in with
+            - generic [ref=f1e207]: A more connected you, one conversation at a time.
+          - button "View all" [ref=f1e208] [cursor=pointer]:
+            - text: View all
+            - generic [aria-hidden] [ref=f1e209]: ›
+        - generic [ref=f1e210]: No people yet. Add one person you want to keep in view.
+      - generic [ref=f1e212]:
+        - generic [ref=f1e213]:
+          - generic [ref=f1e217]:
+            - strong [ref=f1e218]: Recent interactions
+            - generic [ref=f1e219]: Little moments, big connections.
+          - button "View all" [ref=f1e220] [cursor=pointer]:
+            - text: View all
+            - generic [aria-hidden] [ref=f1e221]: ›
+        - generic [ref=f1e222]: Nothing logged yet.
+      - generic [ref=f1e229]:
+        - strong [ref=f1e230]: Connection grows in small moments.
+        - generic [ref=f1e231]: You're building a kinder, brighter life.
+  - navigation "Navigation" [ref=f1e43]:
+    - button "Home" [ref=f1e44] [cursor=pointer]
+    - button "Habits" [ref=f1e50] [cursor=pointer]
+    - button "My Circle" [active] [ref=f1e56] [cursor=pointer]
+    - button "Trends" [ref=f1e61] [cursor=pointer]
+    - button "More" [ref=f1e67] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

@@ -1,0 +1,23 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - text: ＋ ＋ ＋ ＋
+    - generic [ref=f4e215]:
+      - banner [ref=f4e216]:
+        - generic [ref=f4e217]:
+          - generic [ref=f4e218]: Everything else
+          - heading "Your Workbench" [level=1] [ref=f4e219]
+          - generic [ref=f4e220]: One calm place for what doesn't need its own tab.
+      - button "Settings Personalize, backup, and privacy" [ref=f4e223] [cursor=pointer]:
+        - generic [ref=f4e228]:
+          - strong [ref=f4e229]: Settings
+          - generic [ref=f4e230]: Personalize, backup, and privacy
+        - generic [aria-hidden] [ref=f4e231]: ›
+      - generic [ref=f4e232]: More areas will appear here as the Workbench grows.
+  - navigation "Navigation" [ref=f4e68]:
+    - text: MENU
+    - button "Home" [ref=f4e69] [cursor=pointer]
+    - button "Habits" [ref=f4e75] [cursor=pointer]
+    - button "My Circle" [ref=f4e81] [cursor=pointer]
+    - button "Trends" [ref=f4e86] [cursor=pointer]
+    - button "More" [active] [ref=f4e92] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

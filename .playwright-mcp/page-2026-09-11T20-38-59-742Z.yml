@@ -1,0 +1,43 @@
+- generic [active] [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - text: ＋ ＋ ＋ ＋
+    - generic [ref=f4e3]:
+      - banner [ref=f4e4]:
+        - generic [ref=f4e5]:
+          - generic [ref=f4e6]: Friday, September 11
+          - heading "My Circle" [level=1] [ref=f4e7]
+          - generic [ref=f4e8]: Small reach-outs keep people close.
+        - generic [ref=f4e9]:
+          - button "Search people" [ref=f4e10] [cursor=pointer]
+          - button "Add person" [ref=f4e14] [cursor=pointer]
+          - button "Manage people" [ref=f4e18] [cursor=pointer]
+      - generic [ref=f4e22]: Good people makea brighter you. ♥
+      - generic [ref=f4e35]:
+        - generic [ref=f4e36]:
+          - generic [ref=f4e41]:
+            - strong [ref=f4e42]: People to check in with
+            - generic [ref=f4e43]: A more connected you, one conversation at a time.
+          - button "View all" [ref=f4e44] [cursor=pointer]:
+            - text: View all
+            - generic [aria-hidden] [ref=f4e45]: ›
+        - generic [ref=f4e46]: No people yet. Add one person you want to keep in view.
+      - generic [ref=f4e48]:
+        - generic [ref=f4e49]:
+          - generic [ref=f4e53]:
+            - strong [ref=f4e54]: Recent interactions
+            - generic [ref=f4e55]: Little moments, big connections.
+          - button "View all" [ref=f4e56] [cursor=pointer]:
+            - text: View all
+            - generic [aria-hidden] [ref=f4e57]: ›
+        - generic [ref=f4e58]: Nothing logged yet.
+      - generic [ref=f4e65]:
+        - strong [ref=f4e66]: Connection grows in small moments.
+        - generic [ref=f4e67]: You're building a kinder, brighter life.
+  - navigation "Navigation" [ref=f4e68]:
+    - text: MENU
+    - button "Home" [ref=f4e69] [cursor=pointer]
+    - button "Habits" [ref=f4e75] [cursor=pointer]
+    - button "My Circle" [ref=f4e81] [cursor=pointer]
+    - button "Trends" [ref=f4e86] [cursor=pointer]
+    - button "More" [ref=f4e92] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

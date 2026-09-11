@@ -1,0 +1,66 @@
+- generic [ref=f4e1]:
+  - generic [ref=f4e2]:
+    - text: ＋ ＋ ＋
+    - generic [ref=f4e140]:
+      - banner [ref=f4e141]:
+        - generic [ref=f4e142]:
+          - generic [ref=f4e143]: Last 7 days
+          - heading "Trends" [level=1] [ref=f4e144]
+          - generic [ref=f4e145]: A calmer look at your patterns, not a scoreboard.
+      - generic [ref=f4e146]:
+        - generic [ref=f4e147]: A miss is data. Returning is the skill.
+        - generic [ref=f4e148]: Not enough check-ins yet.
+        - generic [ref=f4e149]: Patterns will show up after a few days.
+        - group [ref=f4e150]:
+          - generic "Why we track this way ＋" [ref=f4e151] [cursor=pointer]:
+            - generic [ref=f4e152]: Why we track this way
+            - text: ＋
+      - heading "Your rhythm" [level=2] [ref=f4e154]
+      - generic [ref=f4e155]:
+        - generic [ref=f4e156]:
+          - generic [ref=f4e157]: Sa
+          - generic [ref=f4e160]: Su
+          - generic [ref=f4e163]: Mo
+          - generic [ref=f4e166]: Tu
+          - generic [ref=f4e169]: We
+          - generic [ref=f4e172]: Th
+          - generic [ref=f4e175]: Fr
+        - generic [ref=f4e178]: A filled day means at least one check-in. Purple marks a return.
+      - heading "What matters" [level=2] [ref=f4e180]
+      - generic [ref=f4e181]:
+        - generic [ref=f4e182]:
+          - generic [ref=f4e187]:
+            - generic [ref=f4e188]: Engagement
+            - generic [ref=f4e189]: Normal, smaller, and returned versions
+          - generic [ref=f4e190]: —
+        - generic [ref=f4e191]:
+          - generic [ref=f4e192]: ↩
+          - generic [ref=f4e193]:
+            - generic [ref=f4e194]: Returns
+            - generic [ref=f4e195]: Check-ins that followed a missed day
+          - generic [ref=f4e196]: "0"
+        - generic [ref=f4e197]:
+          - generic [ref=f4e198]: ⏱
+          - generic [ref=f4e199]:
+            - generic [ref=f4e200]: Time to return
+            - generic [ref=f4e201]: Only shown when there is enough data
+          - generic [ref=f4e202]: —
+      - generic [ref=f4e203]:
+        - generic [ref=f4e204]: A useful pattern
+        - generic [ref=f4e205]: Not enough information yet.
+      - region [ref=f4e206]:
+        - generic [ref=f4e207]:
+          - generic [ref=f4e208]:
+            - heading "Recent activity" [level=2] [ref=f4e209]
+            - paragraph [ref=f4e210]: Only what happened. Nothing to catch up on.
+          - group [ref=f4e211]:
+            - generic "Filter" [ref=f4e212] [cursor=pointer]
+        - generic [ref=f4e213]: 7 quiet days
+  - navigation "Navigation" [ref=f4e68]:
+    - text: MENU
+    - button "Home" [ref=f4e69] [cursor=pointer]
+    - button "Habits" [ref=f4e75] [cursor=pointer]
+    - button "My Circle" [ref=f4e81] [cursor=pointer]
+    - button "Trends" [active] [ref=f4e86] [cursor=pointer]
+    - button "More" [ref=f4e92] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

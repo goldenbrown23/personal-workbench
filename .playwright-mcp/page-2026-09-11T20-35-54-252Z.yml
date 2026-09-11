@@ -1,0 +1,88 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - text: ＋ ＋ ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes ＋
+    - generic [ref=f2e3]:
+      - banner [ref=f2e4]:
+        - generic [ref=f2e5]:
+          - generic [ref=f2e6]: Your rules
+          - heading "Guide" [level=1] [ref=f2e7]
+          - generic [ref=f2e8]: A calm map of the Workbench. Skim it, don’t study it.
+        - button "Close guide" [ref=f2e9] [cursor=pointer]: ✕
+      - generic [ref=f2e10]:
+        - group [ref=f2e11]:
+          - generic "🌱 First 5 minutes The smallest way to start" [ref=f2e12] [cursor=pointer]:
+            - generic [ref=f2e13]:
+              - strong [ref=f2e14]: 🌱 First 5 minutes
+              - generic [ref=f2e15]: The smallest way to start
+            - generic [aria-hidden] [ref=f2e16]: ⌄
+          - generic [ref=f2e17]:
+            - list [ref=f2e18]:
+              - listitem [ref=f2e19]:
+                - generic [ref=f2e20]: "1"
+                - text: Add one habit
+              - listitem [ref=f2e21]:
+                - generic [ref=f2e22]: "2"
+                - text: Add one smaller version of it
+              - listitem [ref=f2e23]:
+                - generic [ref=f2e24]: "3"
+                - text: Add one person to your Circle
+              - listitem [ref=f2e25]:
+                - generic [ref=f2e26]: "4"
+                - text: Turn on backup reminders
+              - listitem [ref=f2e27]:
+                - generic [ref=f2e28]: "5"
+                - text: Close the app
+            - generic [ref=f2e29]: Do not build the whole system today. Start small.
+        - group [ref=f2e30]:
+          - generic "🏡 Home Start here when you don’t know what to do" [ref=f2e31] [cursor=pointer]:
+            - generic [ref=f2e32]:
+              - strong [ref=f2e33]: 🏡 Home
+              - generic [ref=f2e34]: Start here when you don’t know what to do
+            - generic [aria-hidden] [ref=f2e35]: ⌄
+        - group [ref=f2e36]:
+          - generic "🌿 Habits Track full wins, small wins, and bare-minimum wins" [ref=f2e37] [cursor=pointer]:
+            - generic [ref=f2e38]:
+              - strong [ref=f2e39]: 🌿 Habits
+              - generic [ref=f2e40]: Track full wins, small wins, and bare-minimum wins
+            - generic [aria-hidden] [ref=f2e41]: ⌄
+        - group [ref=f2e42]:
+          - generic "💛 Circle Remember who matters, without the pressure" [ref=f2e43] [cursor=pointer]:
+            - generic [ref=f2e44]:
+              - strong [ref=f2e45]: 💛 Circle
+              - generic [ref=f2e46]: Remember who matters, without the pressure
+            - generic [aria-hidden] [ref=f2e47]: ⌄
+        - group [ref=f2e48]:
+          - generic "📈 Trends Notice patterns without judging yourself" [ref=f2e49] [cursor=pointer]:
+            - generic [ref=f2e50]:
+              - strong [ref=f2e51]: 📈 Trends
+              - generic [ref=f2e52]: Notice patterns without judging yourself
+            - generic [aria-hidden] [ref=f2e53]: ⌄
+        - group [ref=f2e54]:
+          - generic "⚙️ Settings Customize, back up, update, or reset" [ref=f2e55] [cursor=pointer]:
+            - generic [ref=f2e56]:
+              - strong [ref=f2e57]: ⚙️ Settings
+              - generic [ref=f2e58]: Customize, back up, update, or reset
+            - generic [aria-hidden] [ref=f2e59]: ⌄
+        - generic [ref=f2e60]:
+          - generic [ref=f2e61]: 🫧 Overwhelmed?
+          - generic [ref=f2e62]: Do not organize everything right now. Pick one tiny return.
+          - list [ref=f2e63]:
+            - listitem [ref=f2e64]:
+              - generic [ref=f2e65]: ·
+              - text: Count a bare-minimum habit
+            - listitem [ref=f2e66]:
+              - generic [ref=f2e67]: 📝
+              - text: Dump one thought in a person’s notes
+            - listitem [ref=f2e68]:
+              - generic [ref=f2e69]: 💬
+              - text: Text one person
+            - listitem [ref=f2e70]:
+              - generic [ref=f2e71]: 🌿
+              - text: Turn on Gentle Day
+  - navigation "Navigation" [ref=f2e72]:
+    - button "Home" [ref=f2e73] [cursor=pointer]
+    - button "Habits" [ref=f2e79] [cursor=pointer]
+    - button "My Circle" [ref=f2e85] [cursor=pointer]
+    - button "Trends" [ref=f2e90] [cursor=pointer]
+    - button "More" [ref=f2e96] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

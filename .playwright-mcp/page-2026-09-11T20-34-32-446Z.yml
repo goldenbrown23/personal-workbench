@@ -1,0 +1,22 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - text: ＋ ＋ ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes ＋
+    - generic [ref=f1e307]:
+      - banner [ref=f1e308]:
+        - generic [ref=f1e309]:
+          - generic [ref=f1e310]: Everything else
+          - heading "Your Workbench" [level=1] [ref=f1e311]
+          - generic [ref=f1e312]: One calm place for what doesn't need its own tab.
+      - button "Settings Personalize, backup, and privacy" [ref=f1e315] [cursor=pointer]:
+        - generic [ref=f1e320]:
+          - strong [ref=f1e321]: Settings
+          - generic [ref=f1e322]: Personalize, backup, and privacy
+        - generic [aria-hidden] [ref=f1e323]: ›
+      - generic [ref=f1e324]: More areas will appear here as the Workbench grows.
+  - navigation "Navigation" [ref=f1e43]:
+    - button "Home" [ref=f1e44] [cursor=pointer]
+    - button "Habits" [ref=f1e50] [cursor=pointer]
+    - button "My Circle" [ref=f1e56] [cursor=pointer]
+    - button "Trends" [ref=f1e61] [cursor=pointer]
+    - button "More" [active] [ref=f1e67] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

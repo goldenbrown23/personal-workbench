@@ -1,0 +1,30 @@
+- generic [ref=f2e1]:
+  - generic [ref=f2e2]:
+    - generic [ref=f2e202]:
+      - banner [ref=f2e203]:
+        - generic [ref=f2e204]:
+          - generic [ref=f2e205]: Friday, September 11
+          - heading "Habits" [level=1] [ref=f2e206]
+          - generic [ref=f2e207]: Small actions. A calmer, brighter you.
+        - generic [ref=f2e208]:
+          - button "Gentle day" [ref=f2e209] [cursor=pointer]
+          - button "Manage habits" [ref=f2e213] [cursor=pointer]
+      - tablist "Time of day" [ref=f2e217]:
+        - tab "Morning" [ref=f2e218] [cursor=pointer]
+        - tab "Afternoon" [selected] [ref=f2e219] [cursor=pointer]
+        - tab "Evening" [ref=f2e220] [cursor=pointer]
+      - generic [ref=f2e221]:
+        - generic [aria-hidden] [ref=f2e222]: 🌿
+        - generic [ref=f2e223]: Afternoon is a good time to reset. Doing a little is enough.
+      - generic [ref=f2e224]: Today · 0
+      - generic [ref=f2e226]: Nothing scheduled for afternoon.
+      - text: ＋ ＋
+      - button "+ Add habit" [ref=f2e228] [cursor=pointer]
+    - text: ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes ＋
+  - navigation "Navigation" [ref=f2e72]:
+    - button "Home" [ref=f2e73] [cursor=pointer]
+    - button "Habits" [active] [ref=f2e79] [cursor=pointer]
+    - button "My Circle" [ref=f2e85] [cursor=pointer]
+    - button "Trends" [ref=f2e90] [cursor=pointer]
+    - button "More" [ref=f2e96] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

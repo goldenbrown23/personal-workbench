@@ -1,0 +1,32 @@
+- generic [active] [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - generic [ref=f1e3]:
+      - generic [ref=f1e4]:
+        - banner [ref=f1e5]:
+          - generic [ref=f1e6]: Friday, September 11
+          - heading "Keep going" [level=1] [ref=f1e7]
+          - generic [ref=f1e8]: You can begin again from here.
+        - generic [ref=f1e9]: Small effort still matters ♡
+      - generic [ref=f1e10]:
+        - generic [ref=f1e11]:
+          - generic [ref=f1e12]: Do this next
+          - button "More options for Night Face Wash" [ref=f1e18] [cursor=pointer]: •••
+        - generic [ref=f1e23]:
+          - generic [ref=f1e24]: Night Face Wash
+          - generic [ref=f1e25]: A smaller valid version still counts.
+        - generic [ref=f1e26]: Nothing left from afternoon, so here’s one from evening instead.
+        - button "✓ Done" [ref=f1e28] [cursor=pointer]
+      - button "Habits 0 of 3 today Morning Face Wash" [ref=f1e30] [cursor=pointer]:
+        - generic [ref=f1e31]:
+          - generic [ref=f1e32]: Habits
+          - generic [ref=f1e37]: 0 of 3 today
+        - generic [ref=f1e40]: Morning Face Wash
+    - text: ＋ ＋ ＋ ＋
+  - navigation "Navigation" [ref=f1e43]:
+    - text: MENU
+    - button "Home" [ref=f1e44] [cursor=pointer]
+    - button "Habits" [ref=f1e50] [cursor=pointer]
+    - button "My Circle" [ref=f1e56] [cursor=pointer]
+    - button "Trends" [ref=f1e61] [cursor=pointer]
+    - button "More" [ref=f1e67] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋
