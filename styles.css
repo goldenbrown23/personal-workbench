@@ -244,12 +244,15 @@
     .tab.active{color:var(--accent);font-weight:820}
     .view{display:none}
     .view.active{display:block}
-    /* A short, subtle slide — not a full-width carousel swap — so tabs feel connected
-       without restructuring the existing show/hide view system. */
-    @keyframes viewSlideFromRight{from{transform:translateX(14px);opacity:.5}to{transform:translateX(0);opacity:1}}
-    @keyframes viewSlideFromLeft{from{transform:translateX(-14px);opacity:.5}to{transform:translateX(0);opacity:1}}
-    .view.active.slide-from-right{animation:viewSlideFromRight .2s ease-out}
-    .view.active.slide-from-left{animation:viewSlideFromLeft .2s ease-out}
+    /* A short slide-and-resolve — not a full-width carousel swap — so tabs feel connected
+       without restructuring the existing show/hide view system. The blur-in + soft scale
+       borrows the same "glass" material language as the tabbar's own backdrop-blur, so
+       arriving on a tab reads as the content settling into focus, not just sliding over. */
+    @keyframes viewSlideFromRight{from{transform:translateX(20px) scale(.985);opacity:0;filter:blur(5px)}to{transform:translateX(0) scale(1);opacity:1;filter:blur(0)}}
+    @keyframes viewSlideFromLeft{from{transform:translateX(-20px) scale(.985);opacity:0;filter:blur(5px)}to{transform:translateX(0) scale(1);opacity:1;filter:blur(0)}}
+    .view.active.slide-from-right,.view.active.slide-from-left{will-change:transform,opacity,filter}
+    .view.active.slide-from-right{animation:viewSlideFromRight .32s cubic-bezier(.22,1,.36,1)}
+    .view.active.slide-from-left{animation:viewSlideFromLeft .32s cubic-bezier(.22,1,.36,1)}
     @media (prefers-reduced-motion: reduce){
       .view.active.slide-from-right,.view.active.slide-from-left{animation:none}
     }
