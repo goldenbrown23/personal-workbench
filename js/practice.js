@@ -71,11 +71,14 @@ function practiceWeekDays(){ const start=practiceWeekStart(); return Array.from(
 function renderPracticeGrid(){
   const days = practiceWeekDays();
   const start = days[0], end = days[6];
-  const sameYear = start.getFullYear()===end.getFullYear();
-  const fmtRange = d=>new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric"}).format(d);
+  // A week that isn't in the current calendar year needs the year shown, or "Jan 1–Jan 7"
+  // is ambiguous with any other year you can reach via the prev-week button — the previous
+  // version computed this (as `sameYear`) but never actually appended it anywhere.
+  const showYear = start.getFullYear()!==new Date().getFullYear()||end.getFullYear()!==new Date().getFullYear();
+  const fmtRange = d=>new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric",...(showYear?{year:"numeric"}:{})}).format(d);
   document.getElementById("practiceWeekLabel").textContent = practiceWeekOffset===0
     ? `This Week · ${fmtRange(start)}–${fmtRange(end)}`
-    : `${fmtRange(start)}–${fmtRange(end)}${sameYear?"":""}`;
+    : `${fmtRange(start)}–${fmtRange(end)}`;
   document.getElementById("practiceNextWeek").disabled = practiceWeekOffset>=0;
 
   const body = document.getElementById("practiceGridBody");

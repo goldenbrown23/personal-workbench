@@ -187,15 +187,16 @@ function closePersonDetail(){personDetailModal.classList.remove("show");detailPe
 document.getElementById("closePersonDetail").addEventListener("click",closePersonDetail);personDetailModal.addEventListener("click",e=>{if(e.target===personDetailModal)closePersonDetail()});document.getElementById("logFromDetailBtn").addEventListener("click",()=>{const id=detailPersonId;closePersonDetail();if(id)openContactModal(id)});document.getElementById("editFromDetailBtn").addEventListener("click",()=>{const id=detailPersonId;closePersonDetail();if(id)openPersonModal(id)});document.getElementById("noteFromDetailBtn").addEventListener("click",()=>{const id=detailPersonId;if(id)openPersonNote(id,true)});
 
 let notePersonId=null,noteReturnToDetail=false;const personNoteModal=document.getElementById("personNoteModal");
-function openPersonNote(id,fromDetail=false){notePersonId=id;noteReturnToDetail=fromDetail;const p=state.people.find(x=>x.id===id);document.getElementById("personNoteTitle").textContent=`Note · ${p?.name||""}`;document.getElementById("personNoteType").value="Remember";document.getElementById("personNoteText").value="";if(fromDetail)personDetailModal.classList.remove("show");personNoteModal.classList.add("show");setTimeout(()=>document.getElementById("personNoteText").focus(),50)}
+function openPersonNote(id,fromDetail=false){notePersonId=id;noteReturnToDetail=fromDetail;const p=state.people.find(x=>x.id===id);document.getElementById("personNoteTitle").textContent=`Note · ${p?.name||""}`;document.getElementById("personNoteType").value="Remember";document.getElementById("personNoteText").value="";document.getElementById("savePersonNote").disabled=false;if(fromDetail)personDetailModal.classList.remove("show");personNoteModal.classList.add("show");setTimeout(()=>document.getElementById("personNoteText").focus(),50)}
 function closePersonNote(reopen=false){const id=notePersonId;personNoteModal.classList.remove("show");notePersonId=null;const shouldReturn=reopen&&noteReturnToDetail;noteReturnToDetail=false;if(shouldReturn&&id)openPersonDetail(id)}
 document.getElementById("closePersonNote").addEventListener("click",()=>closePersonNote(true));document.getElementById("cancelPersonNote").addEventListener("click",()=>closePersonNote(true));personNoteModal.addEventListener("click",e=>{if(e.target===personNoteModal)closePersonNote(true)});
-document.getElementById("savePersonNote").addEventListener("click",()=>{const text=document.getElementById("personNoteText").value.trim();if(!text){document.getElementById("personNoteText").focus();return}const p=state.people.find(x=>x.id===notePersonId);if(!p)return;const before=structuredClone(state),returnToDetail=noteReturnToDetail,id=p.id;p.notes ||= [];p.notes.push({id:"n-"+Date.now(),type:document.getElementById("personNoteType").value,text,createdAt:new Date().toISOString()});personNoteModal.classList.remove("show");notePersonId=null;noteReturnToDetail=false;saveState();showSaved(`Note saved · ${p.name}`,before);if(returnToDetail)openPersonDetail(id)});
+document.getElementById("savePersonNote").addEventListener("click",()=>{const btn=document.getElementById("savePersonNote");if(btn.disabled)return;const text=document.getElementById("personNoteText").value.trim();if(!text){document.getElementById("personNoteText").focus();return}const p=state.people.find(x=>x.id===notePersonId);if(!p)return;btn.disabled=true;const before=structuredClone(state),returnToDetail=noteReturnToDetail,id=p.id;p.notes ||= [];p.notes.push({id:"n-"+Date.now(),type:document.getElementById("personNoteType").value,text,createdAt:new Date().toISOString()});personNoteModal.classList.remove("show");notePersonId=null;noteReturnToDetail=false;saveState();showSaved(`Note saved · ${p.name}`,before);if(returnToDetail)openPersonDetail(id)});
 
 let editingPersonId=null;
 const personModal=document.getElementById("personModal");
 function openPersonModal(id=null){
   editingPersonId=id; const p=id?state.people.find(x=>x.id===id):null;
+  document.getElementById("savePersonBtn").disabled=false;
   document.getElementById("personModalTitle").textContent=p?"Edit person":"Add person";
   document.getElementById("personIcon").value=safeIcon(p?.icon,"person");document.getElementById("personColor").value=safeTone(p?.color||"rose");updateVisualPreview("person"); document.getElementById("personName").value=p?.name||"";
   document.getElementById("personRelation").value=p?.relation||"";
@@ -206,7 +207,14 @@ function openPersonModal(id=null){
 function closePersonModal(){ personModal.classList.remove("show"); editingPersonId=null; }
 document.getElementById("addPersonBtn").addEventListener("click",()=>openPersonModal());
 document.getElementById("closePersonModal").addEventListener("click",closePersonModal); document.getElementById("cancelPersonBtn").addEventListener("click",closePersonModal);
-document.getElementById("savePersonBtn").addEventListener("click",()=>{ const name=document.getElementById("personName").value.trim(); if(!name){document.getElementById("personName").focus();return;} const payload={name,icon:safeIcon(document.getElementById("personIcon").value,"person"),color:safeTone(document.getElementById("personColor").value),relation:document.getElementById("personRelation").value.trim(),frequency:Number(document.getElementById("personFrequency").value)}; if(editingPersonId) Object.assign(state.people.find(x=>x.id===editingPersonId),payload); else state.people.push({id:"p-"+Date.now(),...payload,lastContact:null,interactions:[],notes:[]}); closePersonModal(); saveState(); });
+document.getElementById("savePersonBtn").addEventListener("click",()=>{
+  const btn=document.getElementById("savePersonBtn");
+  // Same double-submit guard as saveHabitBtn — a disabled button never dispatches click,
+  // so a rapid double-tap can't push two people before the modal closes.
+  if(btn.disabled) return;
+  const name=document.getElementById("personName").value.trim(); if(!name){document.getElementById("personName").focus();return;}
+  btn.disabled=true;
+  const payload={name,icon:safeIcon(document.getElementById("personIcon").value,"person"),color:safeTone(document.getElementById("personColor").value),relation:document.getElementById("personRelation").value.trim(),frequency:Number(document.getElementById("personFrequency").value)}; if(editingPersonId) Object.assign(state.people.find(x=>x.id===editingPersonId),payload); else state.people.push({id:"p-"+Date.now(),...payload,lastContact:null,interactions:[],notes:[]}); closePersonModal(); saveState(); });
 
 let tagPickerTarget=null;
 const tagPickerModal=document.getElementById("tagPickerModal");
@@ -283,11 +291,14 @@ function openContactModal(id=null,presetDate=null){
   document.getElementById("contactDateDetails").open=contactDateIsCustom;
   renderContactDatePicker();
   updateContactSeenRow();
+  document.getElementById("saveContactBtn").disabled=false;
   contactModal.classList.add("show");
 }
 function closeContactModal(){contactModal.classList.remove("show");contactPersonId=null;returnToPersonDetailIfNeeded();}
 document.getElementById("closeContactModal").addEventListener("click",closeContactModal);document.getElementById("cancelContactBtn").addEventListener("click",closeContactModal);
 document.getElementById("saveContactBtn").addEventListener("click",()=>{
+  const btn=document.getElementById("saveContactBtn");
+  if(btn.disabled) return;
   const chosenId=contactPersonId||document.getElementById("contactPerson").value;if(!chosenId)return;
   const p=state.people.find(x=>x.id===chosenId);if(!p)return;
   const before=structuredClone(state);
@@ -298,11 +309,14 @@ document.getElementById("saveContactBtn").addEventListener("click",()=>{
   p.interactions ||= [];
   const dup=p.interactions.find(item=>item.date===date&&item.method===method);
   if(dup){
+    // The disabled-button guard only engages once we're actually committing — declining this
+    // confirm must leave Save clickable again, not stuck disabled with no way to retry.
     if(!confirm(`That day already has a ${method} contact logged. Update it instead of adding another?`)) return;
     dup.note=note;dup.countsAsSeen=countsAsSeen;dup.updatedAt=new Date().toISOString();
   }else{
     p.interactions.push({id:"i-"+Date.now(),date,method,note,countsAsSeen,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
   }
+  btn.disabled=true;
   syncLastContact(p);
   localStorage.setItem(METHOD_KEY,method);
   closeContactModal();saveState();
@@ -388,6 +402,7 @@ function openEditInteraction(personId,interactionId,focusDate=false){
   document.getElementById("editInteractionNote").value=item.note||"";
   document.getElementById("editInteractionDateDetails").open=Boolean(focusDate);
   renderEditInteractionDatePicker();
+  document.getElementById("saveEditInteractionBtn").disabled=false;
   // Hide whichever sheet this was opened from (never leave it "open behind" — see the
   // stacking note above) and remember to come back to Person Detail, refreshed, on close.
   dayDetailModal.classList.remove("show");
@@ -404,6 +419,8 @@ function closeEditInteraction(){
 document.getElementById("closeEditInteraction").addEventListener("click",closeEditInteraction);
 editInteractionModal.addEventListener("click",e=>{if(e.target===editInteractionModal)closeEditInteraction()});
 document.getElementById("saveEditInteractionBtn").addEventListener("click",()=>{
+  const btn=document.getElementById("saveEditInteractionBtn");
+  if(btn.disabled) return;
   const p=state.people.find(x=>x.id===editingInteractionPersonId);if(!p)return;
   const item=(p.interactions||[]).find(x=>x.id===editingInteractionId);if(!item)return;
   const before=structuredClone(state);
@@ -416,6 +433,7 @@ document.getElementById("saveEditInteractionBtn").addEventListener("click",()=>{
     if(duplicate.note&&duplicate.note!==nextNote) nextNote=[nextNote,duplicate.note].filter(Boolean).join(" · ");
     p.interactions=(p.interactions||[]).filter(x=>x.id!==duplicate.id);
   }
+  btn.disabled=true;
   item.date=nextDate;
   item.method=nextMethod;
   item.note=nextNote;

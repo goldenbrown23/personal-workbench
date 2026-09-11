@@ -666,6 +666,7 @@ const habitModal=document.getElementById("habitModal");
 function openHabitModal(id=null){
   editingId=id;
   const h=id?state.habits.find(x=>x.id===id):null;
+  document.getElementById("saveHabitBtn").disabled=false;
   document.getElementById("modalTitle").textContent=h?"Edit habit":"Add habit";
   document.getElementById("habitIcon").value=safeIcon(h?.icon,"leaf");
   document.getElementById("habitColor").value=safeTone(h?.color||"sage");
@@ -712,8 +713,14 @@ document.getElementById("closeModal").addEventListener("click",closeHabitModal);
 document.getElementById("cancelHabitBtn").addEventListener("click",closeHabitModal);
 habitModal.addEventListener("click",e=>{if(e.target===habitModal) closeHabitModal();});
 document.getElementById("saveHabitBtn").addEventListener("click",()=>{
+  const btn=document.getElementById("saveHabitBtn");
+  // A disabled button never dispatches click at all, so this blocks a rapid double-tap/
+  // double-click from pushing two habits before the modal has a chance to close — openHabitModal
+  // re-enables it on the way back in, so a genuine next save is never left stuck.
+  if(btn.disabled) return;
   const name=document.getElementById("habitName").value.trim();
   if(!name){document.getElementById("habitName").focus();return;}
+  btn.disabled=true;
   const icon=safeIcon(document.getElementById("habitIcon").value,"leaf");
   const color=safeTone(document.getElementById("habitColor").value);
   const goalType=document.getElementById("habitGoalType").value;

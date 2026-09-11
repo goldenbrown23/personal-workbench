@@ -5,10 +5,12 @@
 // The illustration follows its OWN 3-way schedule (morning/afternoon/evening) — there's no
 // separate late-night artwork — while the copy pools below follow currentTimePeriod's full
 // 4-way split, so late-night gets its own distinct greeting/line/accent instead of quietly
-// reusing evening's.
+// reusing evening's. The afternoon→evening boundary below MUST match currentTimePeriod's
+// (habits.js) — they used to diverge (18 here vs 17 there), so from 5-6pm the banner got
+// evening's dark (.is-dark) text color over the light afternoon photo, nearly illegible.
 function illustrationPeriod(hour=new Date().getHours()){
   if(hour>=5&&hour<12) return "morning";
-  if(hour>=12&&hour<18) return "afternoon";
+  if(hour>=12&&hour<17) return "afternoon";
   return "evening";
 }
 const HOME_ILLUSTRATION_SRC={
@@ -98,9 +100,17 @@ function renderHome(){
   document.getElementById("homeSub").textContent=gentle?"Gentle day is on. Smaller still counts.":copy.supportive;
   document.getElementById("homeIllustrationAccent").textContent=copy.accent;
 
-  const illusSrc=HOME_ILLUSTRATION_SRC[illustrationPeriod(now.getHours())];
+  const imgPeriod=illustrationPeriod(now.getHours());
+  const illusSrc=HOME_ILLUSTRATION_SRC[imgPeriod];
   const img=document.getElementById("homeIllustrationImg");
   if(!img.src.endsWith(illusSrc)) img.src=illusSrc; // avoid an unnecessary reload/flicker when nothing changed
+  const banner=document.getElementById("homeHeroBanner");
+  // The evening/late-night photo is dark, so the overlaid header text flips to light.
+  banner.classList.toggle("is-dark",period==="evening"||period==="late-night");
+  // Each source photo frames its character differently, so the crop focal point (which
+  // part of the image survives the cinematic cover-crop) is tuned per photo, not uniform.
+  banner.classList.remove("period-morning","period-afternoon","period-evening");
+  banner.classList.add("period-"+imgPeriod);
 
   const nudges=state.people.map(p=>({person:p,timing:personTiming(p)})).filter(x=>["due","soon"].includes(x.timing.class));
 

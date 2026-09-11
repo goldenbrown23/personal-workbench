@@ -82,34 +82,34 @@
     }
     h1{font-size:32px;line-height:1.05;margin:5px 0 6px;letter-spacing:-.03em}
     .sub{color:var(--muted);font-size:15px;line-height:1.45}
-    #homeView header{margin:6px 0 6px;flex-wrap:wrap;row-gap:4px}
-    /* A time-of-day companion moment. On mobile it bleeds edge-to-edge as a wide low strip
-       beneath the greeting (breaking out of .app's 16px side padding via negative margins),
-       feathered only top/bottom into the cream page so it reads as a soft banner rather than
-       a pasted rectangle. From ~521px up there's room to sit beside the text instead, back to
-       a contained right-side rail (the wide banner treatment is a phone-width composition).
-       Fixed height on the <img> reserves its box before the file loads, so there's no vertical
-       layout shift. */
-    .home-hero-illustration{display:flex;flex-direction:column;align-items:center;gap:2px;flex:1 1 100%;margin-top:4px;margin-left:-16px;margin-right:-16px}
-    .home-hero-accent{font-size:12px;color:var(--muted);font-style:italic;text-align:center;line-height:1.3}
-    .home-hero-img{
-      width:100%;height:150px;object-fit:cover;display:block;
-      /* The source photos carry their own sky/backdrop color (afternoon's blue, evening's
-         navy) — a light warmth pass pulls those toward the page's cream tone so the fade
-         reads as one surface instead of a color patch dissolving into another. */
-      filter:saturate(.82) sepia(.12);
-      -webkit-mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 80%,transparent 100%);
-      mask-image:linear-gradient(to bottom,transparent 0%,#000 20%,#000 80%,transparent 100%);
-    }
-    @media(min-width:521px){
-      .home-hero-illustration{flex:0 0 auto;align-items:flex-end;margin-top:0;margin-left:0;margin-right:0}
-      .home-hero-accent{text-align:right}
-      .home-hero-img{
-        width:172px;height:115px;object-fit:contain;
-        -webkit-mask-image:radial-gradient(ellipse 58% 56% at 50% 48%,#000 32%,rgba(0,0,0,.45) 58%,transparent 86%);
-        mask-image:radial-gradient(ellipse 58% 56% at 50% 48%,#000 32%,rgba(0,0,0,.45) 58%,transparent 86%);
-      }
-    }
+    /* Home's hero: the time-of-day illustration is the full-bleed background of the header
+       band itself (like the reference), not a separate companion graphic — it breaks out of
+       .app's own top/left/right padding via negative margins so it reaches the screen edges,
+       and the eyebrow/h1/sub/accent sit directly on top of it. Text color flips light/dark
+       per period (.is-dark, toggled in JS) since the evening/late-night photos are dark. */
+    .home-hero-banner{position:relative;margin:-18px -16px 16px;overflow:hidden;height:270px}
+    /* Cover alone isn't enough to feel cinematic here — the source photos carry a lot of
+       plain sky/backdrop around a character that only fills their lower-middle third, so a
+       plain center-crop reads as a small image floating in whitespace. Scaling the image up
+       past its cover size and pointing object-position at where the character actually sits
+       (tuned per photo below, via .period-*) crops that dead space away instead of just
+       clipping the sides, so the character reads large and the crop reads intentional. Each
+       breakpoint gets its own tuned position/scale below — as the box widens the same "cover"
+       math would crop more aggressively out of the top/bottom, so the crop is re-art-directed
+       per tier rather than just proportionally scaled up. */
+    .home-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 62%;transform:scale(1.22);display:block;filter:saturate(.92) sepia(.04)}
+    .home-hero-banner.period-morning .home-hero-bg{object-position:32% 86%}
+    .home-hero-banner.period-afternoon .home-hero-bg{object-position:56% 82%}
+    .home-hero-banner.period-evening .home-hero-bg{object-position:78% 150%;transform:scale(1.4)}
+    #homeView .home-hero-banner header{position:relative;display:block;margin:0;padding:22px 16px 52px;gap:0}
+    .home-hero-banner .eyebrow{color:rgba(42,29,18,.62)}
+    #homeView .home-hero-banner h1{color:#2a1d12}
+    .home-hero-banner .sub{color:rgba(42,29,18,.7)}
+    .home-hero-banner.is-dark .eyebrow{color:rgba(255,255,255,.78)}
+    #homeView .home-hero-banner.is-dark h1{color:#fff}
+    .home-hero-banner.is-dark .sub{color:rgba(255,255,255,.85)}
+    .home-hero-accent{position:absolute;right:16px;bottom:14px;left:16px;text-align:right;font-size:12px;font-style:italic;line-height:1.3;color:rgba(42,29,18,.62)}
+    .home-hero-banner.is-dark .home-hero-accent{color:rgba(255,255,255,.88)}
     #homeView h1{font-size:26px;margin:3px 0 4px}
     #homeView .sub{font-size:13px}
     .icon-btn{
@@ -618,7 +618,16 @@
          plain text at a larger scale, same treatment as mobile, just bigger. */
       #homeView header{min-height:0;margin-bottom:22px;padding:4px 3px 0}
       #homeView h1{font-size:38px;margin-top:6px}
-      .home-hero-img{width:260px;height:173px}
+      /* Desktop: same content-column width as mobile/tablet (see .app above), so the hero
+         never grows past ~760px wide even on very large viewports — it stays a contained,
+         cinematic-proportioned banner rather than an ever-larger hero as the window widens.
+         The wider-than-tall box needs its own, calmer crop again: less zoom than mobile so
+         the scene reads as a wide vignette instead of a tight close-up. */
+      .home-hero-banner{margin:0 0 22px;border-radius:22px;height:340px}
+      .home-hero-bg{transform:none}
+      .home-hero-banner.period-morning .home-hero-bg{object-position:24% 34%}
+      .home-hero-banner.period-afternoon .home-hero-bg{object-position:46% 32%}
+      .home-hero-banner.period-evening .home-hero-bg{object-position:56% 42%}
       .home-now{padding:18px;border-radius:22px;box-shadow:var(--shadow)}
       .do-next-title{font-size:19px}
       .home-section-title{margin-top:24px;color:var(--accent);font-size:14px;letter-spacing:.02em}
@@ -632,6 +641,14 @@
       header{margin-top:4px}
       .modal{width:min(calc(100% - 32px),680px)}
       .tab{min-height:54px;font-size:11px}
+      /* Tablet: a wider box than mobile at the same crop math would push the source photo's
+         empty sky back into frame, so the zoom eases off slightly and each focal point is
+         re-centered rather than just carrying the phone-width crop forward. */
+      .home-hero-banner{height:300px}
+      .home-hero-bg{transform:none}
+      .home-hero-banner.period-morning .home-hero-bg{object-position:22% 62%}
+      .home-hero-banner.period-afternoon .home-hero-bg{object-position:44% 58%}
+      .home-hero-banner.period-evening .home-hero-bg{object-position:54% 66%}
     }
 
     @media(max-width:520px){
