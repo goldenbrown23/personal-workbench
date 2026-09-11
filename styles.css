@@ -59,6 +59,12 @@
          doesn't pre-empt/cancel a horizontal drag before our own swipe JS ever sees it —
          which is otherwise a common reason a swipe starting on a button silently does nothing. */
       touch-action:pan-y;
+      /* .app is only as tall as its content by default — on a short screen (Home, after
+         its compact redesign, is the clearest example) that leaves blank space below the
+         cards and above the tabbar that sits OUTSIDE .app entirely, so a swipe starting
+         there never reaches the swipe listeners at all. Full-viewport min-height closes
+         that dead zone everywhere, not just on tabs long enough to fill the screen anyway. */
+      min-height:100vh;min-height:100dvh;
     }
     header{
       display:flex;
