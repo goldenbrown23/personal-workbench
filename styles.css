@@ -426,9 +426,6 @@
     .home-widget-avatar{width:26px;height:26px;border-radius:9px;background:var(--gray);display:grid;place-items:center;flex:0 0 auto;font-size:13px}
     .home-widget-avatar svg{width:14px;height:14px}
     .home-widget-row-name{flex:1;min-width:0;font-size:13px;font-weight:640;overflow:wrap;overflow-wrap:anywhere}
-    .home-affirmation{min-height:72px;margin-top:4px;border-radius:21px;background:linear-gradient(145deg,#f6dfd2,#f9ece2);color:#80533d;display:flex;align-items:center;gap:12px;padding:12px 16px;font-family:"Bradley Hand","Segoe Print",cursive;font-size:17px;font-style:italic;line-height:1.25;box-shadow:0 8px 22px rgba(120,75,40,.07)}
-    .home-affirmation-icon{width:38px;height:38px;border-radius:14px;background:rgba(255,255,255,.55);color:var(--greenText);display:grid;place-items:center;flex:0 0 auto}
-    .home-affirmation-icon svg{width:20px;height:20px}
 .circle-mascot{width:76px;height:76px;flex:0 0 auto}
 .circle-search-row{margin-bottom:14px}
 .circle-search-row input{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;min-height:46px;padding:0 14px;font-size:14px;color:var(--text)}

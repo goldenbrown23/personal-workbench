@@ -192,7 +192,7 @@ function doNextHTML(pick,{gentle=false,blockPeriod=null}={}){
 function renderHomeWidgets(nudges){
   const wrap=document.getElementById("homeWidgets");
   if(!wrap) return;
-  wrap.innerHTML=`<div class="home-section-title">A little for today</div>${homeHabitsWidgetHTML()}${homeCircleWidgetHTML(nudges)}<div class="home-affirmation"><span class="home-affirmation-icon" aria-hidden="true">${iconSVG("leaf")}</span><span>A calmer you, a fuller life.</span></div>`;
+  wrap.innerHTML=`<div class="home-section-title">A little for today</div>${homeHabitsWidgetHTML()}${homeCircleWidgetHTML(nudges)}`;
 }
 function homeHabitsWidgetHTML(){
   const today=state.habits.filter(h=>habitAppliesToday(h)&&!h.paused);

@@ -69,7 +69,6 @@ function circleMatches(p){
 // for it back.
 function renderCircle(){
   renderTabHeroAccent("circle","circleHeroAccent");
-  document.getElementById("circleDate").textContent=fmtLong(new Date());
   const hero=document.getElementById("circleHeroCard");
   const checkinList=document.getElementById("circleCheckinList");
   const recentList=document.getElementById("circleRecentList");

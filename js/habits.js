@@ -220,7 +220,6 @@ function renderHabitsBanner(){
 }
 function renderToday(){
   renderTabHeroAccent("habits","habitsHeroAccent");
-  document.getElementById("todayDate").textContent=fmtLong(new Date());
   const gentle=gentleDayOn();
   const gentleBtn=document.getElementById("gentleModeBtn");
   gentleBtn.classList.toggle("active",gentle);
