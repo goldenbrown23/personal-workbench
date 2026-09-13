@@ -1,7 +1,5 @@
 # [Personal Workbench](https://goldenbrown23.github.io/personal-workbench/) 🌿
 
-### A calmer you, a fuller life. 
-
 ### A calmer you, a fuller life.
 
 Personal Workbench is a personal, local-first app for building habits and staying connected to the people who matter — without streak pressure, guilt, or turning life into another checklist.
