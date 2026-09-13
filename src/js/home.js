@@ -14,9 +14,9 @@ function illustrationPeriod(hour=new Date().getHours()){
   return "evening";
 }
 const HOME_ILLUSTRATION_SRC={
-  morning:"attachments/home-morning.jpg",
-  afternoon:"attachments/home-afternoon.jpg",
-  evening:"attachments/home-evening.jpg"
+  morning:"assets/home-morning.jpg",
+  afternoon:"assets/home-afternoon.jpg",
+  evening:"assets/home-evening.jpg"
 };
 
 // A curated, fixed pool — never generated. Keeps Home's voice consistent: warm, low-

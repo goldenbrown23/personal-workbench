@@ -8,10 +8,10 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Return" />
   <link rel="manifest" href="manifest.webmanifest" />
-  <link rel="apple-touch-icon" href="attachments/icon-192.png" />
+  <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <title>Personal Workbench</title>
-  <link rel="stylesheet" href="styles.css" />
-  <link rel="stylesheet" href="tailwind.generated.css" />
+  <link rel="stylesheet" href="src/styles/styles.css" />
+  <link rel="stylesheet" href="src/styles/tailwind.generated.css" />
 </head>
 <body>
 <!-- Shared mascot body — the one illustrated character reused (via <use>) across every
@@ -36,7 +36,7 @@
   <div id="homeView" class="view active">
     <div class="home-hero-banner tw:relative tw:mx-0.5 tw:h-55 tw:overflow-hidden tw:rounded-[28px] tw:min-[420px]:h-57" id="homeHeroBanner">
       <div class="home-hero-art-slot tw:pointer-events-none tw:absolute tw:-right-6 tw:bottom-0 tw:z-0 tw:h-31 tw:w-[260px] tw:overflow-hidden tw:min-[420px]:h-[134px] tw:min-[420px]:w-[280px]" aria-hidden="true">
-        <img id="homeIllustrationImg" class="home-hero-bg tw:absolute tw:right-6 tw:bottom-0 tw:block tw:h-auto tw:w-40 tw:max-w-none tw:object-contain tw:object-right-bottom tw:min-[420px]:w-[170px]" alt="" role="presentation" src="attachments/home-morning.jpg" />
+        <img id="homeIllustrationImg" class="home-hero-bg tw:absolute tw:right-6 tw:bottom-0 tw:block tw:h-auto tw:w-40 tw:max-w-none tw:object-contain tw:object-right-bottom tw:min-[420px]:w-[170px]" alt="" role="presentation" src="assets/home-morning.jpg" />
       </div>
       <header class="tw:relative tw:z-10 tw:m-0! tw:block! tw:h-full tw:p-5!">
         <div class="home-hero-copy tw:flex tw:h-full tw:w-3/5 tw:flex-col">
@@ -55,7 +55,7 @@
 
   <div id="todayView" class="view">
     <div class="tab-hero tab-hero--habits sibling-hero tw:relative! tw:mx-0.5! tw:mt-0! tw:mb-5! tw:h-55! tw:overflow-hidden! tw:rounded-[28px]! tw:p-5! tw:min-[420px]:h-57!">
-      <img class="sibling-hero-scene tw:pointer-events-none tw:absolute tw:-right-24 tw:bottom-0 tw:z-0 tw:block tw:h-auto tw:w-[650px] tw:max-w-none tw:min-[420px]:w-[700px]" src="attachments/habits-hero.png" alt="" role="presentation" />
+      <img class="sibling-hero-scene tw:pointer-events-none tw:absolute tw:-right-24 tw:bottom-0 tw:z-0 tw:block tw:h-auto tw:w-[650px] tw:max-w-none tw:min-[420px]:w-[700px]" src="assets/habits-hero.png" alt="" role="presentation" />
       <div class="tab-hero-copy tw:relative! tw:z-10! tw:w-3/5! tw:max-w-none!">
         <div class="eyebrow tw:text-[13px]! tw:font-semibold! tw:leading-4! tw:tracking-[0.04em]!">Build a kinder you</div>
         <h1 class="tw:mt-2! tw:mb-0! tw:text-[26px]! tw:font-semibold! tw:leading-[1.08]! tw:tracking-[-0.02em]!">Habits</h1>
@@ -191,7 +191,7 @@
 
   <div id="weekView" class="view">
     <div class="tab-hero tab-hero--trends sibling-hero tw:relative! tw:mx-0.5! tw:mt-0! tw:mb-5! tw:h-55! tw:overflow-hidden! tw:rounded-[28px]! tw:p-5! tw:min-[420px]:h-57!">
-      <img class="sibling-hero-scene tw:pointer-events-none tw:absolute tw:-right-24 tw:bottom-0 tw:z-0 tw:block tw:h-auto tw:w-[650px] tw:max-w-none tw:min-[420px]:w-[700px]" src="attachments/trends-hero.png" alt="" role="presentation" />
+      <img class="sibling-hero-scene tw:pointer-events-none tw:absolute tw:-right-24 tw:bottom-0 tw:z-0 tw:block tw:h-auto tw:w-[650px] tw:max-w-none tw:min-[420px]:w-[700px]" src="assets/trends-hero.png" alt="" role="presentation" />
       <div class="tab-hero-copy tw:relative! tw:z-10! tw:w-3/5! tw:max-w-none!">
         <div class="eyebrow tw:text-[13px]! tw:font-semibold! tw:leading-4! tw:tracking-[0.04em]!">See your rhythm</div>
         <h1 class="tw:mt-2! tw:mb-0! tw:text-[26px]! tw:font-semibold! tw:leading-[1.08]! tw:tracking-[-0.02em]!">Trends</h1>
@@ -227,7 +227,7 @@
 
   <div id="circleView" class="view">
     <div class="tab-hero tab-hero--circle sibling-hero tw:relative! tw:mx-0.5! tw:mt-0! tw:mb-5! tw:h-55! tw:overflow-hidden! tw:rounded-[28px]! tw:p-5! tw:min-[420px]:h-57!">
-      <img class="sibling-hero-scene tw:pointer-events-none tw:absolute tw:-right-24 tw:bottom-0 tw:z-0 tw:block tw:h-auto tw:w-[650px] tw:max-w-none tw:min-[420px]:w-[700px]" src="attachments/my-circle-hero.png" alt="" role="presentation" />
+      <img class="sibling-hero-scene tw:pointer-events-none tw:absolute tw:-right-24 tw:bottom-0 tw:z-0 tw:block tw:h-auto tw:w-[650px] tw:max-w-none tw:min-[420px]:w-[700px]" src="assets/my-circle-hero.png" alt="" role="presentation" />
       <div class="tab-hero-copy tw:relative! tw:z-10! tw:w-[62.5%]! tw:max-w-none!">
         <div class="eyebrow tw:text-[13px]! tw:font-semibold! tw:leading-4! tw:tracking-[0.04em]!">People make life richer</div>
         <h1 class="tw:mt-2! tw:mb-0! tw:text-[26px]! tw:font-semibold! tw:leading-[1.08]! tw:tracking-[-0.02em]!">My Circle</h1>
@@ -798,14 +798,14 @@
   </div>
 </div>
 
-<script src="js/version.js"></script>
-<script src="js/state.js"></script>
-<script src="js/update.js"></script>
-<script src="js/habits.js"></script>
-<script src="js/practice.js"></script>
-<script src="js/circle.js"></script>
-<script src="js/home.js"></script>
-<script src="js/settings.js"></script>
-<script src="js/app.js"></script>
+<script src="src/js/version.js"></script>
+<script src="src/js/state.js"></script>
+<script src="src/js/update.js"></script>
+<script src="src/js/habits.js"></script>
+<script src="src/js/practice.js"></script>
+<script src="src/js/circle.js"></script>
+<script src="src/js/home.js"></script>
+<script src="src/js/settings.js"></script>
+<script src="src/js/app.js"></script>
 </body>
 </html>

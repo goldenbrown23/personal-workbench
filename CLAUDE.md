@@ -9,7 +9,7 @@ each time.
 Before beginning any task, read and follow the project's documentation in this order:
 
 1. CLAUDE.md
-2. design-system.md
+2. docs/design-system.md
 3. Any task-specific reference images, mockups, or specifications provided in the current request.
 
 These documents are the authoritative source of truth for this project.
@@ -49,8 +49,10 @@ deserve the same care as edits to shipped code.
 
 Personal Workbench ("Return") is a calm, mobile-first PWA for building small habits and
 staying connected to the people who matter — not a productivity/scoreboard app. Vanilla
-HTML/CSS/JS, no framework, no build step. `index.html` + `styles.css` + `js/*.js`, served
-as static files and installable via `manifest.webmanifest` + `sw.js`.
+HTML/CSS/JS, no framework, no build step. `index.html` + `src/styles/styles.css` +
+`src/js/*.js`, served as static files and installable via `manifest.webmanifest` +
+`sw.js`. Images and icons live in `assets/`; `design-system.md`, `design-qa.md`, and
+`visual-qa.md` live in `docs/`.
 
 Core views: Home, Habits, My Circle (relationships), Weekly Detail (Trends), Settings,
 plus a "Your Workbench" (More) module registry for anything added later.
@@ -117,7 +119,7 @@ evening) and in copy that treats pausing a habit as self-care, not abandonment.
 
 ## Coding standards
 
-- No build step, no bundler, no framework. Plain functions and globals in `js/*.js`,
+- No build step, no bundler, no framework. Plain functions and globals in `src/js/*.js`,
   loaded via `<script>` tags in `index.html`. Keep it that way unless the user explicitly
   asks to introduce tooling.
 - State lives in one place (`state.js` / the `state` object), persisted via
@@ -154,7 +156,7 @@ evening) and in copy that treats pausing a habit as self-care, not abandonment.
   and a pressed-state `scale(.98)`) — don't shrink interactive elements below thumb-friendly
   size for density's sake.
 - Writing responsive CSS and verifying it actually works are two different steps —
-  see "Design Review Policy" for the breakpoints to check and `visual-qa.md` for the
+  see "Design Review Policy" for the breakpoints to check and `docs/visual-qa.md` for the
   full procedure once a change is implemented.
 
 ## Accessibility principles
@@ -230,14 +232,14 @@ For every UI-affecting task:
   project's static server, see `.claude/launch.json`) before calling anything finished —
   never assume correctness from source alone.
 - **Compare against a reference.** Use any mockup/screenshot supplied with the task; if
-  none was supplied, the reference is `design-system.md` plus the nearest existing
+  none was supplied, the reference is `docs/design-system.md` plus the nearest existing
   analogous pattern already in the app (see "Maintaining design quality" above).
 - **Check mobile, tablet, and desktop** — see "Responsive Visual QA" immediately below
   for this app's actual breakpoints and where the full procedure lives.
 - **Iterate until it's visually correct**, not until it merely renders without errors.
   Fix discrepancies and re-check rather than accepting the first render.
 - If a supplied mockup conflicts with an existing pattern in this document or
-  `design-system.md`, explain the tradeoff before implementing rather than silently
+  `docs/design-system.md`, explain the tradeoff before implementing rather than silently
   picking one.
 
 ### Responsive Visual QA
@@ -249,7 +251,7 @@ tabbar becomes the left rail — see "Responsive design rules" above). Check a c
 all three, and specifically right at the 900px boundary where the nav layout itself
 changes, rather than assuming one width represents the rest.
 
-`visual-qa.md` has the full repeatable procedure and pre-completion checklist (run app →
+`docs/visual-qa.md` has the full repeatable procedure and pre-completion checklist (run app →
 inspect → compare → check each breakpoint → spacing/typography/image-crop/overflow →
 interaction testing) — follow it before reporting any UI task complete, including small
 changes that "shouldn't" affect layout. If a visual check genuinely can't be performed in

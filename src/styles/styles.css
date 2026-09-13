@@ -103,7 +103,7 @@
 
     /* ============ Compact tab hero system (Habits / My Circle / Trends) ============
        Shared pattern: a full-bleed pastel band with left-aligned copy and a
-       bottom-right anchored illustration. See design-system.md §11 — illustration
+       bottom-right anchored illustration. See docs/design-system.md §11 — illustration
        is always integrated into the hero, never a small floating sticker. Habits
        and My Circle share a height band; Trends is intentionally shorter, and
        Home keeps its own larger/more emotional hero above (`.home-hero-banner`). */

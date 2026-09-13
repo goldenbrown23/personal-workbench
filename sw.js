@@ -3,13 +3,13 @@
 // updates when sw.js's OWN bytes change; it does not re-check importScripts()
 // targets, so deriving this from version.js silently breaks update detection there.
 const CACHE_PREFIX = "personal-workbench-";
-const CACHE_NAME = "personal-workbench-v0.31.4";
+const CACHE_NAME = "personal-workbench-v0.31.5";
 const APP_SHELL = [
-  "./", "./index.html", "./manifest.webmanifest", "./attachments/icon.svg", "./attachments/icon-192.png", "./attachments/icon-512.png",
-  "./attachments/home-morning.jpg", "./attachments/home-afternoon.jpg", "./attachments/home-evening.jpg",
-  "./attachments/habits-hero.png", "./attachments/my-circle-hero.png", "./attachments/trends-hero.png",
-  "./styles.css", "./tailwind.generated.css",
-  "./js/version.js", "./js/state.js", "./js/update.js", "./js/habits.js", "./js/practice.js", "./js/circle.js", "./js/home.js", "./js/settings.js", "./js/app.js"
+  "./", "./index.html", "./manifest.webmanifest", "./assets/icon.svg", "./assets/icon-192.png", "./assets/icon-512.png",
+  "./assets/home-morning.jpg", "./assets/home-afternoon.jpg", "./assets/home-evening.jpg",
+  "./assets/habits-hero.png", "./assets/my-circle-hero.png", "./assets/trends-hero.png",
+  "./src/styles/styles.css", "./src/styles/tailwind.generated.css",
+  "./src/js/version.js", "./src/js/state.js", "./src/js/update.js", "./src/js/habits.js", "./src/js/practice.js", "./src/js/circle.js", "./src/js/home.js", "./src/js/settings.js", "./src/js/app.js"
 ];
 
 self.addEventListener("install", event => {

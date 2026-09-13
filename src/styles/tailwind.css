@@ -6,5 +6,5 @@
 @import "tailwindcss/theme.css" layer(theme) prefix(tw);
 @import "tailwindcss/utilities.css" layer(utilities) prefix(tw) source(none);
 
-@source "./index.html";
-@source "./js";
+@source "../../index.html";
+@source "../js";

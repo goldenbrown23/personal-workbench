@@ -8,8 +8,8 @@
   },
   "scripts": {
     "build": "npm run build:css",
-    "build:css": "tailwindcss -i ./tailwind.css -o ./tailwind.generated.css --minify",
-    "watch:css": "tailwindcss -i ./tailwind.css -o ./tailwind.generated.css --watch",
+    "build:css": "tailwindcss -i ./src/styles/tailwind.css -o ./src/styles/tailwind.generated.css --minify",
+    "watch:css": "tailwindcss -i ./src/styles/tailwind.css -o ./src/styles/tailwind.generated.css --watch",
     "test": "playwright test"
   }
 }
