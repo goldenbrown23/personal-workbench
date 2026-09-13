@@ -169,31 +169,29 @@ function doNextHTML(pick,{gentle=false,blockPeriod=null}={}){
   return `<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">${TARGET_SVG}</span>Do this next</span><button type="button" class="do-next-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div><div class="do-next-row">${visualHTML(h,"do-next-icon")}<div class="do-next-copy"><div class="do-next-title">${escapeHTML(h.name)}</div><div class="do-next-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<div class="do-next-actions"><button class="do-next-btn primary" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ Done</button>${easierBtn}</div>`;
 }
 
-// Level 2 of Home's hierarchy — compact, fully-tappable summary cards, not a second copy
-// of the Habits/Circle screens: one header line (icon, title, one-glance meta, chevron)
-// plus at most one preview row, the single most relevant item. Tapping anywhere on the
-// card routes through the existing switchView/openPersonDetail entry points, so this
-// never becomes a second place habit/person data has to be kept in sync.
+// Level 2 of Home's hierarchy — compact, fully-tappable summary rows, not a second copy
+// of the Habits/Circle screens. They keep status visual and supportive while routing
+// through the existing switchView entry points, so Home never becomes a second place
+// habit/person data has to be kept in sync.
 function renderHomeWidgets(nudges){
   const wrap=document.getElementById("homeWidgets");
   if(!wrap) return;
-  wrap.innerHTML=[homeHabitsWidgetHTML(),homeCircleWidgetHTML(nudges)].filter(Boolean).join("");
+  wrap.innerHTML=`<div class="home-section-title">A little for today</div>${homeHabitsWidgetHTML()}${homeCircleWidgetHTML(nudges)}<div class="home-affirmation"><span class="home-affirmation-icon" aria-hidden="true">${iconSVG("leaf")}</span><span>A calmer you, a fuller life.</span></div>`;
 }
 function homeHabitsWidgetHTML(){
-  if(!state.habits.length) return "";
   const today=state.habits.filter(h=>habitAppliesToday(h)&&!h.paused);
-  if(!today.length) return "";
   const done=today.filter(h=>["done","counted","returned"].includes(getStatus(h.id)));
-  const next=today.find(h=>!["done","counted","returned"].includes(getStatus(h.id)))||today[0];
-  const status=getStatus(next.id);
-  const dotClass=status==="done"?"done":status==="counted"?"counted":status==="returned"?"returned":status==="miss"?"miss":"";
-  const row=`<div class="home-widget-row"><span class="home-widget-dot ${dotClass}"></span><span class="home-widget-row-name">${escapeHTML(next.name)}</span></div>`;
-  return `<button type="button" class="home-widget" onclick="switchView('todayView')"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon sage">${iconSVG("leaf")}</span>Habits</span><span class="home-widget-meta">${done.length} of ${today.length} today${CHEVRON_SVG}</span></div>${row}</button>`;
+  const support=!today.length?"Begin when it feels useful.":done.length===today.length?"Your rhythm is complete for today.":done.length?"A little progress is already here.":"One small rhythm is enough.";
+  const markerCount=Math.max(3,Math.min(4,today.length));
+  const markers=Array.from({length:markerCount},(_,index)=>{
+    const habit=today[index];
+    const status=habit?getStatus(habit.id):"";
+    const dotClass=status==="done"?"done":status==="counted"?"counted":status==="returned"?"returned":status==="miss"?"miss":"";
+    return `<span class="home-widget-dot ${dotClass}"></span>`;
+  }).join("");
+  return `<button type="button" class="home-widget" onclick="switchView('todayView')"><span class="home-widget-icon sage">${iconSVG("leaf")}</span><span class="home-widget-copy"><span class="home-widget-title">Habits</span><span class="home-widget-support">${support}</span></span><span class="home-widget-meta home-widget-markers" aria-hidden="true">${markers}${CHEVRON_SVG}</span></button>`;
 }
 function homeCircleWidgetHTML(nudges){
-  if(!state.people.length) return "";
-  const top=(nudges[0]&&nudges[0].person)||state.people[0];
-  const meta=nudges.length?`${nudges.length} check-in${nudges.length===1?"":"s"}`:personTiming(top).label;
-  const row=`<div class="home-widget-row">${visualHTML(top,"home-widget-avatar","person")}<span class="home-widget-row-name">${escapeHTML(top.name)}</span></div>`;
-  return `<button type="button" class="home-widget" onclick="switchView('circleView')"><div class="home-widget-head"><span class="home-widget-title"><span class="home-widget-icon peach">${iconSVG("heart")}</span>My Circle</span><span class="home-widget-meta">${escapeHTML(meta)}${CHEVRON_SVG}</span></div>${row}</button>`;
+  const support=!state.people.length?"Keep the people who matter close.":nudges.length?"One small hello can be enough.":"Your connections can stay gentle.";
+  return `<button type="button" class="home-widget" onclick="switchView('circleView')"><span class="home-widget-icon peach">${iconSVG("heart")}</span><span class="home-widget-copy"><span class="home-widget-title">My Circle</span><span class="home-widget-support">${support}</span></span><span class="home-widget-meta">${CHEVRON_SVG}</span></button>`;
 }

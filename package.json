@@ -2,7 +2,14 @@
   "devDependencies": {
     "@playwright/cli": "^0.1.19",
     "@playwright/test": "^1.63.0",
-    "@types/node": "^22.20.2"
+    "@tailwindcss/cli": "^4.3.3",
+    "@types/node": "^22.20.2",
+    "tailwindcss": "^4.3.3"
   },
-  "scripts": {}
+  "scripts": {
+    "build": "npm run build:css",
+    "build:css": "tailwindcss -i ./tailwind.css -o ./tailwind.generated.css --minify",
+    "watch:css": "tailwindcss -i ./tailwind.css -o ./tailwind.generated.css --watch",
+    "test": "playwright test"
+  }
 }

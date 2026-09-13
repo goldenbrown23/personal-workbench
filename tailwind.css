@@ -1,0 +1,10 @@
+/* Tailwind is intentionally isolated from the legacy stylesheet:
+   - no Preflight, so existing element defaults are untouched
+   - a `tw:` prefix, so utilities cannot collide with semantic class names
+   - explicit sources, so only application markup and scripts are scanned */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme) prefix(tw);
+@import "tailwindcss/utilities.css" layer(utilities) prefix(tw) source(none);
+
+@source "./index.html";
+@source "./js";

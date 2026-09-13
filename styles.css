@@ -85,13 +85,13 @@
     .sub{color:var(--muted);font-size:15px;line-height:1.45}
     /* The illustration sits inside the Home layout: keep the greeting in open space and
        scale the room as a vignette instead of enlarging it to fill the whole hero. */
-    .home-hero-banner{position:relative;margin:-18px -16px 0;overflow:hidden;height:390px;border-radius:0 0 28px 28px;background:#faf5eb}
+    .home-hero-banner{position:relative;margin:-18px -16px 0;overflow:hidden;height:330px;border-radius:0 0 28px 28px;background:#faf5eb}
     .home-hero-banner.period-morning{background:#faf5eb}
     .home-hero-banner.period-afternoon{background:#edf5f6}
     .home-hero-banner.period-evening{background:#343b61}
-    .home-hero-bg{position:absolute;right:0;bottom:0;width:auto;height:64%;max-height:64%;max-width:72%;object-fit:contain;object-position:right bottom;transform:none;display:block;filter:saturate(.92) sepia(.04);-webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 14%),linear-gradient(90deg,transparent 0%,#000 28%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0%,#000 14%),linear-gradient(90deg,transparent 0%,#000 28%);mask-composite:intersect}
-    .home-hero-banner.period-morning .home-hero-bg{height:62%;max-height:62%;max-width:70%}
-    .home-hero-banner.period-afternoon .home-hero-bg{height:61%;max-height:61%;max-width:74%}
+    .home-hero-bg{position:absolute;right:0;bottom:0;width:auto;height:64%;max-height:64%;max-width:65%;object-fit:contain;object-position:right bottom;transform:none;display:block;filter:saturate(.92) sepia(.04);-webkit-mask-image:linear-gradient(180deg,transparent 0%,transparent 8%,#000 30%),linear-gradient(90deg,transparent 0%,#000 24%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0%,transparent 8%,#000 30%),linear-gradient(90deg,transparent 0%,#000 24%);mask-composite:intersect}
+    .home-hero-banner.period-morning .home-hero-bg{height:62%;max-height:62%;max-width:63%}
+    .home-hero-banner.period-afternoon .home-hero-bg{height:63%;max-height:63%;max-width:65%}
     #homeView .home-hero-banner header{position:relative;z-index:2;display:block;margin:0;padding:68px 24px 0;gap:0}
     #homeView .home-hero-banner header>div{max-width:235px}
     #homeView .home-hero-banner .eyebrow{font-size:13px;font-weight:650;letter-spacing:.06em;line-height:1.2}
@@ -104,7 +104,7 @@
     .home-hero-banner.is-dark .eyebrow{color:rgba(255,255,255,.78)}
     #homeView .home-hero-banner.is-dark h1{color:#fff}
     #homeView .home-hero-banner.is-dark .sub{color:rgba(255,255,255,.85)}
-    .home-hero-accent{position:absolute;z-index:2;right:24px;top:calc(var(--safe-top) + 20px);left:auto;width:min(104px,28%);text-align:right;font-family:"Bradley Hand","Segoe Print",cursive;font-size:14px;font-style:italic;line-height:1.2;color:rgba(42,29,18,.76);pointer-events:none}
+    .home-hero-accent{position:absolute;z-index:2;right:22px;top:calc(var(--safe-top) + 84px);left:auto;width:min(112px,29%);text-align:right;font-family:"Bradley Hand","Segoe Print",cursive;font-size:14px;font-style:italic;line-height:1.2;color:rgba(42,29,18,.76);pointer-events:none}
     .home-hero-banner.is-dark .home-hero-accent{color:rgba(255,255,255,.88)}
     #homeView h1{font-size:26px;margin:3px 0 4px}
     #homeView .sub{font-size:13px}
@@ -324,26 +324,29 @@
     .legend span{font-size:11px;padding:6px 8px;border-radius:999px;background:#f4f5f2;color:var(--muted)}
 
     .home-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
-    .home-now{position:relative;z-index:3;background:linear-gradient(145deg,#f8ecdc,#fdf8f0);border:1px solid #eeddc4;border-radius:22px;padding:14px 15px;margin:-16px 4px 14px;box-shadow:var(--shadow)}
-    .home-now.quiet{background:linear-gradient(145deg,#f2ebde,#fbf8f2);border-color:var(--line);box-shadow:var(--shadow)}
+    .home-now{position:relative;z-index:3;background:linear-gradient(145deg,#f8ecdc,#fdf8f0);border:0;border-radius:22px;padding:12px 14px;margin:-20px 6px 0;box-shadow:0 10px 28px rgba(120,75,40,.10)}
+    .home-now.quiet{background:linear-gradient(145deg,#f2ebde,#fbf8f2);box-shadow:0 10px 28px rgba(120,75,40,.09)}
     .home-now.quiet .do-next-actions{display:none}
+    .home-now.quiet{padding:10px 14px}
+    .home-now.quiet .do-next-row{margin-top:5px;padding:6px 8px}
+    .home-now.quiet .do-next-icon{width:34px;height:34px}
     .home-now.gentle{background:linear-gradient(145deg,#f6e6df,#fbf4ef);border-color:#ead2c6}
-    .do-next-eyebrow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:22px}
+    .do-next-eyebrow{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:18px}
     .do-next-eyebrow-label{display:flex;align-items:center;gap:6px;font-size:11px;text-transform:uppercase;letter-spacing:.055em;color:var(--accent);font-weight:820}
     .do-next-eyebrow-icon{width:14px;height:14px;display:inline-flex;flex:0 0 auto}
     .do-next-eyebrow-icon svg{width:100%;height:100%;display:block}
-    .do-next-overflow{border:0;background:transparent;color:var(--muted);font-weight:800;min-width:44px;min-height:44px;padding:4px 8px;margin:-11px -8px -11px 0;border-radius:10px;font-size:14px}
+    .do-next-overflow{position:absolute;top:2px;right:5px;border:0;background:transparent;color:var(--muted);font-weight:800;min-width:44px;min-height:44px;padding:4px 8px;border-radius:10px;font-size:14px}
     .do-next-overflow:hover{background:rgba(255,255,255,.55)}
     .do-next-overflow:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-    .do-next-row{display:flex;align-items:center;gap:12px;background:rgba(255,255,255,.6);border-radius:14px;padding:10px 12px;margin-top:9px}
-    .do-next-icon{width:42px;height:42px;border-radius:13px;background:rgba(255,255,255,.9);display:grid;place-items:center;font-size:21px;flex:0 0 auto}
+    .do-next-row{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.62);border-radius:14px;padding:8px 10px;margin-top:7px}
+    .do-next-icon{width:38px;height:38px;border-radius:12px;background:rgba(255,255,255,.9);display:grid;place-items:center;font-size:20px;flex:0 0 auto}
     .do-next-icon svg{width:21px;height:21px}
     .do-next-copy{flex:1;min-width:0}
     .do-next-title{font-size:16px;font-weight:760;letter-spacing:-.01em;line-height:1.3;overflow-wrap:anywhere}
     .do-next-detail{font-size:12px;color:var(--muted);line-height:1.4;margin-top:3px;overflow-wrap:anywhere}
-    .do-next-block-note{font-size:11px;color:var(--muted);margin-top:7px;line-height:1.35;font-style:italic}
-    .do-next-actions{display:flex;gap:8px;margin-top:11px}
-    .do-next-btn{flex:1;border:0;border-radius:14px;min-height:48px;padding:10px 12px;font-weight:780;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px}
+    .do-next-block-note{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.3;font-style:italic}
+    .do-next-actions{display:flex;gap:8px;margin-top:8px}
+    .do-next-btn{flex:1;border:0;border-radius:13px;min-height:44px;padding:8px 12px;font-weight:780;font-size:14px;display:flex;align-items:center;justify-content:center;gap:6px}
     .do-next-btn.primary{background:var(--accent);color:#fff}
     .do-next-btn.secondary{flex:0.85;background:rgba(255,255,255,.85);color:var(--accent);border:1px solid #ecd6bc}
     .do-next-btn svg{width:15px;height:15px;flex:0 0 auto}
@@ -407,24 +410,30 @@
     .status-not-today-btn:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
     .status-clear-link{display:block;width:100%;text-align:center;border:0;background:transparent;color:#a2564f;font-size:12px;font-weight:700;min-height:44px;padding:8px 6px}
     .home-rule{margin:14px 3px 0;color:var(--muted);font-size:11px;line-height:1.4;text-align:center}
-    .home-widgets{display:grid;gap:9px;margin-top:12px}
-    .home-widget{display:block;width:100%;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:11px 13px;box-shadow:var(--shadow);text-align:left;color:var(--text)}
+    .home-widgets{display:grid;gap:8px;margin:24px 6px 0}
+    .home-section-title{margin:0 2px 2px;color:var(--accent);font-size:11px;line-height:1.2;text-transform:uppercase;letter-spacing:.07em;font-weight:820}
+    .home-widget{display:flex;align-items:center;gap:11px;width:100%;min-height:64px;background:var(--card);border:1px solid var(--line);border-radius:19px;padding:9px 12px;box-shadow:var(--shadow);text-align:left;color:var(--text)}
     .home-widget-head{display:flex;align-items:center;justify-content:space-between;gap:10px}
-    .home-widget-title{font-size:14px;font-weight:700;display:flex;align-items:center;gap:9px}
-    .home-widget-icon{width:28px;height:28px;border-radius:9px;background:var(--gray);color:var(--accent);display:grid;place-items:center;flex:0 0 auto}
+    .home-widget-copy{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+    .home-widget-title{font-size:14px;font-weight:760;display:block}
+    .home-widget-support{display:block;min-width:0;color:var(--muted);font-size:11.5px;line-height:1.3;overflow-wrap:anywhere}
+    .home-widget-icon{width:36px;height:36px;border-radius:12px;background:var(--gray);color:var(--accent);display:grid;place-items:center;flex:0 0 auto}
     .home-widget-icon.sage{background:var(--green);color:var(--greenText)}
     .home-widget-icon.peach{background:var(--purple);color:var(--purpleText)}
     .home-widget-icon svg{width:15px;height:15px}
-    .home-widget-meta{font-size:12px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:3px;flex:0 0 auto}
+    .home-widget-meta{font-size:12px;color:var(--muted);font-weight:700;display:flex;align-items:center;gap:4px;flex:0 0 auto}
     .home-widget-meta svg{width:14px;height:14px;color:var(--muted)}
     .home-widget-row{display:flex;align-items:center;gap:9px;padding-top:8px;margin-top:8px;border-top:1px solid var(--line)}
-    .home-widget-dot{width:9px;height:9px;border-radius:50%;flex:0 0 auto;background:var(--line)}
+    .home-widget-dot{width:7px;height:7px;border-radius:50%;flex:0 0 auto;background:var(--line)}
     .home-widget-dot.done,.home-widget-dot.counted{background:var(--greenText)}
     .home-widget-dot.returned{background:var(--purpleText)}
     .home-widget-dot.miss{background:var(--grayText)}
     .home-widget-avatar{width:26px;height:26px;border-radius:9px;background:var(--gray);display:grid;place-items:center;flex:0 0 auto;font-size:13px}
     .home-widget-avatar svg{width:14px;height:14px}
     .home-widget-row-name{flex:1;min-width:0;font-size:13px;font-weight:640;overflow:wrap;overflow-wrap:anywhere}
+    .home-affirmation{min-height:72px;margin-top:4px;border-radius:21px;background:linear-gradient(145deg,#f6dfd2,#f9ece2);color:#80533d;display:flex;align-items:center;gap:12px;padding:12px 16px;font-family:"Bradley Hand","Segoe Print",cursive;font-size:17px;font-style:italic;line-height:1.25;box-shadow:0 8px 22px rgba(120,75,40,.07)}
+    .home-affirmation-icon{width:38px;height:38px;border-radius:14px;background:rgba(255,255,255,.55);color:var(--greenText);display:grid;place-items:center;flex:0 0 auto}
+    .home-affirmation-icon svg{width:20px;height:20px}
 .circle-mascot{width:76px;height:76px;flex:0 0 auto}
 .circle-search-row{margin-bottom:14px}
 .circle-search-row input{width:100%;border:1px solid var(--line);background:var(--card);border-radius:14px;min-height:46px;padding:0 14px;font-size:14px;color:var(--text)}
@@ -667,7 +676,7 @@
       .icon-group-grid{grid-template-columns:repeat(5,1fr)}
       h1{font-size:29px}
       .app{padding-left:14px;padding-right:14px}
-      .home-hero-banner{height:390px;margin:-18px -14px 0;border-radius:0 0 28px 28px}
+      .home-hero-banner{height:330px;margin:-18px -14px 0;border-radius:0 0 28px 28px}
       .home-hero-banner .home-hero-accent{right:24px}
       .home-grid{grid-template-columns:1fr}
       .module-card{min-height:112px;padding:15px}
@@ -683,8 +692,8 @@
       .modal-actions{position:sticky;bottom:calc(-18px - var(--safe-bottom));background:linear-gradient(to bottom,rgba(255,255,255,.88),#fff 16px);padding:16px 0 calc(4px + var(--safe-bottom));z-index:2}
     }
 
-    @media(max-width:380px){.home-hero-banner{height:340px}}
-    @media(min-width:411px) and (max-width:520px){.home-hero-banner{height:405px}}
+    @media(max-width:380px){.home-hero-banner{height:315px}}
+    @media(min-width:411px) and (max-width:520px){.home-hero-banner{height:335px}}
 
     /* Tag pill colors — declared last so they win over earlier single-class background rules (.person-chip, .relationship-label, etc.) at equal specificity. */
     .tone-sage{background:#e8f1e7;color:#41694a}

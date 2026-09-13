@@ -3,11 +3,11 @@
 // updates when sw.js's OWN bytes change; it does not re-check importScripts()
 // targets, so deriving this from version.js silently breaks update detection there.
 const CACHE_PREFIX = "personal-workbench-";
-const CACHE_NAME = "personal-workbench-v0.30.6";
+const CACHE_NAME = "personal-workbench-v0.30.8";
 const APP_SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./attachments/icon.svg", "./attachments/icon-192.png", "./attachments/icon-512.png",
   "./attachments/home-morning.jpg", "./attachments/home-afternoon.jpg", "./attachments/home-evening.jpg",
-  "./styles.css",
+  "./styles.css", "./tailwind.generated.css",
   "./js/version.js", "./js/state.js", "./js/update.js", "./js/habits.js", "./js/practice.js", "./js/circle.js", "./js/home.js", "./js/settings.js", "./js/app.js"
 ];
 
