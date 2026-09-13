@@ -252,7 +252,10 @@ document.querySelectorAll("#habitsPeriodSwitch [data-block]").forEach(btn=>btn.a
 function checklistRowHTML(h){
   const status=getStatus(h.id);
   const tier=homePrimaryTier(h);
-  const glyph=status==="returned"?"↩":status==="miss"?"—":status?"✓":"";
+  // Shared glyph vocabulary (✓ / ○ / — / ↩) rather than a local one, so a smaller version
+  // reads as ○ here exactly as it does in the Done list, Trends, and this row's own
+  // aria-label below — it used to collapse to the same ✓ as a full version.
+  const glyph=habitStatusIcon(status);
   const label=status?`${escapeAttr(h.name)}, ${statusLabel(status)}. Tap to change.`:`Mark ${escapeAttr(h.name)} done`;
   const hasEasier=Boolean((h.full||"").trim())&&Boolean((h.small||"").trim()||(h.small2||"").trim());
   const easierPill=hasEasier?`<span class="checklist-easier-pill">Easier</span>`:"";

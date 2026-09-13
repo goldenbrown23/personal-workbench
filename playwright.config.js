@@ -14,20 +14,19 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
-  /* Run tests in files in parallel */
-  fullyParallel: true,
+  /* Serial on purpose: the app is served by a single static file server, and running the
+     suite in parallel against it produces request timeouts that look like UI failures. */
+  fullyParallel: false,
+  workers: 1,
   /* Fail the build on CI if you accidentally left test.only in the source code. */
   forbidOnly: !!process.env.CI,
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: 'html',
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
-    /* Base URL to use in actions like `await page.goto('')`. */
-    // baseURL: 'http://localhost:3000',
+    baseURL: 'http://localhost:8123',
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -35,6 +34,16 @@ export default defineConfig({
 
   /* Configure projects for major browsers */
   projects: [
+    // The app is mobile-first (see CLAUDE.md "Responsive design rules"), so the default
+    // project runs at a real phone width rather than a desktop one.
+    {
+      name: 'mobile-390',
+      use: { ...devices['Desktop Chrome'], viewport: {width: 390, height: 844} },
+    },
+    {
+      name: 'mobile-430',
+      use: { ...devices['Desktop Chrome'], viewport: {width: 430, height: 932} },
+    },
     {
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
@@ -71,11 +80,13 @@ export default defineConfig({
     // },
   ],
 
-  /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  /* The app is plain static files with no build step, so the "dev server" is just a
+     static file server on the port .claude/launch.json already uses. */
+  webServer: {
+    command: 'python -m http.server 8123',
+    url: 'http://localhost:8123/index.html',
+    reuseExistingServer: !process.env.CI,
+    timeout: 30000,
+  },
 });
 

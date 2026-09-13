@@ -4,10 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content" />
   <meta name="theme-color" content="#f7f1e6" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <!-- The apple-prefixed copy stays alongside the standard one above: iOS below 17.4 only
+       honours this spelling, while current browsers warn that it is deprecated. -->
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="default" />
   <meta name="apple-mobile-web-app-title" content="Return" />
   <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" href="assets/icon.svg" type="image/svg+xml" />
   <link rel="apple-touch-icon" href="assets/icon-192.png" />
   <title>Personal Workbench</title>
   <link rel="stylesheet" href="src/styles/styles.css" />
@@ -49,7 +53,7 @@
         </div>
       </header>
     </div>
-    <div class="home-now tw:relative tw:z-30 tw:mx-0.5 tw:mt-3 tw:rounded-[20px]" id="homeNow"></div>
+    <div class="home-now tw:relative tw:mx-0.5 tw:mt-3 tw:rounded-[20px]" id="homeNow"></div>
     <div class="home-widgets" id="homeWidgets"></div>
   </div>
 
@@ -219,7 +223,7 @@
     </div>
     <div class="pattern-card"><div class="pattern-label">A useful pattern</div><div class="pattern-text" id="trendPattern">We’re still gathering a little context.</div></div>
     <section class="review-history" aria-labelledby="reviewHistoryTitle">
-      <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div><details class="review-filter floating-menu" data-sheet-title="Filter activity"><summary>Filter</summary><div class="review-filter-menu floating-menu-panel"><button type="button" class="floating-menu-option active" data-review-filter="all">All activity</button><button type="button" class="floating-menu-option" data-review-filter="habits">Habits</button><button type="button" class="floating-menu-option" data-review-filter="circle">Circle</button></div></details></div>
+      <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div><details class="review-filter floating-menu" data-sheet-title="Filter activity"><summary>Filter</summary><div class="review-filter-menu floating-menu-panel"><button type="button" class="floating-menu-option active" data-review-filter="all">All activity</button><button type="button" class="floating-menu-option" data-review-filter="habit">Habits</button><button type="button" class="floating-menu-option" data-review-filter="circle">Circle</button></div></details></div>
       <div class="history-list" id="reviewHistory"></div>
     </section>
   </div>

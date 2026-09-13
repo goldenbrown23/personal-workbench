@@ -234,13 +234,20 @@ function openFloatingMenuSheet(panel,title){
 // after a dynamic re-render (e.g. the interaction list rebuilding on every open).
 document.addEventListener("toggle",e=>{
   const details=e.target;
-  if(!(details instanceof HTMLDetailsElement)||!details.classList.contains("floating-menu")||!details.open) return;
+  if(!(details instanceof HTMLDetailsElement)||!details.classList.contains("floating-menu")) return;
+  if(!details.open){ delete details.dataset.floatingPlaced; return; }
   const trigger=details.querySelector("summary"),panel=details.querySelector(".floating-menu-panel");
   if(!trigger||!panel) return;
   if(positionFloatingPanel(trigger,panel)==="sheet"){
     details.removeAttribute("open");
     openFloatingMenuSheet(panel,details.dataset.sheetTitle||"Options");
+    return;
   }
+  // Marks the panel as actually placed. "toggle" is dispatched asynchronously, so between
+  // the click opening <details> and this handler running, the browser may scroll the
+  // summary into view — and the scroll listener below would otherwise read that as the
+  // user scrolling and close the menu before it was ever positioned or shown.
+  details.dataset.floatingPlaced="1";
 },true);
 document.addEventListener("click",e=>{
   document.querySelectorAll("details.floating-menu[open]").forEach(details=>{
@@ -252,8 +259,12 @@ document.addEventListener("keydown",e=>{
   const open=document.querySelector("details.floating-menu[open]");
   if(open) open.removeAttribute("open");
 });
+// Capture phase so a scroll inside any container (a sheet's own .modal, a scrolling view)
+// counts, not just the window — a position:fixed panel doesn't follow its trigger.
 window.addEventListener("scroll",()=>{
-  document.querySelectorAll("details.floating-menu[open]").forEach(details=>details.removeAttribute("open"));
+  document.querySelectorAll("details.floating-menu[open]").forEach(details=>{
+    if(details.dataset.floatingPlaced) details.removeAttribute("open");
+  });
 },{passive:true,capture:true});
 
 const sheets=[...document.querySelectorAll(".modal-backdrop")];

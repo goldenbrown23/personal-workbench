@@ -175,7 +175,12 @@ function renderStartHere(period,gentle,nudges){
 // text link — since a smaller version is a normal choice, not a fallback.
 function doNextHTML(pick,{gentle=false,blockPeriod=null}={}){
   const h=pick.habit,tier=homePrimaryTier(h);
-  const blockNote=pick.isCurrentBlock?"":`<div class="do-next-block-note">Nothing left from ${escapeHTML(BLOCK_LABEL[blockPeriod]||"now")}, so here’s one from ${escapeHTML(BLOCK_LABEL[pick.block]||"elsewhere")} instead.</div>`;
+  // Only explains a fallback when there IS a block to have fallen back FROM. At late-night
+  // currentTimePeriod() returns "late-night", which is a period but not one of the three
+  // habit time blocks — so there is nothing "left from" it, and the note would read
+  // "Nothing left from now, so here’s one from evening instead" over an evening habit.
+  const fromLabel=BLOCK_LABEL[blockPeriod];
+  const blockNote=(pick.isCurrentBlock||!fromLabel)?"":`<div class="do-next-block-note">Nothing left from ${escapeHTML(fromLabel)}, so here’s one from ${escapeHTML(BLOCK_LABEL[pick.block]||"elsewhere")} instead.</div>`;
   let detail,primaryStatus;
   if(pick.isReturn){ detail=isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."; primaryStatus=tier.status; }
   else if(gentle){ detail="Doing less still keeps the connection."; primaryStatus="counted"; }

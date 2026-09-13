@@ -76,6 +76,10 @@ function renderCircle(){
     hero.innerHTML="";
     checkinList.innerHTML=`<div class="circle-empty-row">No people yet. Add one person you want to keep in view.</div>`;
     recentList.innerHTML=`<div class="circle-empty-row">Nothing logged yet.</div>`;
+    // This branch returns before the "View all" toggles below are sized to their lists, so
+    // hide them here too — with nobody added there is nothing for them to expand.
+    document.getElementById("circleCheckinViewAll").style.display="none";
+    document.getElementById("circleRecentViewAll").style.display="none";
     return;
   }
   const matching=state.people.filter(circleMatches);
