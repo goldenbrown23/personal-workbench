@@ -556,6 +556,7 @@ function getLast7Days(){
   return arr;
 }
 function renderWeek(){
+  renderTabHeroAccent("trends","trendsHeroAccent");
   const days=getLast7Days();
   const grid=document.getElementById("weekGrid");
   grid.innerHTML="";

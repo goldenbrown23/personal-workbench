@@ -64,7 +64,8 @@ function pickHomeCopyIndex(poolLength,avoidIndex){
 }
 const TAB_HERO_ACCENTS={
   habits:["Progress lives in the everyday ♡","Small steps still count ♡","Keep the rhythm, not the pressure ♡","Tiny repeats become a life ♡","A little today is enough ♡"],
-  circle:["Good people make a softer tomorrow ♡","Keep the people who matter close ♡","Connection is part of a full life ♡","A small reach-out still counts ♡","Relationships grow in small moments ♡"]
+  circle:["Good people make a softer tomorrow ♡","Keep the people who matter close ♡","Connection is part of a full life ♡","A small reach-out still counts ♡","Relationships grow in small moments ♡"],
+  trends:["Progress is easier to see from here ♡","Small steps leave a pattern ♡","Your rhythm tells a story ♡","Look for direction, not perfection ♡","Little changes become visible ♡"]
 };
 function renderTabHeroAccent(kind,elementId){
   const pool=TAB_HERO_ACCENTS[kind],today=dateKey(),storageKey=`${kind}Accent`;
