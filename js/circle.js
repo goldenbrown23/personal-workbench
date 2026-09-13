@@ -68,6 +68,7 @@ function circleMatches(p){
 // list had replaced an earlier version of this same layout, but the current mockup asks
 // for it back.
 function renderCircle(){
+  renderTabHeroAccent("circle","circleHeroAccent");
   document.getElementById("circleDate").textContent=fmtLong(new Date());
   const hero=document.getElementById("circleHeroCard");
   const checkinList=document.getElementById("circleCheckinList");

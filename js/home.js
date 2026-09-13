@@ -62,6 +62,21 @@ function pickHomeCopyIndex(poolLength,avoidIndex){
   if(idx===avoidIndex) idx=(idx+1)%poolLength;
   return idx;
 }
+const TAB_HERO_ACCENTS={
+  habits:["Progress lives in the everyday ♡","Small steps still count ♡","Keep the rhythm, not the pressure ♡","Tiny repeats become a life ♡","A little today is enough ♡"],
+  circle:["Good people make a softer tomorrow ♡","Keep the people who matter close ♡","Connection is part of a full life ♡","A small reach-out still counts ♡","Relationships grow in small moments ♡"]
+};
+function renderTabHeroAccent(kind,elementId){
+  const pool=TAB_HERO_ACCENTS[kind],today=dateKey(),storageKey=`${kind}Accent`;
+  let all={};
+  try{ all=JSON.parse(localStorage.getItem(HOME_COPY_KEY)||"{}"); }catch{ all={}; }
+  const prior=all[storageKey];
+  if(!prior||prior.date!==today||prior.a>=pool.length){
+    all[storageKey]={date:today,a:pickHomeCopyIndex(pool.length,prior?.a??-1)};
+    try{ localStorage.setItem(HOME_COPY_KEY,JSON.stringify(all)); }catch{}
+  }
+  document.getElementById(elementId).textContent=pool[all[storageKey].a];
+}
 // Stable for the current (day, time block): re-picks only when the date or the block has
 // changed since the last render, and — when it does re-pick — avoids repeating yesterday's
 // (or last-shown day's) choice for that SAME block, tracked independently per block so a

@@ -219,6 +219,7 @@ function renderHabitsBanner(){
   el.innerHTML=`<span class="habits-banner-icon" aria-hidden="true">🌿</span><span>${escapeHTML(HABITS_BLOCK_BANNER[habitsSelectedBlock]||HABITS_BLOCK_BANNER.morning)}</span>`;
 }
 function renderToday(){
+  renderTabHeroAccent("habits","habitsHeroAccent");
   document.getElementById("todayDate").textContent=fmtLong(new Date());
   const gentle=gentleDayOn();
   const gentleBtn=document.getElementById("gentleModeBtn");
