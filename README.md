@@ -1,7 +1,6 @@
-https://goldenbrown23.github.io/personal-workbench/
+# # [Personal Workbench](https://goldenbrown23.github.io/personal-workbench/) 🌿
 
-
-# Personal Workbench 🌿
+### A calmer you, a fuller life. 
 
 ### A calmer you, a fuller life.
 
