@@ -73,9 +73,9 @@ function renderCircle(){
   const checkinList=document.getElementById("circleCheckinList");
   const recentList=document.getElementById("circleRecentList");
   if(!state.people.length){
-    hero.innerHTML="";
-    checkinList.innerHTML=`<div class="circle-empty-row">No people yet. Add one person you want to keep in view.</div>`;
-    recentList.innerHTML=`<div class="circle-empty-row">Nothing logged yet.</div>`;
+    hero.innerHTML=circleNoContentHTML();
+    checkinList.innerHTML="";
+    recentList.innerHTML="";
     // This branch returns before the "View all" toggles below are sized to their lists, so
     // hide them here too — with nobody added there is nothing for them to expand.
     document.getElementById("circleCheckinViewAll").style.display="none";
@@ -87,30 +87,64 @@ function renderCircle(){
   hero.innerHTML=ranked.length?circleHeroHTML(ranked[0]):`<div class="circle-empty-row">No one matches that search.</div>`;
   const checkinRest=ranked.slice(1);
   const checkinShown=circleShowAllCheckins?checkinRest:checkinRest.slice(0,4);
-  checkinList.innerHTML=checkinShown.length?checkinShown.map(circleCheckinRowHTML).join(""):`<div class="circle-empty-row">Everyone's caught up.</div>`;
+  checkinList.innerHTML=checkinShown.length?checkinShown.map(circleCheckinRowHTML).join(""):circleCheckinEmptyHTML();
   document.getElementById("circleCheckinViewAll").style.display=checkinRest.length>4?"":"none";
   document.getElementById("circleCheckinViewAll").textContent=circleShowAllCheckins?"Show less ›":"View all ›";
   const interactions=matching.flatMap(p=>(p.interactions||[]).map(item=>({p,item})))
     .sort((a,b)=>(b.item.date||"").localeCompare(a.item.date||"")||(b.item.createdAt||"").localeCompare(a.item.createdAt||""));
   const recentShown=circleShowAllRecent?interactions:interactions.slice(0,4);
-  recentList.innerHTML=recentShown.length?recentShown.map(circleRecentRowHTML).join(""):`<div class="circle-empty-row">No interactions logged yet.</div>`;
+  recentList.innerHTML=recentShown.length?recentShown.map(circleRecentRowHTML).join(""):circleRecentEmptyHTML();
   document.getElementById("circleRecentViewAll").style.display=interactions.length>4?"":"none";
   document.getElementById("circleRecentViewAll").textContent=circleShowAllRecent?"Show less ›":"View all ›";
 }
 function circleHeroHTML(p){
   const t=personTiming(p),last=latestContactDate(p);
   return `<div class="circle-hero-card">
-    <div class="circle-hero-eyebrow">✦ Your next check-in</div>
+    <div class="circle-hero-head">
+      <div class="circle-hero-eyebrow">✦ Your next check-in</div>
+      <details class="circle-hero-menu floating-menu" data-sheet-title="Options">
+        <summary aria-label="More options">•••</summary>
+        <div class="circle-hero-menu-list floating-menu-panel">
+          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');openPersonModal('${jsEscape(p.id)}')">Edit person</button>
+          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');openContactModal('${jsEscape(p.id)}')">Log interaction</button>
+          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');renderManagePeople();managePeopleModal.classList.add('show')">Manage Circle</button>
+        </div>
+      </details>
+    </div>
     <div class="circle-hero-main">
       ${visualHTML(p,"avatar","person")}
       <div class="circle-hero-copy">
         <div class="circle-hero-name">${escapeHTML(p.name)}</div>
         <div class="circle-hero-note">${escapeHTML(contactIdea(p))}</div>
-        <span class="circle-hero-pill">${last?`Last talked ${escapeHTML(relativeContactLabel(last).toLowerCase())}`:escapeHTML(t.label)}</span>
+        <span class="circle-hero-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>${last?`Last check-in · ${escapeHTML(relativeContactLabel(last).toLowerCase())}`:escapeHTML(t.label)}</span>
       </div>
     </div>
     <div class="circle-hero-actions">
       <button type="button" class="circle-hero-btn primary" onclick="openContactModal('${jsEscape(p.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>Log interaction</button>
+    </div>
+  </div>`;
+}
+function circleCheckinEmptyHTML(){
+  return `<div class="circle-empty-state">
+    <span class="circle-empty-icon tone-green" aria-hidden="true">${iconSVG("leaf")}</span>
+    <div class="circle-empty-title">Everyone's caught up.</div>
+    <div class="circle-empty-sub">No one needs a check-in right now.</div>
+  </div>`;
+}
+function circleRecentEmptyHTML(){
+  return `<div class="circle-empty-state">
+    <span class="circle-empty-icon tone-red" aria-hidden="true">${iconSVG("heart")}</span>
+    <div class="circle-empty-title">Nothing logged yet.</div>
+    <div class="circle-empty-sub">Your conversations and moments together will show up here.</div>
+  </div>`;
+}
+function circleNoContentHTML(){
+  return `<div class="circle-no-content">
+    <div class="circle-no-content-icon" aria-hidden="true">${iconSVG("people")}</div>
+    <div class="circle-no-content-body">
+      <h2 class="circle-no-content-title">Your Circle starts here.</h2>
+      <p class="circle-no-content-text">Add the people who matter most. A gentle check-in keeps relationships warm.</p>
+      <button type="button" class="circle-no-content-btn" onclick="openPersonModal()">Add your first person</button>
     </div>
   </div>`;
 }
