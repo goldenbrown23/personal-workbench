@@ -95,7 +95,7 @@ function renderPracticeGrid(){
     const blocks = {morning:[], afternoon:[], evening:[]};
     let dayReturns = 0;
     state.habits.forEach(h=>{
-      const applies = habitAppliesOnDate(h, date);
+      const applies = !h.paused && habitAppliesOnDate(h, date);
       const entry = getLogEntry(h.id, key);
       const status = entry?.status || "";
       if(status){
@@ -216,7 +216,10 @@ function habitCurrentMissStreak(h){
   return streak;
 }
 function renderPracticeSystemLock(){
-  const streaks = state.habits.map(h=>({habit:h, streak:habitCurrentMissStreak(h)}));
+  // Paused habits are a deliberate break, not a failure state (see CLAUDE.md's "no guilt
+  // mechanics") — a habit the user already paused shouldn't turn around and nudge them
+  // about its miss streak.
+  const streaks = state.habits.filter(h=>!h.paused).map(h=>({habit:h, streak:habitCurrentMissStreak(h)}));
   const top = streaks.sort((a,b)=>b.streak-a.streak)[0] || {streak:0};
   const n = Math.min(top.streak, 9);
   const card = document.getElementById("practiceSystemLock");

@@ -33,14 +33,32 @@ function nextContactDate(p){
   if(!freq || !last) return null;
   return addDays(last,freq);
 }
+// class:"due" is the single source of truth for "needs a check-in": Next Due Date =
+// last contact + frequency, and a person is due once today >= that date (remaining<=0),
+// or has never been contacted at all (freq enabled, nothing logged yet — always due for
+// a first check-in). remaining>0 is a genuine heads-up state ("soon"), not yet due —
+// keeping that boundary exact matters because renderCircle()/home.js's nudges filter on
+// class==="due" alone to decide who actually appears in "People to check in with".
+// tone is separate from class: a never-contacted person is just as "due" as someone
+// overdue, but "you haven't started yet" shouldn't read as alarming as "this slipped" —
+// tone drives pill/chip color, class alone drives the filter.
 function personTiming(p){
   const freq=Number(p.frequency||0), last=latestContactDate(p);
-  if(!freq) return {class:"flex",label:"Flexible",text:"No schedule — reach out whenever it feels right."};
-  if(!last) return {class:"soon",label:"Start anytime",text:"No contact logged yet — start whenever you want."};
+  if(!freq) return {class:"flex",tone:"flex",label:"Flexible",text:"No schedule — reach out whenever it feels right."};
+  if(!last) return {class:"due",tone:"soon",label:"Start anytime",text:"No contact logged yet — start whenever you want."};
   const age=daysBetween(last,new Date()), remaining=freq-age;
-  if(remaining>3) return {class:"good",label:"Recent",text:`Connected ${relativeContactLabel(last).toLowerCase()}.`};
-  if(remaining>=0) return {class:"soon",label:"Coming up",text:remaining===0?"Around your usual check-in time.":`Usual rhythm is coming up in ${remaining} day${remaining===1?"":"s"}.`};
-  return {class:"due",label:"Reconnect",text:"Haven’t connected in a bit. A small hello is enough."};
+  if(remaining>3) return {class:"good",tone:"good",label:"Recent",text:`Connected ${relativeContactLabel(last).toLowerCase()}.`};
+  if(remaining>0) return {class:"soon",tone:"soon",label:"Coming up",text:`Usual rhythm is coming up in ${remaining} day${remaining===1?"":"s"}.`};
+  return {class:"due",tone:"due",label:"Reconnect",text:remaining===0?"Around your usual check-in time.":"Haven’t connected in a bit. A small hello is enough."};
+}
+// How many days past due a person is — used only to rank the due list (most overdue
+// first). Never contacted sorts ahead of everything (Infinity): no interaction ever
+// logged is the most urgent gap this list can represent.
+function personOverdueRank(p){
+  const freq=Number(p.frequency||0), last=latestContactDate(p);
+  if(!freq) return -Infinity;
+  if(!last) return Infinity;
+  return daysBetween(last,new Date())-freq;
 }
 // A per-relation low-effort reach-out idea — the "Contact ideas" feature the Guide has
 // documented ("a low-effort way to reach out") but nothing previously implemented.
@@ -56,7 +74,6 @@ const CONTACT_IDEAS={
   other:"Reach out, even briefly."
 };
 function contactIdea(p){ return CONTACT_IDEAS[p.relation]||"A quick hello keeps things warm."; }
-const CIRCLE_RANK=t=>t.class==="due"?0:t.class==="soon"?1:t.class==="good"?2:3;
 let circleSearchQuery="",circleShowAllCheckins=false,circleShowAllRecent=false;
 function circleMatches(p){
   if(!circleSearchQuery) return true;
@@ -83,11 +100,16 @@ function renderCircle(){
     return;
   }
   const matching=state.people.filter(circleMatches);
-  const ranked=[...matching].sort((a,b)=>CIRCLE_RANK(personTiming(a))-CIRCLE_RANK(personTiming(b)));
-  hero.innerHTML=ranked.length?circleHeroHTML(ranked[0]):`<div class="circle-empty-row">No one matches that search.</div>`;
-  const checkinRest=ranked.slice(1);
+  // "People to check in with" is due people only — today >= Next Due Date (last contact +
+  // frequency) and frequency isn't "No Schedule" — never everyone minus the hero. See
+  // personTiming()'s comment for why class==="due" is exactly that condition.
+  const due=matching.filter(p=>personTiming(p).class==="due").sort((a,b)=>personOverdueRank(b)-personOverdueRank(a));
+  if(!matching.length) hero.innerHTML=`<div class="circle-empty-row">No one matches that search.</div>`;
+  else if(!due.length) hero.innerHTML=circleCheckinEmptyHTML();
+  else hero.innerHTML=circleHeroHTML(due[0]);
+  const checkinRest=due.slice(1);
   const checkinShown=circleShowAllCheckins?checkinRest:checkinRest.slice(0,4);
-  checkinList.innerHTML=checkinShown.length?checkinShown.map(circleCheckinRowHTML).join(""):circleCheckinEmptyHTML();
+  checkinList.innerHTML=checkinShown.map(circleCheckinRowHTML).join("");
   document.getElementById("circleCheckinViewAll").style.display=checkinRest.length>4?"":"none";
   document.getElementById("circleCheckinViewAll").textContent=circleShowAllCheckins?"Show less ›":"View all ›";
   const interactions=matching.flatMap(p=>(p.interactions||[]).map(item=>({p,item})))
@@ -150,7 +172,7 @@ function circleNoContentHTML(){
 }
 function circleCheckinRowHTML(p){
   const t=personTiming(p),last=latestContactDate(p),pillText=last?relativeContactLabel(last):t.label;
-  return `<button type="button" class="circle-row" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="circle-row-copy"><span class="circle-row-name">${escapeHTML(p.name)}</span><span class="circle-row-note">${escapeHTML(contactIdea(p))}</span></span><span class="circle-row-pill ${t.class}">${escapeHTML(pillText)}</span><span class="circle-row-chevron" aria-hidden="true">›</span></button>`;
+  return `<button type="button" class="circle-row" onclick="openPersonDetail('${jsEscape(p.id)}')">${visualHTML(p,"avatar","person")}<span class="circle-row-copy"><span class="circle-row-name">${escapeHTML(p.name)}</span><span class="circle-row-note">${escapeHTML(contactIdea(p))}</span></span><span class="circle-row-pill ${t.tone}">${escapeHTML(pillText)}</span><span class="circle-row-chevron" aria-hidden="true">›</span></button>`;
 }
 function circleRecentRowHTML({p,item}){
   const note=item.note||item.method||"Contact";
@@ -218,7 +240,7 @@ function openPersonDetail(id){
   const notes=[...(p.notes||[])].sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
   const notesHTML=notes.length?`<div class="note-list">${notes.map(n=>`<div class="memory-note"><div class="memory-note-type">${escapeHTML(n.type||"Remember")}</div><div class="memory-note-text">${escapeHTML(n.text||"")}</div><div class="memory-note-date">${n.createdAt?escapeHTML(fmtDate(new Date(n.createdAt))):""}</div></div>`).join("")}</div>`:`<div class="empty-notes">No personal notes yet. Save a memory, gift idea, life update, or follow-up when it naturally comes up.</div>`;
   document.getElementById("personDetailTitle").textContent=p.name;
-  document.getElementById("personDetailBody").innerHTML=`<div class="person-detail-hero">${visualHTML(p,"avatar","person")}<div><div class="person-name">${escapeHTML(p.name)}</div><div class="person-chips">${relationPillHTML(p.relation,"person-chip relation")}<span class="person-chip ${t.class}">${escapeHTML(t.label)}</span></div></div></div><div class="detail-facts"><div class="detail-fact"><span>💬</span><span class="detail-fact-copy"><span class="detail-fact-label">Last contact</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(last))}</span>${latest?.method?`<span class="detail-fact-sub">${escapeHTML(latest.method)}</span>`:""}</span></div><div class="detail-fact"><span>👥</span><span class="detail-fact-copy"><span class="detail-fact-label">Last seen in person</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(inPerson))}</span></span></div><div class="detail-fact"><span>📅</span><span class="detail-fact-copy"><span class="detail-fact-label">Usual rhythm</span><span class="detail-fact-value">${escapeHTML(frequencyLabel(p.frequency))}</span>${next?`<span class="detail-fact-sub">Around ${escapeHTML(fmtDate(next))}</span>`:""}</span></div></div><div class="contact-calendar" id="personContactCalendar">${contactCalendarHTML(p)}</div><div class="notes-section"><div class="notes-head"><div class="notes-title">Interaction history</div></div>${interactionHistoryHTML(p)}</div><div class="notes-section"><div class="notes-head"><div class="notes-title">Notes to remember</div><button class="tiny-btn" onclick="openPersonNote('${jsEscape(p.id)}',true)">＋ Add</button></div>${notesHTML}</div>`;
+  document.getElementById("personDetailBody").innerHTML=`<div class="person-detail-hero">${visualHTML(p,"avatar","person")}<div><div class="person-name">${escapeHTML(p.name)}</div><div class="person-chips">${relationPillHTML(p.relation,"person-chip relation")}<span class="person-chip ${t.tone}">${escapeHTML(t.label)}</span></div></div></div><div class="detail-facts"><div class="detail-fact"><span>💬</span><span class="detail-fact-copy"><span class="detail-fact-label">Last contact</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(last))}</span>${latest?.method?`<span class="detail-fact-sub">${escapeHTML(latest.method)}</span>`:""}</span></div><div class="detail-fact"><span>👥</span><span class="detail-fact-copy"><span class="detail-fact-label">Last seen in person</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(inPerson))}</span></span></div><div class="detail-fact"><span>📅</span><span class="detail-fact-copy"><span class="detail-fact-label">Usual rhythm</span><span class="detail-fact-value">${escapeHTML(frequencyLabel(p.frequency))}</span>${next?`<span class="detail-fact-sub">Around ${escapeHTML(fmtDate(next))}</span>`:""}</span></div></div><div class="contact-calendar" id="personContactCalendar">${contactCalendarHTML(p)}</div><div class="notes-section"><div class="notes-head"><div class="notes-title">Interaction history</div></div>${interactionHistoryHTML(p)}</div><div class="notes-section"><div class="notes-head"><div class="notes-title">Notes to remember</div><button class="tiny-btn" onclick="openPersonNote('${jsEscape(p.id)}',true)">＋ Add</button></div>${notesHTML}</div>`;
   personDetailModal.classList.add("show");
 }
 function closePersonDetail(){personDetailModal.classList.remove("show");detailPersonId=null;detailCalendarMonth=null}

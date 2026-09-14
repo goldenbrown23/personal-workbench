@@ -147,7 +147,10 @@ function renderHome(){
   // it is.
   renderHomeHero(getDaypart(now),gentle);
 
-  const nudges=state.people.map(p=>({person:p,timing:personTiming(p)})).filter(x=>["due","soon"].includes(x.timing.class));
+  // Must match circle.js's own definition of "due" exactly (today >= Next Due Date, not
+  // "coming up soon") — otherwise Home's nudge and My Circle's "People to check in with"
+  // can disagree about who currently needs a check-in.
+  const nudges=state.people.map(p=>({person:p,timing:personTiming(p)})).filter(x=>x.timing.class==="due");
 
   renderStartHere(period,gentle,nudges);
   renderHomeWidgets(nudges);
@@ -209,10 +212,15 @@ function renderStartHere(period,gentle,nudges){
     return;
   }
 
-  const personNudge=nudges.sort((a,b)=>(a.timing.class==="due"?0:1)-(b.timing.class==="due"?0:1))[0];
+  // Same ranking circle.js uses for its hero card — most overdue first — so Home ever
+  // only ever suggests the same person My Circle would show as "Your next check-in".
+  const personNudge=nudges.sort((a,b)=>personOverdueRank(b.person)-personOverdueRank(a.person))[0];
   if(personNudge){
     const p=personNudge.person;
-    homeNow.innerHTML=`<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">${TARGET_SVG}</span>Do this next</span></div><div class="do-next-row">${visualHTML(p,"do-next-icon","person")}<div class="do-next-copy"><div class="do-next-title">A small hello to ${escapeHTML(p.name)}</div><div class="do-next-detail">An opportunity to reconnect—not something overdue.</div></div></div><div class="do-next-actions"><button class="do-next-btn primary" onclick="openContactModal('${jsEscape(p.id)}')">${iconSVG("message")}Log a connection</button></div>`;
+    // personNudge is always genuinely due now (class==="due"), so its own calm, accurate
+    // text (personTiming's text field) replaces what used to be a hardcoded "not something
+    // overdue" claim — which was simply false once someone actually is overdue.
+    homeNow.innerHTML=`<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">${TARGET_SVG}</span>Do this next</span></div><div class="do-next-row">${visualHTML(p,"do-next-icon","person")}<div class="do-next-copy"><div class="do-next-title">A small hello to ${escapeHTML(p.name)}</div><div class="do-next-detail">${escapeHTML(personNudge.timing.text)}</div></div></div><div class="do-next-actions"><button class="do-next-btn primary" onclick="openContactModal('${jsEscape(p.id)}')">${iconSVG("message")}Log a connection</button></div>`;
     return;
   }
 

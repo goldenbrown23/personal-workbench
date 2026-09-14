@@ -178,12 +178,18 @@ test.describe('My Circle', () => {
       }]}),
     });
 
+    // Sam has never been contacted, so frequency=7 makes them due for a first check-in —
+    // they start out as the hero card.
+    await expect(page.locator('.circle-hero-name')).toHaveText('Sam');
+
     await page.locator('#circleHeroCard .circle-hero-btn.primary').click();
     await page.locator('#contactMethod').selectOption('Text');
     await page.locator('#contactNote').fill('Quick catch-up');
     await page.locator('#saveContactBtn').click();
 
-    await expect(page.locator('#circleHeroCard')).toContainText('Last talked today');
+    // Logging today's interaction recalculates Next Due Date to 7 days out, so Sam
+    // immediately drops out of "People to check in with" — nobody else is due either.
+    await expect(page.locator('#circleHeroCard')).toContainText("caught up");
     await expect(page.locator('#circleRecentList')).toContainText('Quick catch-up');
 
     const person = (await readState(page)).people[0];
@@ -192,12 +198,14 @@ test.describe('My Circle', () => {
     expect(person.lastContact).toBe('2026-09-13');
 
     await page.reload();
+    await expect(page.locator('#circleHeroCard')).toContainText("caught up");
     await expect(page.locator('#circleRecentList')).toContainText('Quick catch-up');
   });
 
   test('the empty state offers no dead "View all" controls', async ({page}) => {
     await boot(page, {view: 'circleView'});
-    await expect(page.locator('#circleCheckinList')).toContainText('No people yet');
+    await expect(page.locator('#circleHeroCard')).toContainText('Your Circle starts here');
+    await expect(page.locator('#circleCheckinList')).toBeEmpty();
     await expect(page.locator('#circleCheckinViewAll')).toBeHidden();
     await expect(page.locator('#circleRecentViewAll')).toBeHidden();
   });
@@ -274,6 +282,28 @@ test.describe('Trends', () => {
     await page.locator('[data-review-filter="all"]').click();
     await expect(page.locator('#reviewHistory')).toContainText('Evening stretch');
     await expect(page.locator('#reviewHistory')).toContainText('Connected with Sam');
+  });
+
+  test('Weekly Detail engagement % excludes paused habits from "possible"', async ({page}) => {
+    // Two daily habits over a 7-day week: one active, one paused. A paused habit isn't
+    // something the user is expected to complete (see CLAUDE.md's "no guilt mechanics"),
+    // so it must not inflate the "possible" denominator — only the active habit's 7 daily
+    // slots should count, never both habits' 14.
+    const activeHabit = {...twoVersionHabit, id: 'h-active', paused: false};
+    const pausedHabit = {...twoVersionHabit, id: 'h-paused', name: 'Paused habit', paused: true};
+    await boot(page, {view: 'practiceView', state: seedState({habits: [activeHabit, pausedHabit], logs: {}})});
+    await expect(page.locator('#metricEngagementNote')).toHaveText('0 / 7 possible');
+  });
+
+  test('Weekly Detail "coming up, gently" nudge ignores paused habits', async ({page}) => {
+    // A 3-miss streak on a habit the user already paused shouldn't nudge them about it —
+    // pausing is a deliberate break, not a failure to be flagged.
+    const paused = {...twoVersionHabit, id: 'h-paused', paused: true};
+    const logs = {};
+    ['2026-09-11', '2026-09-12', '2026-09-13'].forEach(d => { logs[d] = {'h-paused': 'miss'}; });
+    await boot(page, {view: 'practiceView', state: seedState({habits: [paused], logs})});
+    await expect(page.locator('#practiceSystemLock')).toContainText('0 / 3');
+    await expect(page.locator('#practiceSystemLock')).toContainText('Nothing to act on yet');
   });
 });
 
