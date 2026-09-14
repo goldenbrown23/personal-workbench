@@ -48,6 +48,12 @@ async function boot(page, { state = seedState(), view = 'circleView' } = {}) {
   }, [STORAGE_KEY, VIEW_KEY, JSON.stringify(state), view]);
   await page.goto('/index.html');
   await expect(page.locator('.view.active')).toHaveAttribute('id', view);
+  // The service worker's clients.claim() on first activation fires a controllerchange that
+  // update.js reloads the page for (a real, one-time reload on fresh storage, not a bug).
+  // Let it settle before any locator call that has no built-in retry across a navigation —
+  // this is the source of this file's known "Execution context was destroyed" flake.
+  await page.waitForTimeout(400);
+  await expect(page.locator('.view.active')).toHaveAttribute('id', view);
 }
 
 test.describe('My Circle cadence calculation', () => {

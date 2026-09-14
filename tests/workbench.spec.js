@@ -51,6 +51,12 @@ async function boot(page, {state = seedState(), view = 'homeView', at = '2026-09
   }, [STORAGE_KEY, VIEW_KEY, JSON.stringify(state), view]);
   await page.goto('/index.html');
   await expect(page.locator('.view.active')).toHaveAttribute('id', view);
+  // The service worker's clients.claim() on first activation fires a controllerchange that
+  // update.js reloads the page for (a real, one-time reload on fresh storage, not a bug).
+  // Let it settle before any evaluate/locator call with no built-in retry across a
+  // navigation — this is the source of this file's known "Execution context was destroyed" flake.
+  await page.waitForTimeout(400);
+  await expect(page.locator('.view.active')).toHaveAttribute('id', view);
 }
 
 const readState = page => page.evaluate(k => JSON.parse(localStorage.getItem(k)), STORAGE_KEY);
