@@ -89,7 +89,12 @@
     .home-hero-banner.period-morning{background:#faf5eb}
     .home-hero-banner.period-afternoon{background:#edf5f6}
     .home-hero-banner.period-evening{background:#343b61}
-    .home-hero-bg{filter:saturate(.92) sepia(.04);-webkit-mask-image:linear-gradient(180deg,transparent 0%,transparent 8%,#000 30%),linear-gradient(90deg,transparent 0%,rgba(0,0,0,.08) 18%,rgba(0,0,0,.38) 40%,#000 68%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0%,transparent 8%,#000 30%),linear-gradient(90deg,transparent 0%,rgba(0,0,0,.08) 18%,rgba(0,0,0,.38) 40%,#000 68%);mask-composite:intersect}
+    .home-hero-banner.period-lateNight{background:#343b61}
+    /* Fills the (fade-masked) .home-hero-art-slot completely regardless of a given
+       artwork's native aspect ratio — object-fit:cover computes its own zoom per photo
+       so the mascot/cat stay in frame, rather than a fixed pixel width that over-zooms
+       the taller evening/late-night crops and crops the subject out entirely. */
+    .home-hero-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:right bottom;filter:saturate(.92) sepia(.04);-webkit-mask-image:linear-gradient(180deg,transparent 0%,transparent 8%,#000 30%),linear-gradient(90deg,transparent 0%,rgba(0,0,0,.08) 18%,rgba(0,0,0,.38) 40%,#000 68%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0%,transparent 8%,#000 30%),linear-gradient(90deg,transparent 0%,rgba(0,0,0,.08) 18%,rgba(0,0,0,.38) 40%,#000 68%);mask-composite:intersect}
     .home-hero-banner .eyebrow{color:rgba(42,29,18,.62)}
     #homeView .home-hero-banner h1{color:#2a1d12}
     .home-hero-banner .sub{color:rgba(42,29,18,.7)}
