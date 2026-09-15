@@ -174,6 +174,102 @@ test.describe('Home "do this next" context note', () => {
   });
 });
 
+test.describe('My Circle: My People / single nudge / Recent Moments', () => {
+  function personWith(id, name, extra = {}) {
+    return {id, name, icon: 'person', color: 'rose', relation: '', frequency: 0, lastContact: null, interactions: [], notes: [], ...extra};
+  }
+
+  test('My People shows everyone added, with no Main Circle / Other People split', async ({page}) => {
+    await boot(page, {
+      view: 'circleView',
+      state: seedState({people: [personWith('p1', 'Mom'), personWith('p2', 'Dad'), personWith('p3', 'Alex')]}),
+    });
+    const names = await page.locator('#circlePeopleList .circle-people-item .circle-people-name').allInnerTexts();
+    // Add Person tile shares the same item class, so it shows up in this list too.
+    expect(names).toEqual(expect.arrayContaining(['Mom', 'Dad', 'Alex', 'Add Person']));
+    await expect(page.locator('.circle-main-card, .circle-people-card:has-text("Other People")')).toHaveCount(0);
+  });
+
+  test('zero people preserves the friendly onboarding empty state', async ({page}) => {
+    await boot(page, {view: 'circleView'});
+    await expect(page.locator('#circlePeopleList')).toBeEmpty();
+    await expect(page.locator('#circleHeroCard')).toContainText('Your Circle starts here');
+  });
+
+  test('only one check-in nudge appears on the landing page; the full queue stays hidden until requested', async ({page}) => {
+    await boot(page, {
+      view: 'circleView',
+      state: seedState({people: [
+        personWith('p1', 'Overdue1', {frequency: 7, lastContact: '2026-09-01'}),
+        personWith('p2', 'Overdue2', {frequency: 7, lastContact: '2026-08-20'}),
+      ]}),
+    });
+    await expect(page.locator('.circle-hero-card')).toHaveCount(1);
+    await expect(page.locator('#circleQueueModal')).not.toHaveClass(/show/);
+    await page.locator('#circleHeroCard .circle-hero-menu summary').click();
+    await page.getByRole('button', {name: 'View all check-ins'}).click();
+    await expect(page.locator('#circleQueueModal')).toHaveClass(/show/);
+    await expect(page.locator('#circleQueueList .circle-row')).toHaveCount(2);
+  });
+
+  test('"Not today" swaps the nudge to the next eligible person without a reload', async ({page}) => {
+    await boot(page, {
+      view: 'circleView',
+      state: seedState({people: [
+        personWith('p1', 'Overdue1', {frequency: 7, lastContact: '2026-08-20'}),
+        personWith('p2', 'Overdue2', {frequency: 7, lastContact: '2026-09-01'}),
+      ]}),
+    });
+    await expect(page.locator('.circle-hero-name')).toHaveText('Overdue1');
+    await page.locator('#circleHeroCard .circle-hero-menu summary').click();
+    await page.getByRole('button', {name: 'Not today'}).click();
+    await expect(page.locator('.circle-hero-name')).toHaveText('Overdue2');
+  });
+
+  test('Log moment updates last contact and Recent Moments immediately', async ({page}) => {
+    await boot(page, {
+      view: 'circleView',
+      state: seedState({people: [personWith('p1', 'Sam', {frequency: 7})]}),
+    });
+    await page.locator('#circleHeroCard .circle-hero-btn.primary').click();
+    await page.locator('#contactNote').fill('Sent a photo');
+    await page.locator('#saveContactBtn').click();
+    await expect(page.locator('#circleRecentList')).toContainText('Sent a photo');
+  });
+
+  test('Recent Moments shows at most two items on the landing page', async ({page}) => {
+    const interactions = ['2026-09-10', '2026-09-11', '2026-09-12'].map((date, i) => ({
+      id: `i-${i}`, date, method: 'Text', note: `Moment ${i}`, countsAsSeen: false,
+      createdAt: `${date}T00:00:00.000Z`, updatedAt: `${date}T00:00:00.000Z`,
+    }));
+    await boot(page, {
+      view: 'circleView',
+      state: seedState({people: [personWith('p1', 'Sam', {interactions})]}),
+    });
+    await expect(page.locator('#circleRecentList .circle-row')).toHaveCount(2);
+    await expect(page.locator('#circleRecentViewAll')).toBeVisible();
+  });
+
+  test('"See all" on My People opens the people directory', async ({page}) => {
+    await boot(page, {
+      view: 'circleView',
+      state: seedState({people: [personWith('p1', 'Mom')]}),
+    });
+    await page.locator('#circlePeopleSeeAll').click();
+    await expect(page.locator('#managePeopleModal')).toHaveClass(/show/);
+    await expect(page.locator('#managePeopleList')).toContainText('Mom');
+  });
+
+  test('My People avatar row scrolls horizontally without the page scrolling horizontally', async ({page}) => {
+    const people = Array.from({length: 10}, (_, i) => personWith(`p${i}`, `Person${i}`));
+    await boot(page, {view: 'circleView', state: seedState({people})});
+    const overflowsPage = await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth);
+    expect(overflowsPage).toBe(false);
+    const rowScrollable = await page.locator('#circlePeopleList').evaluate(el => el.scrollWidth > el.clientWidth);
+    expect(rowScrollable).toBe(true);
+  });
+});
+
 test.describe('My Circle', () => {
   test('logging an interaction updates last contact immediately and after reload', async ({page}) => {
     await boot(page, {
@@ -211,8 +307,6 @@ test.describe('My Circle', () => {
   test('the empty state offers no dead "View all" controls', async ({page}) => {
     await boot(page, {view: 'circleView'});
     await expect(page.locator('#circleHeroCard')).toContainText('Your Circle starts here');
-    await expect(page.locator('#circleCheckinList')).toBeEmpty();
-    await expect(page.locator('#circleCheckinViewAll')).toBeHidden();
     await expect(page.locator('#circleRecentViewAll')).toBeHidden();
   });
 
@@ -225,8 +319,9 @@ test.describe('My Circle', () => {
     }));
     await boot(page, {
       view: 'circleView',
-      // Robin is listed first and is equally overdue, so Robin takes the single hero slot
-      // and Sam — the one with the interactions — lands in the tappable check-in list.
+      // Robin is listed first and is equally overdue, so Robin takes the single landing
+      // nudge slot and Sam — the one with the interactions — lands in the full check-in
+      // queue, reached via the nudge card's ••• menu.
       state: seedState({people: [
         {id: 'p-2', name: 'Robin', icon: 'person', color: 'sage', relation: 'friend',
          frequency: 7, lastContact: '2026-08-20', interactions: [], notes: []},
@@ -235,7 +330,9 @@ test.describe('My Circle', () => {
       ]}),
     });
 
-    await page.locator('#circleCheckinList .circle-row', {hasText: 'Sam'}).click();
+    await page.locator('#circleHeroCard .circle-hero-menu summary').click();
+    await page.getByRole('button', {name: 'View all check-ins'}).click();
+    await page.locator('#circleQueueList .circle-row', {hasText: 'Sam'}).click();
     await page.locator('#personDetailModal .modal').evaluate(el => {el.scrollTop = 0;});
 
     const menu = page.locator('#personDetailBody .interaction-row').first().locator('.interaction-menu');

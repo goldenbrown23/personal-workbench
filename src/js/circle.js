@@ -74,62 +74,100 @@ const CONTACT_IDEAS={
   other:"Reach out, even briefly."
 };
 function contactIdea(p){ return CONTACT_IDEAS[p.relation]||"A quick hello keeps things warm."; }
-let circleSearchQuery="",circleShowAllCheckins=false,circleShowAllRecent=false;
+let circleSearchQuery="",circleShowAllRecent=false;
 function circleMatches(p){
   if(!circleSearchQuery) return true;
   return p.name.toLowerCase().includes(circleSearchQuery);
 }
-// Screenshot-style Circle: one featured "next check-in" person, a ranked list of who to
-// check in with, and a feed of recent interactions across everyone — rather than the
-// single flat list this view used before. Superseded per explicit direction: the flat
-// list had replaced an earlier version of this same layout, but the current mockup asks
-// for it back.
+// Revised model: everyone added is already someone the user intentionally wants to
+// nurture — there is no Main Circle / Other People split. The landing page is just three
+// quiet things: My People (everyone), one gentle check-in nudge chosen for the user (not
+// a queue to scan), and a couple of Recent Moments as proof connection is happening. The
+// full rhythm-based queue still exists — it just lives one layer deeper, behind the
+// nudge card's ••• menu, instead of listed on the landing page.
+let circleNudgeSkipIds=new Set();
 function renderCircle(){
   renderTabHeroAccent("circle","circleHeroAccent");
+  const peopleList=document.getElementById("circlePeopleList");
   const hero=document.getElementById("circleHeroCard");
-  const checkinList=document.getElementById("circleCheckinList");
   const recentList=document.getElementById("circleRecentList");
   if(!state.people.length){
+    peopleList.innerHTML="";
     hero.innerHTML=circleNoContentHTML();
-    checkinList.innerHTML="";
     recentList.innerHTML="";
-    // This branch returns before the "View all" toggles below are sized to their lists, so
-    // hide them here too — with nobody added there is nothing for them to expand.
-    document.getElementById("circleCheckinViewAll").style.display="none";
     document.getElementById("circleRecentViewAll").style.display="none";
     return;
   }
+  renderCirclePeople();
   const matching=state.people.filter(circleMatches);
-  // "People to check in with" is due people only — today >= Next Due Date (last contact +
-  // frequency) and frequency isn't "No Schedule" — never everyone minus the hero. See
-  // personTiming()'s comment for why class==="due" is exactly that condition.
+  // "Due" is rhythm-based only (today >= Next Due Date, frequency isn't "No Schedule") —
+  // never derived from relationship type. See personTiming()'s comment for why
+  // class==="due" is exactly that condition.
   const due=matching.filter(p=>personTiming(p).class==="due").sort((a,b)=>personOverdueRank(b)-personOverdueRank(a));
+  circleDueList=due;
+  // Skipping ("Not today" / "Show someone else") only hides a person from today's single
+  // nudge slot — if everyone due has been skipped, fall back to showing one anyway rather
+  // than an empty state that isn't actually true.
+  const eligible=due.filter(p=>!circleNudgeSkipIds.has(p.id));
+  const nudge=eligible[0]||due[0];
   if(!matching.length) hero.innerHTML=`<div class="circle-empty-row">No one matches that search.</div>`;
-  else if(!due.length) hero.innerHTML=circleCheckinEmptyHTML();
-  else hero.innerHTML=circleHeroHTML(due[0]);
-  const checkinRest=due.slice(1);
-  const checkinShown=circleShowAllCheckins?checkinRest:checkinRest.slice(0,4);
-  checkinList.innerHTML=checkinShown.map(circleCheckinRowHTML).join("");
-  document.getElementById("circleCheckinViewAll").style.display=checkinRest.length>4?"":"none";
-  document.getElementById("circleCheckinViewAll").textContent=circleShowAllCheckins?"Show less ›":"View all ›";
+  else if(!nudge) hero.innerHTML=circleCheckinEmptyHTML();
+  else hero.innerHTML=circleHeroHTML(nudge);
   const interactions=matching.flatMap(p=>(p.interactions||[]).map(item=>({p,item})))
     .sort((a,b)=>(b.item.date||"").localeCompare(a.item.date||"")||(b.item.createdAt||"").localeCompare(a.item.createdAt||""));
-  const recentShown=circleShowAllRecent?interactions:interactions.slice(0,4);
+  // Recent Moments is context, not a log — cap the landing view at two so it stays calm;
+  // "See all" opens the rest.
+  const recentShown=circleShowAllRecent?interactions:interactions.slice(0,2);
   recentList.innerHTML=recentShown.length?recentShown.map(circleRecentRowHTML).join(""):circleRecentEmptyHTML();
-  document.getElementById("circleRecentViewAll").style.display=interactions.length>4?"":"none";
-  document.getElementById("circleRecentViewAll").textContent=circleShowAllRecent?"Show less ›":"View all ›";
+  document.getElementById("circleRecentViewAll").style.display=interactions.length>2?"":"none";
+  document.getElementById("circleRecentViewAll").textContent=circleShowAllRecent?"Show less ›":"See all ›";
 }
+// My People: everyone intentionally added, as a quiet horizontally-scrolling avatar row —
+// no relationship labels here (that detail lives in the person's own profile), just a face
+// and a name, plus a plain Add Person affordance at the end.
+function circlePeopleRowHTML(p){
+  return `<button type="button" class="circle-people-item" onclick="openPersonDetail('${jsEscape(p.id)}')">
+    ${visualHTML(p,"avatar circle-people-avatar","person")}
+    <span class="circle-people-name">${escapeHTML(p.name)}</span>
+  </button>`;
+}
+function circlePeopleAddHTML(){
+  return `<button type="button" class="circle-people-item circle-people-add" onclick="openPersonModal()">
+    <span class="circle-people-add-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span>
+    <span class="circle-people-name">Add Person</span>
+  </button>`;
+}
+function renderCirclePeople(){
+  const list=document.getElementById("circlePeopleList");
+  list.innerHTML=state.people.map(circlePeopleRowHTML).join("")+circlePeopleAddHTML();
+}
+document.getElementById("circlePeopleSeeAll").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show")});
+
+// Full rhythm-based check-in queue — one layer deeper than the landing page, reached only
+// through the nudge card's ••• menu. Reuses the same row markup the queue used to render
+// directly on the landing page.
+let circleDueList=[];
+const circleQueueModal=document.getElementById("circleQueueModal");
+function renderCircleQueue(){
+  const list=document.getElementById("circleQueueList");
+  list.innerHTML=circleDueList.length?circleDueList.map(circleCheckinRowHTML).join(""):`<div class="circle-empty-row">No one needs a check-in right now.</div>`;
+}
+function openCircleQueue(){renderCircleQueue();circleQueueModal.classList.add("show");}
+function closeCircleQueue(){circleQueueModal.classList.remove("show");}
+document.getElementById("closeCircleQueue").addEventListener("click",closeCircleQueue);
+circleQueueModal.addEventListener("click",e=>{if(e.target===circleQueueModal)closeCircleQueue()});
+function circleSkipNudge(id){circleNudgeSkipIds.add(id);renderCircle();}
 function circleHeroHTML(p){
   const t=personTiming(p),last=latestContactDate(p);
   return `<div class="circle-hero-card">
     <div class="circle-hero-head">
-      <div class="circle-hero-eyebrow">✦ Your next check-in</div>
+      <div class="circle-hero-eyebrow">A small hello might help today</div>
       <details class="circle-hero-menu floating-menu" data-sheet-title="Options">
         <summary aria-label="More options">•••</summary>
         <div class="circle-hero-menu-list floating-menu-panel">
-          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');openPersonModal('${jsEscape(p.id)}')">Edit person</button>
-          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');openContactModal('${jsEscape(p.id)}')">Log interaction</button>
-          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');renderManagePeople();managePeopleModal.classList.add('show')">Manage Circle</button>
+          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');circleSkipNudge('${jsEscape(p.id)}')">Not today</button>
+          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');circleSkipNudge('${jsEscape(p.id)}')">Show someone else</button>
+          <button type="button" class="floating-menu-option" onclick="this.closest('details')?.removeAttribute('open');openCircleQueue()">View all check-ins</button>
         </div>
       </details>
     </div>
@@ -138,19 +176,19 @@ function circleHeroHTML(p){
       <div class="circle-hero-copy">
         <div class="circle-hero-name">${escapeHTML(p.name)}</div>
         <div class="circle-hero-note">${escapeHTML(contactIdea(p))}</div>
-        <span class="circle-hero-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>${last?`Last check-in · ${escapeHTML(relativeContactLabel(last).toLowerCase())}`:escapeHTML(t.label)}</span>
+        <span class="circle-hero-meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 2"></path></svg>${last?`Last talked · ${escapeHTML(relativeContactLabel(last).toLowerCase())}`:escapeHTML(t.label)}</span>
       </div>
     </div>
     <div class="circle-hero-actions">
-      <button type="button" class="circle-hero-btn primary" onclick="openContactModal('${jsEscape(p.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>Log interaction</button>
+      <button type="button" class="circle-hero-btn primary" onclick="openContactModal('${jsEscape(p.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"></path><path d="M14 2v6h6"></path></svg>Log moment</button>
     </div>
   </div>`;
 }
 function circleCheckinEmptyHTML(){
   return `<div class="circle-empty-state">
     <span class="circle-empty-icon tone-green" aria-hidden="true">${iconSVG("leaf")}</span>
-    <div class="circle-empty-title">Everyone's caught up.</div>
-    <div class="circle-empty-sub">No one needs a check-in right now.</div>
+    <div class="circle-empty-title">You're gently caught up.</div>
+    <div class="circle-empty-sub">Recent moments are keeping your circle warm.</div>
   </div>`;
 }
 function circleRecentEmptyHTML(){
@@ -185,7 +223,6 @@ document.getElementById("circleSearchBtn").addEventListener("click",()=>{
   if(!row.hidden) input.focus(); else { input.value=""; circleSearchQuery=""; renderCircle(); }
 });
 document.getElementById("circleSearchInput").addEventListener("input",e=>{circleSearchQuery=e.target.value.trim().toLowerCase();renderCircle();});
-document.getElementById("circleCheckinViewAll").addEventListener("click",()=>{circleShowAllCheckins=!circleShowAllCheckins;renderCircle();});
 document.getElementById("circleRecentViewAll").addEventListener("click",()=>{circleShowAllRecent=!circleShowAllRecent;renderCircle();});
 
 let detailPersonId=null,detailCalendarMonth=null;const personDetailModal=document.getElementById("personDetailModal");

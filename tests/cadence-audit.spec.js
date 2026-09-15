@@ -68,7 +68,6 @@ test.describe('My Circle cadence calculation', () => {
     // Nobody is due -> calm "everyone's caught up" hero state, no hero card for Bob.
     await expect(page.locator('.circle-hero-name')).toHaveCount(0);
     await expect(page.locator('.circle-hero-card')).toHaveCount(0);
-    await expect(page.locator('#circleCheckinList .circle-row')).toHaveCount(0);
     await expect(page.locator('#circleHeroCard')).toContainText("caught up");
   });
 
@@ -86,7 +85,6 @@ test.describe('My Circle cadence calculation', () => {
   test('Every 2 Weeks: not yet due (11 days of 14) excluded from checkin list', async ({ page }) => {
     await boot(page, { state: seedState({ people: [person('p1', 'Erin', 14, 11)] }) });
     await expect(page.locator('#circleHeroCard')).toContainText("caught up");
-    await expect(page.locator('#circleCheckinList .circle-row')).toHaveCount(0);
   });
 
   test('Monthly: due today (30 days)', async ({ page }) => {
@@ -102,7 +100,6 @@ test.describe('My Circle cadence calculation', () => {
   test('No Schedule (frequency=0): never appears even when long overdue', async ({ page }) => {
     await boot(page, { state: seedState({ people: [person('p1', 'Henry', 0, 400)] }) });
     await expect(page.locator('#circleHeroCard')).toContainText("caught up");
-    await expect(page.locator('#circleCheckinList .circle-row')).toHaveCount(0);
   });
 
   test('Newly added person with no interactions ever (frequency enabled): counts as due', async ({ page }) => {
@@ -123,7 +120,7 @@ test.describe('My Circle cadence calculation', () => {
     await expect(page.locator('#circleHeroCard')).toContainText("caught up");
   });
 
-  test('Multiple overdue contacts: hero is most overdue, rest ranked correctly, none skipped', async ({ page }) => {
+  test('Multiple overdue contacts: nudge is most overdue; full queue ranks the rest correctly, none skipped', async ({ page }) => {
     const people = [
       person('p1', 'Overdue7', 7, 10),   // 3 days overdue
       person('p2', 'Overdue14', 14, 20), // 6 days overdue
@@ -131,11 +128,14 @@ test.describe('My Circle cadence calculation', () => {
       person('p4', 'DueToday', 30, 30),  // exactly due
     ];
     await boot(page, { state: seedState({ people }) });
-    // Most overdue (Overdue14, 6 days over) should be hero.
+    // Most overdue (Overdue14, 6 days over) is the single landing-page nudge.
     await expect(page.locator('.circle-hero-name')).toHaveText('Overdue14');
-    const rows = await page.locator('#circleCheckinList .circle-row-name').allInnerTexts();
-    // Exactly the other 2 due people appear, NotDue is excluded entirely.
-    expect(rows.sort()).toEqual(['DueToday', 'Overdue7'].sort());
+    // The full queue (all 3 due people, ranked) lives behind the ••• menu, not on the landing page.
+    await page.locator('#circleHeroCard .circle-hero-menu summary').click();
+    await page.getByRole('button', {name: 'View all check-ins'}).click();
+    const rows = await page.locator('#circleQueueList .circle-row-name').allInnerTexts();
+    // All 3 due people appear (including the nudge itself), NotDue is excluded entirely.
+    expect(rows.sort()).toEqual(['DueToday', 'Overdue14', 'Overdue7'].sort());
   });
 
   test('Logging a new interaction removes the person from the due list immediately (no reload)', async ({ page }) => {
@@ -148,9 +148,8 @@ test.describe('My Circle cadence calculation', () => {
     await page.locator('#saveContactBtn').click();
     await expect(page.locator('#contactModal')).not.toHaveClass(/show/);
 
-    // Liam should now be gone from both hero and checkin list, without a reload.
+    // Liam should now be gone from the nudge, without a reload.
     await expect(page.locator('#circleHeroCard')).toContainText("caught up");
-    await expect(page.locator('#circleCheckinList .circle-row')).toHaveCount(0);
   });
 
   test('Home "Do this next" nudge stays in sync with My Circle due status', async ({ page }) => {
