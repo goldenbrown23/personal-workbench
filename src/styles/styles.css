@@ -149,6 +149,17 @@
     .tab-hero--trends{height:155px;background:#fbf0df}
     .tab-hero--trends .tab-hero-art{width:46%;height:72%}
     .sibling-hero-scene{-webkit-mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.14) 12%,#000 32%),linear-gradient(90deg,transparent 0%,transparent 44%,rgba(0,0,0,.18) 56%,#000 72%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.14) 12%,#000 32%),linear-gradient(90deg,transparent 0%,transparent 44%,rgba(0,0,0,.18) 56%,#000 72%);mask-composite:intersect}
+    /* Habits/Circle/Trends only (never Home — Home keeps the shared mask above plus its
+       own dedicated ::before wash). The horizontal stops above were tuned for the OLD,
+       ultra-wide sibling artwork positioned with a large negative right offset; now that
+       each image sits flush right (see the img markup) to stop clipping each hero's
+       companion cat off the right edge, those old stops would land the fully-transparent
+       0-44% zone across most of the text column — a hard void, not the soft "still
+       perceptible" left side the new artwork was composed for. These recalibrated stops
+       keep the fade gentle through the text column and finish ramping to full opacity
+       just before each hero's companion/focal subject begins, so the cat is never
+       re-faded by the safety net that protects the text next to it. */
+    .tab-hero .sibling-hero-scene{-webkit-mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.14) 12%,#000 32%),linear-gradient(90deg,transparent 0%,transparent 38%,rgba(0,0,0,.18) 60%,#000 82%);-webkit-mask-composite:source-in;mask-image:linear-gradient(180deg,transparent 0%,rgba(0,0,0,.14) 12%,#000 32%),linear-gradient(90deg,transparent 0%,transparent 38%,rgba(0,0,0,.18) 60%,#000 82%);mask-composite:intersect}
     .sibling-hero .tab-hero-secondary{color:rgba(58,47,39,.62)}
     .sibling-hero .tab-hero-accent{font-family:"Bradley Hand","Segoe Print",cursive;font-style:italic;color:rgba(42,29,18,.76)}
     @media(max-width:520px){
