@@ -68,21 +68,60 @@ function pickHomeCopyIndex(poolLength,avoidIndex){
   if(idx===avoidIndex) idx=(idx+1)%poolLength;
   return idx;
 }
-const TAB_HERO_ACCENTS={
-  habits:["Progress lives in the everyday ♡","Small steps still count ♡","Keep the rhythm, not the pressure ♡","Tiny repeats become a life ♡","A little today is enough ♡"],
-  circle:["Good people make a softer tomorrow ♡","Keep the people who matter close ♡","Connection is part of a full life ♡","A small reach-out still counts ♡","Relationships grow in small moments ♡"],
-  trends:["Progress is easier to see from here ♡","Small steps leave a pattern ♡","Your rhythm tells a story ♡","Look for direction, not perfection ♡","Little changes become visible ♡"]
+// Sibling tabs (fixed artwork) get one curated {supporting, accent} PAIR per day, never
+// picked independently — a pair is written together so the two lines always agree in
+// tone (see philosophy notes per tab below). Same stable once-per-calendar-day mechanism
+// as Home's copy (HOME_COPY_KEY/dateKey), just storing a pair index instead of three.
+const TAB_HERO_COPY={
+  // Habits: consistency without perfection — smaller versions count, missing once
+  // doesn't erase progress, capacity is allowed to change. No streak-pressure language.
+  habits:[
+    {supporting:"A smaller version still counts as showing up.",accent:"Consistency, not perfection ♡"},
+    {supporting:"Missing a day doesn’t erase the ones before it.",accent:"Return, don’t restart ♡"},
+    {supporting:"Some days call for less, and that’s alright.",accent:"Capacity changes, care doesn’t ♡"},
+    {supporting:"Doing it imperfectly still keeps it alive.",accent:"Imperfect still counts ♡"},
+    {supporting:"Coming back is the whole practice.",accent:"Returning is the skill ♡"},
+    {supporting:"Small and steady beats big and rare.",accent:"Small steps still count ♡"},
+    {supporting:"Adjusting the shape still keeps it yours.",accent:"Adapting is part of it ♡"},
+    {supporting:"One small rhythm is enough for today.",accent:"Enough, not everything ♡"}
+  ],
+  // My Circle: intentional relationships without turning people into tasks — no
+  // overdue/due/late/obligation language, just ordinary small-moment connection.
+  circle:[
+    {supporting:"A short hello still means something.",accent:"Small moments build closeness ♡"},
+    {supporting:"You don’t need a big gesture to stay close.",accent:"Simple still counts ♡"},
+    {supporting:"Ordinary check-ins build closeness.",accent:"Connection grows gently ♡"},
+    {supporting:"A little attention goes a long way.",accent:"Presence over perfection ♡"},
+    {supporting:"Reaching out can be as simple as one line.",accent:"Keep it simple ♡"},
+    {supporting:"A small moment can mean a lot to them.",accent:"Small moments, real closeness ♡"},
+    {supporting:"Warmth doesn’t need to be planned.",accent:"Warmth in small doses ♡"},
+    {supporting:"A little thought keeps people close.",accent:"Closeness lives in small things ♡"}
+  ],
+  // Trends: notice patterns without judging yourself — no performance/scoring language,
+  // direction and noticing matter more than any single day.
+  trends:[
+    {supporting:"Patterns say more than any single day.",accent:"Notice the shape, not the score ♡"},
+    {supporting:"Progress rarely moves in a straight line.",accent:"Direction over perfection ♡"},
+    {supporting:"Zooming out shows what one day can’t.",accent:"The bigger picture is kinder ♡"},
+    {supporting:"An uneven week still tells you something true.",accent:"Imperfect weeks count too ♡"},
+    {supporting:"Noticing is already useful, no judgment required.",accent:"Just notice, don’t judge ♡"},
+    {supporting:"What matters is where you’re heading.",accent:"Trends over totals ♡"},
+    {supporting:"A dip doesn’t undo the pattern around it.",accent:"One dip isn’t the story ♡"},
+    {supporting:"Small shifts add up more than they seem.",accent:"Small shifts add up ♡"}
+  ]
 };
-function renderTabHeroAccent(kind,elementId){
-  const pool=TAB_HERO_ACCENTS[kind],today=dateKey(),storageKey=`${kind}Accent`;
+function renderTabHeroCopy(kind,supportingElId,accentElId){
+  const pool=TAB_HERO_COPY[kind],today=dateKey(),storageKey=`${kind}Copy`;
   let all={};
   try{ all=JSON.parse(localStorage.getItem(HOME_COPY_KEY)||"{}"); }catch{ all={}; }
   const prior=all[storageKey];
-  if(!prior||prior.date!==today||prior.a>=pool.length){
-    all[storageKey]={date:today,a:pickHomeCopyIndex(pool.length,prior?.a??-1)};
+  if(!prior||prior.date!==today||prior.i>=pool.length){
+    all[storageKey]={date:today,i:pickHomeCopyIndex(pool.length,prior?.i??-1)};
     try{ localStorage.setItem(HOME_COPY_KEY,JSON.stringify(all)); }catch{}
   }
-  document.getElementById(elementId).textContent=pool[all[storageKey].a];
+  const pick=pool[all[storageKey].i];
+  document.getElementById(supportingElId).textContent=pick.supporting;
+  document.getElementById(accentElId).textContent=pick.accent;
 }
 // Stable for the current (day, time block): re-picks only when the date or the block has
 // changed since the last render, and — when it does re-pick — avoids repeating yesterday's

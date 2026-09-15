@@ -219,7 +219,7 @@ function renderHabitsBanner(){
   el.innerHTML=`<span class="habits-banner-icon" aria-hidden="true">🌿</span><span>${escapeHTML(HABITS_BLOCK_BANNER[habitsSelectedBlock]||HABITS_BLOCK_BANNER.morning)}</span>`;
 }
 function renderToday(){
-  renderTabHeroAccent("habits","habitsHeroAccent");
+  renderTabHeroCopy("habits","habitsHeroSupporting","habitsHeroAccent");
   const gentle=gentleDayOn();
   const gentleBtn=document.getElementById("gentleModeBtn");
   gentleBtn.classList.toggle("active",gentle);
@@ -558,7 +558,7 @@ function getLast7Days(){
   return arr;
 }
 function renderWeek(){
-  renderTabHeroAccent("trends","trendsHeroAccent");
+  renderTabHeroCopy("trends","trendsHeroSupporting","trendsHeroAccent");
   const days=getLast7Days();
   const grid=document.getElementById("weekGrid");
   grid.innerHTML="";

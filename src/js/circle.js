@@ -87,7 +87,7 @@ function circleMatches(p){
 // nudge card's ••• menu, instead of listed on the landing page.
 let circleNudgeSkipIds=new Set();
 function renderCircle(){
-  renderTabHeroAccent("circle","circleHeroAccent");
+  renderTabHeroCopy("circle","circleHeroSupporting","circleHeroAccent");
   const peopleList=document.getElementById("circlePeopleList");
   const hero=document.getElementById("circleHeroCard");
   const recentList=document.getElementById("circleRecentList");
