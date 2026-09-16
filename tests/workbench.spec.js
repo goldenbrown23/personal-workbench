@@ -112,9 +112,11 @@ test.describe('habit logging', () => {
       }),
     });
 
-    const rowStatus = name => page.locator('.checklist-row', {hasText: name}).locator('.checklist-status');
-    await expect(rowStatus('Evening stretch')).toHaveText('✓');
-    await expect(rowStatus('Drink water')).toHaveText('○');
+    // Already-logged habits live in Logged today, not the Today checklist — see
+    // habitStillNeedsAttentionToday() in habits.js.
+    const loggedRow = name => page.locator('#habitsDoneList .later-row', {hasText: name});
+    await expect(loggedRow('Evening stretch')).toContainText('Done');
+    await expect(loggedRow('Drink water')).toContainText('Counted');
   });
 
   test('Easier version offers each configured version and logs the smaller one', async ({page}) => {

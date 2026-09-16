@@ -409,11 +409,12 @@ function renderHabitsChecklist(){
     wrap.innerHTML=`<div class="empty-card">No habits yet.<button type="button" class="btn primary" style="margin-top:10px;width:100%" onclick="openHabitModal()">+ Add your first habit</button></div>`;
     return;
   }
-  // A weekly habit that already met its rhythm for the week steps out of the normal active
-  // list — same "enough attention for now" rule habitStillNeedsAttentionToday applies for
-  // Home's Do This Next/Later, just also applied here so it doesn't keep appearing in the
-  // main Today checklist. It stays reachable via Search, its own detail sheet, and history.
-  const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock&&(h.scheduleType!=="weekly"||weeklyProgress(h)<Number(h.weeklyTarget||1)));
+  // Shares habitStillNeedsAttentionToday with Home's Do This Next/Later so "already logged
+  // today" and "weekly rhythm already met" both pull a habit out of Today the same way here
+  // as everywhere else — it used to duplicate only the weekly-target half of that rule,
+  // which let an already-logged daily/specific-day habit stay in Today alongside Logged
+  // today. It stays reachable via Search, its own detail sheet, and history.
+  const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock&&habitStillNeedsAttentionToday(h));
   countLabel.textContent=`Today · ${items.length}`;
   if(!items.length){
     wrap.innerHTML=`<div class="empty-card">Nothing scheduled for ${escapeHTML(BLOCK_LABEL[habitsSelectedBlock]||"this")}.</div>`;
