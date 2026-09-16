@@ -260,9 +260,18 @@ document.querySelectorAll("#habitsPeriodSwitch [data-block]").forEach(btn=>btn.a
 // search results (see searchResultRowHTML) to show which daypart a habit lives in instead,
 // since search spans every daypart at once and homePrimaryTier() only means something
 // within the currently-selected one.
+// A weekly habit's card reads by how often it's happened this week, not which version
+// tier it's in — "1 of 3 this week" rather than the configured version text. Once the
+// weekly rhythm is met, the wording drops "of N" ("3 times this week") since there's no
+// remaining target left to state.
+function weeklyProgressLabel(h){
+  const progress=weeklyProgress(h),target=Number(h.weeklyTarget||1);
+  if(progress>=target) return `${progress} time${progress===1?"":"s"} this week`;
+  return `${progress} of ${target} this week`;
+}
 function checklistRowHTML(h,contextLabel=null){
   const status=getStatus(h.id);
-  const subtext=contextLabel!==null?contextLabel:homePrimaryTier(h).text;
+  const subtext=contextLabel!==null?contextLabel:(h.scheduleType==="weekly"?weeklyProgressLabel(h):homePrimaryTier(h).text);
   // Shared glyph vocabulary (✓ / ○ / — / ↩) rather than a local one, so a smaller version
   // reads as ○ here exactly as it does in the Done list, Trends, and this row's own
   // aria-label below — it used to collapse to the same ✓ as a full version.
@@ -308,7 +317,11 @@ function renderHabitsChecklist(){
     wrap.innerHTML=`<div class="empty-card">No habits yet.<button type="button" class="btn primary" style="margin-top:10px;width:100%" onclick="openHabitModal()">+ Add your first habit</button></div>`;
     return;
   }
-  const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock);
+  // A weekly habit that already met its rhythm for the week steps out of the normal active
+  // list — same "enough attention for now" rule habitStillNeedsAttentionToday applies for
+  // Home's Do This Next/Later, just also applied here so it doesn't keep appearing in the
+  // main Today checklist. It stays reachable via Search, its own detail sheet, and history.
+  const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock&&(h.scheduleType!=="weekly"||weeklyProgress(h)<Number(h.weeklyTarget||1)));
   countLabel.textContent=`Today · ${items.length}`;
   if(!items.length){
     wrap.innerHTML=`<div class="empty-card">Nothing scheduled for ${escapeHTML(BLOCK_LABEL[habitsSelectedBlock]||"this")}.</div>`;
@@ -406,6 +419,15 @@ function renderStatusSharedFields(){
   const h=state.habits.find(x=>x.id===loggingHabitId);
   document.getElementById("statusModalTitle").textContent=h?h.name:"Log habit";
   document.getElementById("statusTimeBlock").value=timeBlockOf(h);
+  const ctx=document.getElementById("statusWeeklyContext");
+  if(ctx){
+    const weekly=h?.scheduleType==="weekly";
+    ctx.style.display=weekly?"block":"none";
+    if(weekly){
+      const target=Number(h.weeklyTarget||1),progress=weeklyProgress(h);
+      ctx.textContent=`${target} time${target===1?"":"s"} per week · So far ${progress} of ${target}`;
+    }
+  }
 }
 // The habit name when it fits, or a generic fallback when it doesn't — keeps the button's
 // single line of text from ever forcing sheet width or wrapping awkwardly.
@@ -612,7 +634,7 @@ function openHabitSheet(id){
   habitSheetSelectedStatus=current||rows[0].status;
   document.getElementById("habitSheetIcon").innerHTML=visualHTML(h,"checklist-icon");
   document.getElementById("habitSheetTitle").textContent=h.name;
-  document.getElementById("habitSheetSub").textContent=rows[0].text;
+  document.getElementById("habitSheetSub").textContent=h.scheduleType==="weekly"?weeklyProgressLabel(h):rows[0].text;
   renderHabitSheetList();
   habitSheetModal.classList.add("show");
 }

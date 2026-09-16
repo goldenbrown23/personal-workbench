@@ -108,7 +108,11 @@ function renderPracticeGrid(){
         if(isReturnDay(entry)){ returnsCount++; dayReturns++; }
         if(["done","counted","returned"].includes(status)) engaged++;
       }
-      if(applies) possible++;
+      // A weekly-rhythm habit doesn't have a daily opportunity to log — counting it as
+      // "possible" on all 7 days would inflate the denominator (e.g. a 3x/week habit
+      // reading as 3/7 instead of 3/3). Its weekly-target contribution is added once,
+      // after this per-day loop, instead.
+      if(applies && h.scheduleType!=="weekly") possible++;
     });
     const row = document.createElement("tr");
     row.className = isToday ? "today" : "";
@@ -126,7 +130,10 @@ function renderPracticeGrid(){
   });
   body.querySelectorAll("[data-day-note]").forEach(btn=>btn.addEventListener("click",()=>openDayNote(btn.dataset.dayNote)));
 
-  const engagementPct = possible ? Math.round((engaged/possible)*100) : 0;
+  // Weekly-rhythm habits contribute their target once for the whole week (see the note in
+  // the loop above), not once per day — added here rather than inside days.forEach.
+  state.habits.forEach(h=>{ if(!h.paused && h.scheduleType==="weekly") possible+=Number(h.weeklyTarget||1); });
+  const engagementPct = possible ? Math.min(100,Math.round((engaged/possible)*100)) : 0;
   document.getElementById("metricEngagement").textContent = possible ? `${engagementPct}%` : "—";
   document.getElementById("metricEngagementNote").textContent = possible ? `${engaged} / ${possible} possible` : "Nothing logged yet";
   document.getElementById("metricReturns").textContent = String(returnsCount);

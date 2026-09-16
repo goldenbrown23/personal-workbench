@@ -127,6 +127,11 @@ function switchView(viewId){
   });
   localStorage.setItem(VIEW_KEY,viewId);
   window.scrollTo({top:0,behavior:"auto"});
+  // Entering Habits from a DIFFERENT view re-picks the daypart tab for the current time
+  // (see defaultHabitsBlock() in habits.js) — but re-selecting Habits while already on it
+  // (e.g. a stray click, or a rerender that happens to pass through here) must never
+  // clobber a manual Morning/Afternoon/Evening choice made during this Habits visit.
+  if(viewId==="todayView"){ if(prevViewId!==viewId) habitsSelectedBlock=defaultHabitsBlock(); renderToday(); }
   if(viewId==="weekView") renderWeek();
   if(viewId==="circleView") renderCircle();
   if(viewId==="homeView") renderHome();
