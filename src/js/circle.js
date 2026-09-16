@@ -13,6 +13,10 @@ function latestContactDate(p){
   const latest=latestInteraction(p);
   return parseLocalDate(latest?.date || p.lastContact);
 }
+function latestSeenDate(p){
+  const latest=latestSeenInteraction(p);
+  return latest?parseLocalDate(latest.date):null;
+}
 function relativeContactLabel(d){
   if(!d) return "Not logged";
   const age=daysBetween(d,new Date());
@@ -20,6 +24,18 @@ function relativeContactLabel(d){
   if(age===1) return "Yesterday";
   if(age>1) return `${age} days ago`;
   return fmtDate(d);
+}
+// Compact form for tight metadata rows (My People) — same age math as
+// relativeContactLabel, but "4d"/"2w"/"1mo" instead of "4 days ago" so a relationship
+// label like "Close Friend" still has room to breathe at 375px.
+function compactRelativeLabel(d){
+  if(!d) return "—";
+  const age=daysBetween(d,new Date());
+  if(age<=0) return "Today";
+  if(age<7) return `${age}d`;
+  if(age<30) return `${Math.round(age/7)}w`;
+  if(age<365) return `${Math.round(age/30)}mo`;
+  return `${Math.round(age/365)}y`;
 }
 // Keeps p.lastContact (a cached mirror used as a fallback when interactions is empty,
 // and by the day-count-badge fallback in the review timeline) in sync with the actual
@@ -128,24 +144,34 @@ function renderCircleMoments(){
     (moreCount>0?`<button type="button" class="history-show-more" id="circleMomentsShowMore">Show ${moreCount} earlier moment${moreCount===1?"":"s"}</button>`:"");
   document.getElementById("circleMomentsShowMore")?.addEventListener("click",()=>{circleMomentsShown+=CIRCLE_MOMENTS_STEP;renderCircleMoments();});
 }
-// My People: everyone intentionally added, as a quiet horizontally-scrolling avatar row —
-// no relationship labels here (that detail lives in the person's own profile), just a face
-// and a name, plus a plain Add Person affordance at the end.
+// My People: everyone intentionally added, as a quiet horizontally-scrolling row — face,
+// name, relationship (plain muted text, never a colored pill here — that treatment is
+// reserved for the person's own profile), and last-talked/last-in-person as compact
+// icon + relative time so "who/what/when" reads at a glance without becoming a CRM row.
+// Add Person lives only in the hero's addPersonBtn now — a second entry point in this
+// limited-width rail would just cost space that should go to actual people.
 function circlePeopleRowHTML(p){
+  const relation=relationTag(p.relation);
+  const talked=latestContactDate(p), seen=latestSeenDate(p);
+  const talkedLabel=compactRelativeLabel(talked), seenLabel=compactRelativeLabel(seen);
+  const talkedTitle=talked?`Last talked ${relativeContactLabel(talked).toLowerCase()}`:"No conversations logged yet";
+  const seenTitle=seen?`Last in person ${relativeContactLabel(seen).toLowerCase()}`:"No in-person visits logged yet";
   return `<button type="button" class="circle-people-item" onclick="openPersonDetail('${jsEscape(p.id)}')">
     ${visualHTML(p,"avatar circle-people-avatar","person")}
-    <span class="circle-people-name">${escapeHTML(p.name)}</span>
-  </button>`;
-}
-function circlePeopleAddHTML(){
-  return `<button type="button" class="circle-people-item circle-people-add" onclick="openPersonModal()">
-    <span class="circle-people-add-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg></span>
-    <span class="circle-people-name">Add Person</span>
+    <span class="circle-people-copy">
+      <span class="circle-people-name">${escapeHTML(p.name)}</span>
+      ${relation?`<span class="circle-people-relation">${escapeHTML(relation.label)}</span>`:""}
+      <span class="circle-people-meta">
+        <span class="circle-people-meta-item" title="${escapeAttr(talkedTitle)}"><span aria-hidden="true">${iconSVG("message")}</span><span aria-label="${escapeAttr(talkedTitle)}">${escapeHTML(talkedLabel)}</span></span>
+        <span class="circle-people-meta-sep" aria-hidden="true">·</span>
+        <span class="circle-people-meta-item" title="${escapeAttr(seenTitle)}"><span aria-hidden="true">${iconSVG("people")}</span><span aria-label="${escapeAttr(seenTitle)}">${escapeHTML(seenLabel)}</span></span>
+      </span>
+    </span>
   </button>`;
 }
 function renderCirclePeople(){
   const list=document.getElementById("circlePeopleList");
-  list.innerHTML=state.people.map(circlePeopleRowHTML).join("")+circlePeopleAddHTML();
+  list.innerHTML=state.people.map(circlePeopleRowHTML).join("");
 }
 document.getElementById("circlePeopleSeeAll").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show")});
 
