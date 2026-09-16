@@ -235,15 +235,24 @@ const BLOCK_LABEL={morning:"morning",afternoon:"afternoon",evening:"evening"};
 const LATER_LABEL={morning:"This morning",afternoon:"This afternoon",evening:"Tonight"};
 const EARLIER_LABEL={morning:"Earlier this morning",afternoon:"Earlier this afternoon",evening:"Earlier tonight"};
 const CHRONO_ORDER=["morning","afternoon","evening"];
+// Kept only for laterTodayHabits' cross-block preview ordering below — pickStartHereHabit
+// itself no longer walks other blocks looking for something to fill the card (see its own
+// comment: momentum, not manufactured work).
 const BLOCK_SEARCH_ORDER={
   morning:["morning","afternoon","evening"],
   afternoon:["afternoon","evening","morning"],
   evening:["evening","afternoon","morning"],
   "late-night":["evening","morning","afternoon"]
 };
+// Late-night isn't one of the three habit blocks — it reads as a continuation of evening
+// (see home.js's homeDisplayBlock, which this mirrors) rather than its own bucket.
+function currentBlockForPeriod(period){ return period==="late-night"?"evening":period; }
 function unloggedTodayHabitsInBlock(block){return state.habits.filter(h=>habitAppliesToday(h)&&!h.paused&&timeBlockOf(h)===block&&habitStillNeedsAttentionToday(h))}
-function pickHabitForBlock(block){
-  const candidates=unloggedTodayHabitsInBlock(block);
+// Shared "which one of these candidates do we actually lead with" priority: a return
+// (a missed expected opportunity) outranks everything since it's the one case where timing
+// itself is the point, then whichever habit has a smaller/easier version configured (the
+// gentler ask), then just the first one.
+function pickFromCandidates(candidates){
   if(!candidates.length) return null;
   const returnPick=candidates.find(h=>wasExpectedOpportunityMissed(h));
   if(returnPick) return {habit:returnPick,isReturn:true};
@@ -251,16 +260,27 @@ function pickHabitForBlock(block){
   if(withSmaller) return {habit:withSmaller,isReturn:false};
   return {habit:candidates[0],isReturn:false};
 }
-// Deterministic, config-driven pick: search the current time block first, then fall back
-// through the other blocks in an order chosen per period. At late-night this looks at
-// evening habits before morning ones, so a stale morning habit never gets surfaced as if
-// it were suddenly relevant again merely because it was never completed.
+function pickHabitForBlock(block){ return pickFromCandidates(unloggedTodayHabitsInBlock(block)); }
+// A habit that's explicitly flexible (scheduleType==="flexible") has no daypart cadence to
+// respect — see missedOpportunityAnchor's own "flexible: never infers a miss" branch — so
+// it's the only kind of habit genuinely eligible to fill Do This Next when the current
+// daypart has nothing of its own. A weekly-target habit is NOT treated as flexible here even
+// though "0 of 2 this week" sounds similar: the target describes how many opportunities exist
+// this week, not an obligation to take the earliest one — it only ever surfaces in its own
+// timeBlock, exactly like a daily habit does.
+function flexibleHabitsNow(){return state.habits.filter(h=>h.scheduleType==="flexible"&&!h.paused&&habitStillNeedsAttentionToday(h))}
+// Do This Next's whole hierarchy: (1) something genuinely due in the CURRENT daypart, (2)
+// failing that, a genuinely flexible habit (never a weekly/daily one just because it's
+// incomplete), (3) failing that, no recommendation at all — an empty result is a valid,
+// intended outcome, not a bug to work around. This deliberately never walks backward into
+// a daypart that already passed (a morning habit doesn't get "found" again in the
+// afternoon) — see CLAUDE.md's "no guilt mechanics" / "Return, don't redesign" principle.
 function pickStartHereHabit(period){
-  const order=BLOCK_SEARCH_ORDER[period]||BLOCK_SEARCH_ORDER.morning;
-  for(let i=0;i<order.length;i++){
-    const pick=pickHabitForBlock(order[i]);
-    if(pick) return {...pick,block:order[i],isCurrentBlock:period!=="late-night"&&i===0};
-  }
+  const block=currentBlockForPeriod(period);
+  const currentPick=pickHabitForBlock(block);
+  if(currentPick) return {...currentPick,block,isCurrentBlock:true};
+  const flexiblePick=pickFromCandidates(flexibleHabitsNow());
+  if(flexiblePick) return {...flexiblePick,block:timeBlockOf(flexiblePick.habit),isCurrentBlock:false};
   return null;
 }
 // A habit whose time block already passed today (e.g. a morning habit, unlogged, viewed in

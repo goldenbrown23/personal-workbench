@@ -247,7 +247,7 @@ function renderStartHere(period,gentle,nudges){
 
   const pick=pickStartHereHabit(period);
   if(pick){
-    homeNow.innerHTML=doNextHTML(pick,{gentle,blockPeriod:period});
+    homeNow.innerHTML=doNextHTML(pick,{gentle});
     return;
   }
 
@@ -264,25 +264,35 @@ function renderStartHere(period,gentle,nudges){
   }
 
   homeNow.classList.add("quiet");
-  homeNow.innerHTML=`<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">${iconSVG("leaf")}</span>Do this next</span></div><div class="do-next-row"><span class="do-next-icon visual-tone-sage">${iconSVG("leaf")}</span><div class="do-next-copy"><div class="do-next-title">Nothing urgent right now.</div><div class="do-next-detail">You can close the app.</div></div></div>`;
+  const empty=doNextEmptyCopy(period);
+  const detailHTML=empty.detail?`<div class="do-next-detail">${escapeHTML(empty.detail)}</div>`:"";
+  homeNow.innerHTML=`<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">${iconSVG("leaf")}</span>Do this next</span></div><div class="do-next-row"><span class="do-next-icon visual-tone-sage">${iconSVG("leaf")}</span><div class="do-next-copy"><div class="do-next-title">${escapeHTML(empty.title)}</div>${detailHTML}</div></div></div>`;
+}
+// There is genuinely nothing to recommend — a legitimate, intended state (see CLAUDE.md's
+// "being done for now is a legitimate state"), not a gap to explain away. Copy stays calm
+// and specific to the daypart rather than a generic "you're all caught up" celebration —
+// no streak language, no remaining-count, no productivity framing.
+function doNextEmptyCopy(period){
+  if(period==="afternoon") return {title:"Nothing you need to do right now.",detail:"Come back when the evening starts."};
+  if(period==="evening") return {title:"You’re clear for tonight.",detail:""};
+  if(period==="late-night") return {title:"You’re done for today.",detail:""};
+  return {title:"Nothing you need to do right now.",detail:""};
 }
 // Easier version stays a first-class, equally-sized action next to Done — never a small
 // text link — since a smaller version is a normal choice, not a fallback.
-function doNextHTML(pick,{gentle=false,blockPeriod=null}={}){
+function doNextHTML(pick,{gentle=false}={}){
   const h=pick.habit,tier=homePrimaryTier(h);
-  // Only explains a fallback when there IS a block to have fallen back FROM. At late-night
-  // currentTimePeriod() returns "late-night", which is a period but not one of the three
-  // habit time blocks — so there is nothing "left from" it, and the note would read
-  // "Nothing left from now, so here’s one from evening instead" over an evening habit.
-  const fromLabel=BLOCK_LABEL[blockPeriod];
-  const blockNote=(pick.isCurrentBlock||!fromLabel)?"":`<div class="do-next-block-note">Nothing left from ${escapeHTML(fromLabel)}, so here’s one from ${escapeHTML(BLOCK_LABEL[pick.block]||"elsewhere")} instead.</div>`;
+  // A flexible pick (pick.isCurrentBlock===false) doesn't need a "fell back from" note —
+  // it's a deliberate, genuinely-anytime suggestion, not a stand-in for a daypart that
+  // came up empty (Do This Next no longer walks other dayparts looking for filler; see
+  // pickStartHereHabit in habits.js).
   let detail,primaryStatus;
   if(pick.isReturn){ detail=isReduceGoal(h)?"The next choice is a return—not a restart.":"This is a return—not a restart."; primaryStatus=tier.status; }
   else if(gentle){ detail="Doing less still keeps the connection."; primaryStatus="counted"; }
   else{ detail=tier.text; primaryStatus=tier.status; }
   const hasVersions=versionRowsForHabit(h).length>1;
   const easierBtn=hasVersions?`<button class="do-next-btn secondary" onclick="openEasierVersion('${jsEscape(h.id)}')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 6h13"></path><path d="M8 12h13"></path><path d="M8 18h13"></path><path d="M3 6h.01"></path><path d="M3 12h.01"></path><path d="M3 18h.01"></path></svg>Easier version</button>`:"";
-  return `<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">${TARGET_SVG}</span>Do this next</span><button type="button" class="do-next-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div><div class="do-next-row">${visualHTML(h,"do-next-icon")}<div class="do-next-copy"><div class="do-next-title">${escapeHTML(h.name)}</div><div class="do-next-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<div class="do-next-actions"><button class="do-next-btn primary" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ Done</button>${easierBtn}</div>`;
+  return `<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">${TARGET_SVG}</span>Do this next</span><button type="button" class="do-next-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div><div class="do-next-row">${visualHTML(h,"do-next-icon")}<div class="do-next-copy"><div class="do-next-title">${escapeHTML(h.name)}</div><div class="do-next-detail">${escapeHTML(detail)}</div></div></div><div class="do-next-actions"><button class="do-next-btn primary" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ Done</button>${easierBtn}</div>`;
 }
 
 // Level 2 of Home's hierarchy — a quiet daily glance, not a second Do This Next. Each
@@ -295,8 +305,8 @@ function renderHomeWidgets(period,nudges){
   wrap.innerHTML=`<div class="home-section-head"><div class="home-section-title">A little for today</div><div class="home-section-hint">Just a glance. No pressure.</div></div>${homeHabitsWidgetHTML(period)}${homeCircleWidgetHTML(nudges)}`;
 }
 // Late-night isn't one of the three habit blocks (BLOCK_LABEL only covers morning/
-// afternoon/evening) — pickStartHereHabit's own BLOCK_SEARCH_ORDER treats late-night as
-// an extension of evening, so the Habits card does the same rather than inventing a
+// afternoon/evening) — pickStartHereHabit's own currentBlockForPeriod() treats late-night
+// as an extension of evening, so the Habits card does the same rather than inventing a
 // fourth label.
 function homeDisplayBlock(period){ return period==="late-night"?"evening":period; }
 // Derives a single "where things stand" sentence from the exact same habit-block data

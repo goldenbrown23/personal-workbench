@@ -167,19 +167,21 @@ test.describe('habit logging', () => {
   });
 });
 
-test.describe('Home "do this next" context note', () => {
-  // The note explains why a habit from another block is being surfaced. It must never
-  // claim something was "left from" late night, which is not one of the three time blocks.
-  test('is shown when falling back to another block', async ({page}) => {
+test.describe('Home "do this next" no longer walks backward across dayparts', () => {
+  // twoVersionHabit is timeBlock:"evening" and scheduleType:"daily" — not flexible — so an
+  // empty morning must render the calm empty state, never surface an evening habit early.
+  // See tests/regression/do-this-next.spec.js for the fuller eligibility regression suite.
+  test('an evening-only habit does not get pulled forward into an empty morning', async ({page}) => {
     await boot(page, {at: '2026-09-13T09:00:00', state: seedState({habits: [twoVersionHabit]})});
-    await expect(page.locator('#homeNow .do-next-block-note'))
-      .toHaveText(/Nothing left from morning, so here’s one from evening instead\./);
+    await expect(page.locator('#homeNow')).not.toContainText('Evening stretch');
+    await expect(page.locator('#homeNow .do-next-btn')).toHaveCount(0);
   });
 
-  test('is not shown after midnight, when there is no block to fall back from', async ({page}) => {
+  // Late-night (00:00-04:59) reads as a continuation of evening (see currentBlockForPeriod
+  // in habits.js), so the evening habit is genuinely the CURRENT daypart here, not a fallback.
+  test('late-night treats evening as the current daypart, not a fallback', async ({page}) => {
     await boot(page, {at: '2026-09-13T01:00:00', state: seedState({habits: [twoVersionHabit]})});
     await expect(page.locator('#homeNow')).toContainText('Evening stretch');
-    await expect(page.locator('#homeNow .do-next-block-note')).toHaveCount(0);
   });
 });
 
