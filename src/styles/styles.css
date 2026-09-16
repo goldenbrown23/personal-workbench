@@ -2,17 +2,24 @@
       --bg:#f7f1e6;
       --card:#fffcf6;
       --text:#3a2f27;
-      --muted:#8a7a6b;
+      /* #8a7a6b measured 3.48–4.10:1 against the surfaces it's actually used on (card,
+         bg, gray chip, tab bar) — all below WCAG's 4.5:1 for normal text (axe-core scan,
+         2026-09-16). Darkened just enough to clear 4.5:1 everywhere it's used, same hue. */
+      --muted:#75655a;
       --line:#ece1d1;
       --green:#e9edd9;
       --greenText:#55692f;
       --yellow:#f7ecd1;
-      --yellowText:#8a6a2c;
+      --yellowText:#805f22; /* was #8a6a2c, measured 4.28:1 on --yellow — darkened to clear 4.5:1 */
       --gray:#f1ebe0;
       --grayText:#6b5f52;
       --purple:#f2e2d8;
       --purpleText:#8a5a3f;
-      --accent:#bd6440;
+      /* #bd6440 measured 3.5–4.15:1 both as text-on-cream (nav label, "+ Add habit",
+         section titles) and as white-text-on-fill (primary buttons) — below 4.5:1 for
+         normal text in both directions (axe-core scan, 2026-09-16). Darkened to clear
+         4.5:1 on every surface it's used against, same hue/terracotta family. */
+      --accent:#9d5132;
       --danger:#a1523f;
       --shadow:0 10px 30px rgba(90,60,35,.08);
       --radius:20px;
@@ -139,6 +146,22 @@
     .tab-hero-copy h1{font-size:30px;line-height:1.08;margin:8px 0 6px;letter-spacing:-.02em;max-width:100%}
     .tab-hero-copy .sub{font-size:15px;line-height:1.35;max-width:94%;color:rgba(58,47,39,.72)}
     .tab-hero-actions{position:absolute;z-index:3;top:18px;right:16px;display:flex;gap:6px}
+    /* Verified at 320×568: "People make life richer" (Circle's eyebrow) wraps to a
+       second line at this width and that line sits directly under the action icons,
+       clipped behind them. Habits/Trends' shorter eyebrows never wrap here, so this is
+       scoped to Circle only. Push its copy column below the icon row and loosen its
+       width back up rather than narrowing text further.
+       Needs its own named layer: Tailwind's own utilities (tw:h-55!, tw:w-[62.5%]!) are
+       !important inside `@layer utilities`, and for !important declarations the cascade
+       favors the EARLIER-declared layer — an unlayered !important rule here actually
+       loses that tie (verified directly in-browser). Declaring this layer up front, before
+       tailwind.generated.css ever declares its own layers, makes it the earlier one. */
+    @layer overrides{
+      @media(max-width:359px){
+        #circleView .tab-hero--circle{height:230px !important}
+        #circleView .tab-hero--circle .tab-hero-copy{width:70% !important;padding-top:44px !important}
+      }
+    }
     .tab-hero-actions .icon-btn{background:rgba(255,252,246,.85)}
     .tab-hero-art{position:absolute;z-index:1;right:0;bottom:0;pointer-events:none}
     .tab-hero-art svg{display:block;width:100%;height:100%}
@@ -178,6 +201,10 @@
       background:var(--card);
       border-radius:14px;
       width:44px;height:44px;
+      /* Flex items shrink by default — inside a header row with a long title next to
+         it, an icon-btn was measured shrinking to ~39px wide despite this width, quietly
+         missing the 44×44 touch target. Never let the tap target compress. */
+      flex-shrink:0;
       display:grid;place-items:center;
       box-shadow:var(--shadow);
     }
@@ -362,6 +389,11 @@
     .view.active.slide-from-left{animation:viewSlideFromLeft .32s cubic-bezier(.22,1,.36,1)}
     @media (prefers-reduced-motion: reduce){
       .view.active.slide-from-right,.view.active.slide-from-left{animation:none}
+      /* Keep the show/hide fades (opacity isn't a vestibular trigger) but drop the
+         translateY "slide up" motion on sheets/toasts for anyone who asked for less
+         motion — covers .modal's sheetUp keyframe and the toast/update-card transforms. */
+      .modal{animation:none}
+      .toast,.toast.show,.update-card,.update-card.show{transition:opacity .2s ease,visibility 0s linear 0s;transform:translateX(-50%)}
     }
     #practiceView>.settings-disclosure{margin-top:14px}
 
