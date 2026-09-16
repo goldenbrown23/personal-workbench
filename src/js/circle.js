@@ -74,28 +74,25 @@ const CONTACT_IDEAS={
   other:"Reach out, even briefly."
 };
 function contactIdea(p){ return CONTACT_IDEAS[p.relation]||"A quick hello keeps things warm."; }
-let circleSearchQuery="",circleShowAllRecent=false;
+let circleSearchQuery="";
 function circleMatches(p){
   if(!circleSearchQuery) return true;
   return p.name.toLowerCase().includes(circleSearchQuery);
 }
 // Revised model: everyone added is already someone the user intentionally wants to
-// nurture — there is no Main Circle / Other People split. The landing page is just three
-// quiet things: My People (everyone), one gentle check-in nudge chosen for the user (not
-// a queue to scan), and a couple of Recent Moments as proof connection is happening. The
-// full rhythm-based queue still exists — it just lives one layer deeper, behind the
-// nudge card's ••• menu, instead of listed on the landing page.
+// nurture — there is no Main Circle / Other People split. The landing page is just two
+// quiet things: My People (everyone) and one gentle check-in nudge chosen for the user
+// (not a queue to scan). The full interaction archive lives in More → Circle Moments
+// (see renderCircleMoments), and the full rhythm-based queue lives one layer deeper,
+// behind the nudge card's ••• menu, instead of listed on the landing page.
 let circleNudgeSkipIds=new Set();
 function renderCircle(){
   renderTabHeroCopy("circle","circleHeroSupporting","circleHeroAccent");
   const peopleList=document.getElementById("circlePeopleList");
   const hero=document.getElementById("circleHeroCard");
-  const recentList=document.getElementById("circleRecentList");
   if(!state.people.length){
     peopleList.innerHTML="";
     hero.innerHTML=circleNoContentHTML();
-    recentList.innerHTML="";
-    document.getElementById("circleRecentViewAll").style.display="none";
     return;
   }
   renderCirclePeople();
@@ -113,14 +110,23 @@ function renderCircle(){
   if(!matching.length) hero.innerHTML=`<div class="circle-empty-row">No one matches that search.</div>`;
   else if(!nudge) hero.innerHTML=circleCheckinEmptyHTML();
   else hero.innerHTML=circleHeroHTML(nudge);
-  const interactions=matching.flatMap(p=>(p.interactions||[]).map(item=>({p,item})))
+}
+// Circle Moments (More → Circle Moments) — the full chronological interaction archive
+// that used to render inline on the My Circle landing page ("Recent Moments"). Same row
+// markup (circleRecentRowHTML), same data (person.interactions); only where it's shown
+// moved off the landing screen and into on-demand retrieval.
+const CIRCLE_MOMENTS_STEP=20;
+let circleMomentsShown=CIRCLE_MOMENTS_STEP;
+function renderCircleMoments(){
+  const list=document.getElementById("circleMomentsList");if(!list)return;
+  const interactions=state.people.flatMap(p=>(p.interactions||[]).map(item=>({p,item})))
     .sort((a,b)=>(b.item.date||"").localeCompare(a.item.date||"")||(b.item.createdAt||"").localeCompare(a.item.createdAt||""));
-  // Recent Moments is context, not a log — cap the landing view at two so it stays calm;
-  // "See all" opens the rest.
-  const recentShown=circleShowAllRecent?interactions:interactions.slice(0,2);
-  recentList.innerHTML=recentShown.length?recentShown.map(circleRecentRowHTML).join(""):circleRecentEmptyHTML();
-  document.getElementById("circleRecentViewAll").style.display=interactions.length>2?"":"none";
-  document.getElementById("circleRecentViewAll").textContent=circleShowAllRecent?"Show less ›":"See all ›";
+  if(!interactions.length){ list.innerHTML=circleRecentEmptyHTML(); return; }
+  const shown=interactions.slice(0,circleMomentsShown);
+  const moreCount=interactions.length-shown.length;
+  list.innerHTML=`<div class="settings-list-card">${shown.map(circleRecentRowHTML).join("")}</div>`+
+    (moreCount>0?`<button type="button" class="history-show-more" id="circleMomentsShowMore">Show ${moreCount} earlier moment${moreCount===1?"":"s"}</button>`:"");
+  document.getElementById("circleMomentsShowMore")?.addEventListener("click",()=>{circleMomentsShown+=CIRCLE_MOMENTS_STEP;renderCircleMoments();});
 }
 // My People: everyone intentionally added, as a quiet horizontally-scrolling avatar row —
 // no relationship labels here (that detail lives in the person's own profile), just a face
@@ -223,7 +229,6 @@ document.getElementById("circleSearchBtn").addEventListener("click",()=>{
   if(!row.hidden) input.focus(); else { input.value=""; circleSearchQuery=""; renderCircle(); }
 });
 document.getElementById("circleSearchInput").addEventListener("input",e=>{circleSearchQuery=e.target.value.trim().toLowerCase();renderCircle();});
-document.getElementById("circleRecentViewAll").addEventListener("click",()=>{circleShowAllRecent=!circleShowAllRecent;renderCircle();});
 
 let detailPersonId=null,detailCalendarMonth=null;const personDetailModal=document.getElementById("personDetailModal");
 function contactCalendarHTML(p,month=detailCalendarMonth||new Date()){

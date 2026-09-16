@@ -705,17 +705,22 @@ function renderWeek(){
   if(!considered){headline.textContent="Not enough check-ins yet.";copy.textContent="Patterns will show up after a few days.";pattern.textContent="Not enough information yet."}
   else if(returns){headline.textContent=returns===1?"You came back once.":`You came back ${returns} times.`;copy.textContent=`${engaged} check-in${engaged===1?"":"s"} across ${activeDays} day${activeDays===1?"":"s"}.`;pattern.textContent=`You engaged on ${activeDays} of the last 7 days, and ${returns} of your check-ins were a return.`}
   else{headline.textContent=activeDays>=4?"You kept the thread going.":"You made contact.";copy.textContent=`${engaged} check-in${engaged===1?"":"s"} across ${activeDays} day${activeDays===1?"":"s"}.`;const strongest=[...dayStats].sort((a,b)=>b.engaged-a.engaged)[0];pattern.textContent=engaged>=3&&strongest.engaged?`${fmtLong(strongest.date)} had the most habit contact this week.`:"A few more check-ins will make the weekly rhythm easier to read."}
-  renderReviewHistory(days);
 }
 
-let reviewFilter="all";
-// Which day groups are expanded (today starts open, older days start collapsed — see
-// "DAY GROUPS SHOULD BE COLLAPSIBLE") and which days have had their internal 5-item cap
-// (REVIEW_DAY_VISIBLE_CAP) lifted via "+N more". Both are UI-only disclosure state, kept
-// outside renderReviewHistory so they survive its idempotent re-renders.
-let reviewOpenDays=new Set([dateKey()]);
-let reviewExpandedDays=new Set();
+// Habit Log (More → Habit Log) reuses this same day-grouping/collapsible-list approach
+// that used to render Trends' "Recent activity" — only WHERE it's shown moved, not the
+// underlying rendering. Which day groups are expanded (today starts open, older days
+// start collapsed) and which days have had their internal 5-item cap (REVIEW_DAY_VISIBLE_CAP)
+// lifted via "+N more" are UI-only disclosure state, kept outside renderHabitLog so they
+// survive its idempotent re-renders.
+let habitLogOpenDays=new Set([dateKey()]);
+let habitLogExpandedDays=new Set();
 const REVIEW_DAY_VISIBLE_CAP=5;
+// Progressive disclosure at the day-group level too — an archive can span months, so only
+// the most recent HABIT_LOG_DAYS_STEP day-groups render up front, with "Show earlier days"
+// revealing more rather than a single enormous history wall.
+const HABIT_LOG_DAYS_STEP=20;
+let habitLogDaysShown=HABIT_LOG_DAYS_STEP;
 function reviewDateLabel(date){const today=dateKey(),key=dateKey(date),yesterday=dateKey(addDays(new Date(),-1));if(key===today)return "Today";if(key===yesterday)return "Yesterday";return fmtLong(date)}
 function reviewHabitEvent(h,entry){
   const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};
@@ -735,7 +740,7 @@ function historyItemHTML(event){
 // in practice only Today is ever likely to have enough entries for this to matter, since
 // every other day defaults collapsed anyway.
 function dayEventsHTML(events,key){
-  const expanded=reviewExpandedDays.has(key);
+  const expanded=habitLogExpandedDays.has(key);
   const shown=expanded?events:events.slice(0,REVIEW_DAY_VISIBLE_CAP);
   const remaining=events.length-shown.length;
   const rows=shown.map(historyItemHTML).join("");
@@ -744,64 +749,33 @@ function dayEventsHTML(events,key){
     :(expanded&&events.length>REVIEW_DAY_VISIBLE_CAP?`<button type="button" class="history-show-more" data-less-day="${escapeAttr(key)}">Show less</button>`:"");
   return rows+more;
 }
-// Quiet days are valid data, not something to hide — but a full-size empty card per quiet
-// day was the "large card for every quiet day" noise problem. Consecutive quiet days now
-// collapse into one small summary row; a day with actual activity still gets its own card.
-function renderReviewHistory(days=getLast7Days()){
-  const list=document.getElementById("reviewHistory");if(!list)return;list.innerHTML="";
-  let quietRun=[],anyVisibleDay=false;
-  const flushQuiet=()=>{
-    if(!quietRun.length) return;
-    const row=document.createElement("div");
-    row.className="history-quiet-run";
-    row.textContent=quietRun.length===1?`${reviewDateLabel(quietRun[0])} · Quiet day`:`${quietRun.length} quiet days`;
-    list.appendChild(row);
-    quietRun=[];
-  };
-  [...days].reverse().forEach(date=>{
-    const key=dateKey(date),events=[];
-    state.habits.forEach(h=>{const entry=getLogEntry(h.id,key);if(entry?.status)events.push(reviewHabitEvent(h,entry))});
-    state.people.forEach(person=>{const interactions=(person.interactions||[]).filter(item=>item.date===key);interactions.forEach(item=>events.push({type:"circle",title:`Connected with ${person.name}`,note:item.method||"Contact",icon:"💬"}));if(!interactions.length&&person.lastContact===key)events.push({type:"circle",title:`Connected with ${person.name}`,note:"Contact",icon:"💬"})});
-    const visible=events.filter(event=>reviewFilter==="all"||event.type===reviewFilter);
-    if(!visible.length){ quietRun.push(date); return; }
-    anyVisibleDay=true;
-    flushQuiet();
-    const day=document.createElement("details");
-    day.className="history-day";
-    const open=reviewOpenDays.has(key);
-    if(open) day.open=true;
-    const bodyId=`historyDayBody-${key}`;
-    // "N" alone, not "N entries" — the section heading and surrounding context already
-    // establish these are activity counts; repeating "entries" on every row is system
-    // vocabulary the user doesn't need to read seven times per page.
-    day.innerHTML=`<summary data-day-key="${escapeAttr(key)}" aria-expanded="${open}" aria-controls="${escapeAttr(bodyId)}"><span class="history-day-label">${escapeHTML(reviewDateLabel(date))}</span><span class="history-day-count">${visible.length}</span></summary><div class="history-day-body" id="${escapeAttr(bodyId)}">${dayEventsHTML(visible,key)}</div>`;
-    list.appendChild(day);
-  });
-  flushQuiet();
-  // A filter with zero matches across the whole window reads as "quiet days" otherwise,
-  // which is accurate but not the filter-specific calm copy the empty state calls for.
-  if(!anyVisibleDay){
-    const emptyText=reviewFilter==="habit"?"No habit activity here yet.":reviewFilter==="circle"?"No connection activity here yet.":"Nothing logged this week yet.";
-    list.innerHTML=`<div class="history-quiet-run">${escapeHTML(emptyText)}</div>`;
-  }
+// An archive, not a to-do list: only days that actually have a habit check-in appear at
+// all (no "quiet day" placeholders — Habit Log only ever shows what happened).
+function renderHabitLog(){
+  const list=document.getElementById("habitLogHistory");if(!list)return;
+  const dayKeys=Object.keys(state.logs||{}).filter(k=>Object.values(state.logs[k]||{}).some(e=>e?.status)).sort((a,b)=>b.localeCompare(a));
+  if(!dayKeys.length){ list.innerHTML=`<div class="history-quiet-run">Nothing logged yet. Your habit check-ins will show up here.</div>`; return; }
+  const shownKeys=dayKeys.slice(0,habitLogDaysShown);
+  const rows=shownKeys.map(key=>{
+    const date=parseLocalDate(key);
+    const events=state.habits.map(h=>{const entry=getLogEntry(h.id,key);return entry?.status?reviewHabitEvent(h,entry):null}).filter(Boolean);
+    if(!events.length) return "";
+    const open=habitLogOpenDays.has(key);
+    const bodyId=`habitLogDayBody-${key}`;
+    return `<details class="history-day" data-day-key="${escapeAttr(key)}" ${open?"open":""}><summary aria-expanded="${open}" aria-controls="${escapeAttr(bodyId)}"><span class="history-day-label">${escapeHTML(reviewDateLabel(date))}</span><span class="history-day-count">${events.length}</span></summary><div class="history-day-body" id="${escapeAttr(bodyId)}">${dayEventsHTML(events,key)}</div></details>`;
+  }).join("");
+  const moreDays=dayKeys.length-shownKeys.length;
+  list.innerHTML=rows+(moreDays>0?`<button type="button" class="history-show-more" id="habitLogShowMoreDays">Show ${moreDays} earlier day${moreDays===1?"":"s"}</button>`:"");
   list.querySelectorAll(".history-day").forEach(details=>details.addEventListener("toggle",()=>{
-    const summary=details.querySelector("[data-day-key]"),key=summary?.dataset.dayKey;
+    const key=details.dataset.dayKey;
     if(!key) return;
-    if(details.open) reviewOpenDays.add(key); else reviewOpenDays.delete(key);
-    summary.setAttribute("aria-expanded",String(details.open));
+    if(details.open) habitLogOpenDays.add(key); else habitLogOpenDays.delete(key);
+    details.querySelector("summary")?.setAttribute("aria-expanded",String(details.open));
   }));
-  list.querySelectorAll("[data-more-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();reviewExpandedDays.add(btn.dataset.moreDay);renderReviewHistory(days);}));
-  list.querySelectorAll("[data-less-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();reviewExpandedDays.delete(btn.dataset.lessDay);renderReviewHistory(days);}));
+  list.querySelectorAll("[data-more-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();habitLogExpandedDays.add(btn.dataset.moreDay);renderHabitLog();}));
+  list.querySelectorAll("[data-less-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();habitLogExpandedDays.delete(btn.dataset.lessDay);renderHabitLog();}));
+  document.getElementById("habitLogShowMoreDays")?.addEventListener("click",()=>{habitLogDaysShown+=HABIT_LOG_DAYS_STEP;renderHabitLog();});
 }
-// The All/Habits/Connections pills are the one control for this — a second "Filter"
-// dropdown used to duplicate these same three options with nothing extra behind it, so
-// it was removed rather than kept as a redundant second way to make the same choice.
-function setReviewFilter(type){
-  reviewFilter=type;
-  document.querySelectorAll("[data-review-filter-pill]").forEach(item=>{const active=item.dataset.reviewFilterPill===type;item.classList.toggle("active",active);item.setAttribute("aria-selected",String(active));});
-  renderReviewHistory();
-}
-document.querySelectorAll("[data-review-filter-pill]").forEach(button=>button.addEventListener("click",()=>setReviewFilter(button.dataset.reviewFilterPill)));
 
 function toggleHabitPaused(id){
   const h=state.habits.find(x=>x.id===id);

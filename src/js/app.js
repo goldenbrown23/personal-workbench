@@ -47,6 +47,61 @@ function renderMoreModules(){
   }).join("");
 }
 
+// Notes (More → Notes) is a READ-only aggregated view over notes that already live on
+// their original records — habit log entries' own .note field, an interaction's own
+// .note field, and a person's own .notes[] memories. Nothing here is a second copy: it
+// just collects and displays what's already stored elsewhere, sorted by date.
+let notesFilter="all";
+const NOTES_DAYS_STEP=20;
+let notesDaysShown=NOTES_DAYS_STEP;
+function collectNotesByDate(){
+  const byDate={};
+  const add=(key,event)=>{ if(!key) return; (byDate[key]||(byDate[key]=[])).push(event); };
+  Object.entries(state.logs||{}).forEach(([key,entries])=>{
+    Object.entries(entries||{}).forEach(([habitId,entry])=>{
+      if(!entry?.note) return;
+      const h=state.habits.find(x=>x.id===habitId);
+      add(key,{type:"habit",title:h?h.name:"Habit",note:entry.note,icon:"📝"});
+    });
+  });
+  state.people.forEach(p=>{
+    (p.interactions||[]).forEach(item=>{
+      if(!item.note) return;
+      add(item.date,{type:"circle",title:p.name,note:item.note,icon:"📝"});
+    });
+    (p.notes||[]).forEach(n=>{
+      if(!n.text) return;
+      add(n.createdAt?dateKey(new Date(n.createdAt)):dateKey(),{type:"circle",title:p.name,note:n.text,icon:"📝"});
+    });
+  });
+  return byDate;
+}
+function renderNotesView(){
+  const list=document.getElementById("notesList");if(!list)return;
+  const byDate=collectNotesByDate();
+  const keys=Object.keys(byDate).filter(k=>byDate[k].some(e=>notesFilter==="all"||e.type===notesFilter)).sort((a,b)=>b.localeCompare(a));
+  if(!keys.length){
+    const emptyText=notesFilter==="habit"?"No habit notes yet.":notesFilter==="circle"?"No My Circle notes yet.":"No notes yet. Notes you add to habits or people will show up here.";
+    list.innerHTML=`<div class="history-quiet-run">${escapeHTML(emptyText)}</div>`;
+    return;
+  }
+  const shownKeys=keys.slice(0,notesDaysShown);
+  const rows=shownKeys.map(key=>{
+    const events=byDate[key].filter(e=>notesFilter==="all"||e.type===notesFilter);
+    const date=parseLocalDate(key);
+    return `<details class="history-day" open><summary><span class="history-day-label">${escapeHTML(reviewDateLabel(date))}</span><span class="history-day-count">${events.length}</span></summary><div class="history-day-body">${events.map(historyItemHTML).join("")}</div></details>`;
+  }).join("");
+  const moreDays=keys.length-shownKeys.length;
+  list.innerHTML=rows+(moreDays>0?`<button type="button" class="history-show-more" id="notesShowMoreDays">Show ${moreDays} earlier day${moreDays===1?"":"s"}</button>`:"");
+  document.getElementById("notesShowMoreDays")?.addEventListener("click",()=>{notesDaysShown+=NOTES_DAYS_STEP;renderNotesView();});
+}
+function setNotesFilter(type){
+  notesFilter=type;
+  document.querySelectorAll("[data-notes-filter-pill]").forEach(item=>{const active=item.dataset.notesFilterPill===type;item.classList.toggle("active",active);item.setAttribute("aria-selected",String(active));});
+  renderNotesView();
+}
+document.querySelectorAll("[data-notes-filter-pill]").forEach(button=>button.addEventListener("click",()=>setNotesFilter(button.dataset.notesFilterPill)));
+
 function switchView(viewId){
   if(!document.getElementById(viewId)) viewId="homeView";
   const prevViewId=document.querySelector(".view.active")?.id;
@@ -78,6 +133,9 @@ function switchView(viewId){
   if(viewId==="settingsView") renderSettings();
   if(viewId==="practiceView") renderPractice();
   if(viewId==="moreView") renderMoreModules();
+  if(viewId==="habitLogView") renderHabitLog();
+  if(viewId==="circleMomentsView") renderCircleMoments();
+  if(viewId==="notesView") renderNotesView();
   if(viewId==="aboutView"&&!state.settings.guideOpened){state.settings.guideOpened=true;saveState();}
 }
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>switchView(btn.dataset.view)));

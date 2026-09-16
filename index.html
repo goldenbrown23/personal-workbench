@@ -235,17 +235,14 @@
       </div>
     </details>
     <div class="pattern-card"><div class="pattern-label">A useful pattern</div><div class="pattern-text" id="trendPattern">We’re still gathering a little context.</div></div>
-    <section class="review-history" aria-labelledby="reviewHistoryTitle">
-      <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div></div>
-      <div class="review-filter-row">
-        <div class="segmented review-filter-pills" id="reviewFilterPills" role="tablist" aria-label="Activity type">
-          <button type="button" class="segmented-btn active" data-review-filter-pill="all" role="tab" aria-selected="true">All</button>
-          <button type="button" class="segmented-btn" data-review-filter-pill="habit" role="tab" aria-selected="false">Habits</button>
-          <button type="button" class="segmented-btn" data-review-filter-pill="circle" role="tab" aria-selected="false">Connections</button>
-        </div>
-      </div>
-      <div class="history-list" id="reviewHistory"></div>
-    </section>
+    <div class="section-head"><h2>Weekly Detail</h2></div>
+    <div class="settings-list-card">
+      <button type="button" class="settings-list-item-btn" onclick="switchView('practiceView')">
+        <span class="settings-list-icon tone-yellow" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"></rect><line x1="3" y1="10" x2="21" y2="10"></line><line x1="8" y1="3" x2="8" y2="7"></line><line x1="16" y1="3" x2="16" y2="7"></line></svg></span>
+        <span class="settings-list-copy"><strong>Weekly Detail</strong><small>See this week's pattern in more depth</small></span>
+        <span class="settings-list-chevron" aria-hidden="true">›</span>
+      </button>
+    </div>
   </div>
 
 
@@ -278,15 +275,6 @@
     </div>
 
     <div id="circleHeroCard"></div>
-
-    <div class="settings-list-card circle-section-card">
-      <div class="circle-section-head">
-        <span class="settings-list-icon tone-red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"></path></svg></span>
-        <span class="settings-list-copy"><strong>Recent Moments</strong><small>Little moments, big connections.</small></span>
-        <button type="button" class="circle-view-all circle-view-all--quiet" id="circleRecentViewAll">See all <span aria-hidden="true">›</span></button>
-      </div>
-      <div id="circleRecentList"></div>
-    </div>
 
   </div>
 
@@ -401,9 +389,59 @@
       <div><div class="eyebrow">Everything else</div><h1>Your Workbench</h1><div class="sub">One calm place for what doesn't need its own tab.</div></div>
     </header>
     <div class="settings-page settings-calm">
+      <div class="section-head"><h2>History &amp; Notes</h2></div>
+      <div class="settings-list-card">
+        <button type="button" class="settings-list-item-btn" onclick="switchView('habitLogView')">
+          <span class="settings-list-icon tone-green" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></span>
+          <span class="settings-list-copy"><strong>Habit Log</strong><small>Your habit check-in history</small></span>
+          <span class="settings-list-chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="settings-list-item-btn" onclick="switchView('circleMomentsView')">
+          <span class="settings-list-icon tone-red" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.51 4.04 3 5.5l7 7Z"></path></svg></span>
+          <span class="settings-list-copy"><strong>Circle Moments</strong><small>Your interaction history</small></span>
+          <span class="settings-list-chevron" aria-hidden="true">›</span>
+        </button>
+        <button type="button" class="settings-list-item-btn" onclick="switchView('notesView')">
+          <span class="settings-list-icon tone-purple" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 7v14"></path><path d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"></path></svg></span>
+          <span class="settings-list-copy"><strong>Notes</strong><small>Notes from habits and people</small></span>
+          <span class="settings-list-chevron" aria-hidden="true">›</span>
+        </button>
+      </div>
+      <div class="section-head" style="margin-top:18px"><h2>Settings</h2></div>
       <div class="settings-list-card" id="moreModuleList"></div>
     </div>
     <div class="home-rule">More areas will appear here as the Workbench grows.</div>
+  </div>
+
+  <div id="habitLogView" class="view">
+    <header>
+      <div><div class="eyebrow">Retrieval</div><h1>Habit Log</h1><div class="sub">Your habit check-in history. An archive, not a to-do list.</div></div>
+      <button class="icon-btn" data-jump="moreView" aria-label="Close habit log">✕</button>
+    </header>
+    <div class="history-list" id="habitLogHistory"></div>
+  </div>
+
+  <div id="circleMomentsView" class="view">
+    <header>
+      <div><div class="eyebrow">Retrieval</div><h1>Circle Moments</h1><div class="sub">When you connected with people, and what happened.</div></div>
+      <button class="icon-btn" data-jump="moreView" aria-label="Close circle moments">✕</button>
+    </header>
+    <div id="circleMomentsList"></div>
+  </div>
+
+  <div id="notesView" class="view">
+    <header>
+      <div><div class="eyebrow">Retrieval</div><h1>Notes</h1><div class="sub">Small things worth remembering, from habits and people.</div></div>
+      <button class="icon-btn" data-jump="moreView" aria-label="Close notes">✕</button>
+    </header>
+    <div class="review-filter-row">
+      <div class="segmented review-filter-pills" id="notesFilterPills" role="tablist" aria-label="Note source">
+        <button type="button" class="segmented-btn active" data-notes-filter-pill="all" role="tab" aria-selected="true">All</button>
+        <button type="button" class="segmented-btn" data-notes-filter-pill="habit" role="tab" aria-selected="false">Habits</button>
+        <button type="button" class="segmented-btn" data-notes-filter-pill="circle" role="tab" aria-selected="false">My Circle</button>
+      </div>
+    </div>
+    <div class="history-list" id="notesList"></div>
   </div>
 
   <div id="settingsView" class="view">
