@@ -112,7 +112,18 @@ function scheduleLabel(h){
 function isReduceGoal(h){return h?.goalType==="reduce"}
 function statusOptions(h){return isReduceGoal(h)?[["done","✓ Within plan"],["counted","○ Reduced"],["miss","— Over plan"],["returned","↩ Back to plan"]]:[["done","✓ Full version"],["counted","○ Smaller version"],["miss","— Not today"],["returned","↩ Returned"]]}
 function gentleDayOn(){try{const value=JSON.parse(localStorage.getItem(GENTLE_KEY)||"{}");return value.date===dateKey()&&value.on===true}catch{return false}}
-function setGentleDay(on){localStorage.setItem(GENTLE_KEY,JSON.stringify({date:dateKey(),on}));renderToday();showSaved(on?"Gentle day on":"Standard day on")}
+// Lives inside the Manage habits modal now (see renderGentleModeRow) rather than the
+// Habits header — the header icon was replaced by Search, but the underlying "quick taps
+// log smaller today" behavior and its Home hero copy (see home.js renderHomeHero) are
+// unchanged.
+function setGentleDay(on){localStorage.setItem(GENTLE_KEY,JSON.stringify({date:dateKey(),on}));renderGentleModeRow();showSaved(on?"Gentle day on":"Standard day on")}
+function renderGentleModeRow(){
+  const btn=document.getElementById("gentleModeBtn");
+  if(!btn) return;
+  const gentle=gentleDayOn();
+  btn.textContent=gentle?"On":"Off";
+  btn.classList.toggle("active",gentle);
+}
 function quickCompleteHabit(id){const current=getStatus(id);if(current){openHabitSheet(id);return}setStatus(id,gentleDayOn()?"counted":"done")}
 function habitStatusIcon(status){return ({done:"✓",counted:"○",miss:"—",returned:"↩"})[status]||""}
 function statusLabel(status){return ({done:"✓ Done",counted:"○ Counted",miss:"— Not today",returned:"↩ Returned"})[status]||""}
@@ -220,10 +231,6 @@ function renderHabitsBanner(){
 }
 function renderToday(){
   renderTabHeroCopy("habits","habitsHeroSupporting","habitsHeroAccent");
-  const gentle=gentleDayOn();
-  const gentleBtn=document.getElementById("gentleModeBtn");
-  gentleBtn.classList.toggle("active",gentle);
-  gentleBtn.setAttribute("aria-label",gentle?"Gentle day · On":"Gentle day");
   if(!habitsSelectedBlock) habitsSelectedBlock=defaultHabitsBlock();
   renderHabitsPeriodSwitch();
   renderHabitsBanner();
@@ -249,9 +256,13 @@ document.querySelectorAll("#habitsPeriodSwitch [data-block]").forEach(btn=>btn.a
 // versions, Complete, Do later, Move time, Edit habit — the common path); the status
 // circle is a one-tap checkbox for the fastest case (quickCompleteHabit); the overflow
 // ••• reaches the full picker (multi-date backfill, notes, clearing a log) unabridged.
-function checklistRowHTML(h){
+// contextLabel overrides the normal "what tier is this in right now" subtext — used by
+// search results (see searchResultRowHTML) to show which daypart a habit lives in instead,
+// since search spans every daypart at once and homePrimaryTier() only means something
+// within the currently-selected one.
+function checklistRowHTML(h,contextLabel=null){
   const status=getStatus(h.id);
-  const tier=homePrimaryTier(h);
+  const subtext=contextLabel!==null?contextLabel:homePrimaryTier(h).text;
   // Shared glyph vocabulary (✓ / ○ / — / ↩) rather than a local one, so a smaller version
   // reads as ○ here exactly as it does in the Done list, Trends, and this row's own
   // aria-label below — it used to collapse to the same ✓ as a full version.
@@ -259,11 +270,39 @@ function checklistRowHTML(h){
   const label=status?`${escapeAttr(h.name)}, ${statusLabel(status)}. Tap to change.`:`Mark ${escapeAttr(h.name)} done`;
   const hasEasier=Boolean((h.full||"").trim())&&Boolean((h.small||"").trim()||(h.small2||"").trim());
   const easierPill=hasEasier?`<span class="checklist-easier-pill">Easier</span>`:"";
-  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openHabitSheet('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name-row"><span class="checklist-name">${escapeHTML(h.name)}</span>${easierPill}</span><span class="checklist-sub">${escapeHTML(tier.text)}</span></span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button><button type="button" class="checklist-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
+  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openHabitSheet('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name-row"><span class="checklist-name">${escapeHTML(h.name)}</span>${easierPill}</span><span class="checklist-sub">${escapeHTML(subtext)}</span></span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button><button type="button" class="checklist-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
+}
+// Search is retrieval, not prioritization: it runs over every habit regardless of
+// paused/schedule/daypart/completion state, and never touches habitsSelectedBlock — the
+// Morning/Afternoon/Evening tab underneath is left exactly where the user had it.
+let habitsSearchQuery="";
+function habitMatchesSearch(h,query){
+  if(!query) return true;
+  const haystack=[h.name,h.small,h.small2].filter(Boolean).join(" ").toLowerCase();
+  return haystack.includes(query);
+}
+function habitDaypartLabel(h){
+  const block=timeBlockOf(h);
+  const label=BLOCK_LABEL[block]||block;
+  return label.charAt(0).toUpperCase()+label.slice(1);
+}
+function searchResultRowHTML(h){
+  return checklistRowHTML(h,habitDaypartLabel(h));
 }
 function renderHabitsChecklist(){
   const wrap=document.getElementById("habitsChecklist");
   const countLabel=document.getElementById("habitsCountLabel");
+  const banner=document.getElementById("habitsBanner");
+  if(habitsSearchQuery){
+    banner.style.display="none";
+    countLabel.textContent="";
+    const matches=state.habits.filter(h=>habitMatchesSearch(h,habitsSearchQuery));
+    wrap.innerHTML=matches.length
+      ?`<div class="habits-search-label">Search results</div>`+matches.map(searchResultRowHTML).join("")
+      :`<div class="empty-card">No habits found. Try another name.</div>`;
+    return;
+  }
+  banner.style.display="";
   if(!state.habits.length){
     countLabel.textContent="";
     wrap.innerHTML=`<div class="empty-card">No habits yet.<button type="button" class="btn primary" style="margin-top:10px;width:100%" onclick="openHabitModal()">+ Add your first habit</button></div>`;
@@ -275,8 +314,23 @@ function renderHabitsChecklist(){
     wrap.innerHTML=`<div class="empty-card">Nothing scheduled for ${escapeHTML(BLOCK_LABEL[habitsSelectedBlock]||"this")}.</div>`;
     return;
   }
-  wrap.innerHTML=items.map(checklistRowHTML).join("");
+  wrap.innerHTML=items.map(h=>checklistRowHTML(h)).join("");
 }
+function openHabitsSearch(){
+  document.getElementById("habitsSearchRow").hidden=false;
+  document.getElementById("habitsSearchInput").focus();
+}
+function closeHabitsSearch(){
+  document.getElementById("habitsSearchRow").hidden=true;
+  document.getElementById("habitsSearchInput").value="";
+  habitsSearchQuery="";
+  renderHabitsChecklist();
+}
+document.getElementById("habitsSearchBtn").addEventListener("click",()=>{
+  document.getElementById("habitsSearchRow").hidden?openHabitsSearch():closeHabitsSearch();
+});
+document.getElementById("habitsSearchInput").addEventListener("input",e=>{habitsSearchQuery=e.target.value.trim().toLowerCase();renderHabitsChecklist();});
+document.getElementById("habitsSearchClear").addEventListener("click",closeHabitsSearch);
 function laterRowHTML(h,timeText){
   return `<button type="button" class="later-row" onclick="openStatusModal('${jsEscape(h.id)}')">${visualHTML(h,"later-row-icon")}<span class="later-row-copy"><span class="later-row-name">${escapeHTML(h.name)}</span><span class="later-row-time">${escapeHTML(timeText)}</span></span></button>`;
 }
@@ -655,6 +709,13 @@ function renderWeek(){
 }
 
 let reviewFilter="all";
+// Which day groups are expanded (today starts open, older days start collapsed — see
+// "DAY GROUPS SHOULD BE COLLAPSIBLE") and which days have had their internal 5-item cap
+// (REVIEW_DAY_VISIBLE_CAP) lifted via "+N more". Both are UI-only disclosure state, kept
+// outside renderReviewHistory so they survive its idempotent re-renders.
+let reviewOpenDays=new Set([dateKey()]);
+let reviewExpandedDays=new Set();
+const REVIEW_DAY_VISIBLE_CAP=5;
 function reviewDateLabel(date){const today=dateKey(),key=dateKey(date),yesterday=dateKey(addDays(new Date(),-1));if(key===today)return "Today";if(key===yesterday)return "Yesterday";return fmtLong(date)}
 function reviewHabitEvent(h,entry){
   const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};
@@ -666,12 +727,29 @@ function reviewHabitEvent(h,entry){
   const note=label+(entry.note?` · ${entry.note}`:"");
   return {type:"habit",status:entry.status,title:h.name,note,icon};
 }
+function historyItemHTML(event){
+  const iconHTML=event.type==="circle"?iconSVG("message"):escapeHTML(event.icon);
+  return `<div class="history-item ${event.type} ${event.status==="miss"?"miss":""}"><span class="history-item-icon">${iconHTML}</span><span class="history-item-copy"><span class="history-item-title">${escapeHTML(event.title)}</span><span class="history-item-note">${escapeHTML(event.note)}</span></span></div>`;
+}
+// Every day (not just Today) gets the same 5-item cap for a single consistent code path —
+// in practice only Today is ever likely to have enough entries for this to matter, since
+// every other day defaults collapsed anyway.
+function dayEventsHTML(events,key){
+  const expanded=reviewExpandedDays.has(key);
+  const shown=expanded?events:events.slice(0,REVIEW_DAY_VISIBLE_CAP);
+  const remaining=events.length-shown.length;
+  const rows=shown.map(historyItemHTML).join("");
+  const more=remaining>0
+    ?`<button type="button" class="history-show-more" data-more-day="${escapeAttr(key)}">+ ${remaining} more</button>`
+    :(expanded&&events.length>REVIEW_DAY_VISIBLE_CAP?`<button type="button" class="history-show-more" data-less-day="${escapeAttr(key)}">Show less</button>`:"");
+  return rows+more;
+}
 // Quiet days are valid data, not something to hide — but a full-size empty card per quiet
 // day was the "large card for every quiet day" noise problem. Consecutive quiet days now
 // collapse into one small summary row; a day with actual activity still gets its own card.
 function renderReviewHistory(days=getLast7Days()){
   const list=document.getElementById("reviewHistory");if(!list)return;list.innerHTML="";
-  let quietRun=[];
+  let quietRun=[],anyVisibleDay=false;
   const flushQuiet=()=>{
     if(!quietRun.length) return;
     const row=document.createElement("div");
@@ -686,15 +764,42 @@ function renderReviewHistory(days=getLast7Days()){
     state.people.forEach(person=>{const interactions=(person.interactions||[]).filter(item=>item.date===key);interactions.forEach(item=>events.push({type:"circle",title:`Connected with ${person.name}`,note:item.method||"Contact",icon:"💬"}));if(!interactions.length&&person.lastContact===key)events.push({type:"circle",title:`Connected with ${person.name}`,note:"Contact",icon:"💬"})});
     const visible=events.filter(event=>reviewFilter==="all"||event.type===reviewFilter);
     if(!visible.length){ quietRun.push(date); return; }
+    anyVisibleDay=true;
     flushQuiet();
-    const day=document.createElement("section");day.className="history-day";day.innerHTML=`<div class="history-day-label">${escapeHTML(reviewDateLabel(date))}<span> · ${visible.length} ${visible.length===1?"entry":"entries"}</span></div>`;
-    visible.forEach(event=>{const row=document.createElement("div");row.className=`history-item ${event.type} ${event.status==="miss"?"miss":""}`;const iconHTML=event.type==="circle"?iconSVG("message"):escapeHTML(event.icon);row.innerHTML=`<span class="history-item-icon">${iconHTML}</span><span class="history-item-copy"><span class="history-item-title">${escapeHTML(event.title)}</span><span class="history-item-note">${escapeHTML(event.note)}</span></span>`;day.appendChild(row)});
+    const day=document.createElement("details");
+    day.className="history-day";
+    if(reviewOpenDays.has(key)) day.open=true;
+    day.innerHTML=`<summary class="history-day-label" data-day-key="${escapeAttr(key)}">${escapeHTML(reviewDateLabel(date))}<span> · ${visible.length} ${visible.length===1?"entry":"entries"}</span></summary><div class="history-day-body">${dayEventsHTML(visible,key)}</div>`;
     list.appendChild(day);
   });
   flushQuiet();
-  if(!list.children.length) list.innerHTML=`<div class="history-quiet-run">Nothing logged this week yet.</div>`;
+  // A filter with zero matches across the whole window reads as "quiet days" otherwise,
+  // which is accurate but not the filter-specific calm copy the empty state calls for.
+  if(!anyVisibleDay){
+    const emptyText=reviewFilter==="habit"?"No habit activity here yet.":reviewFilter==="circle"?"No connection activity here yet.":"Nothing logged this week yet.";
+    list.innerHTML=`<div class="history-quiet-run">${escapeHTML(emptyText)}</div>`;
+  }
+  list.querySelectorAll(".history-day").forEach(details=>details.addEventListener("toggle",()=>{
+    const key=details.querySelector("[data-day-key]")?.dataset.dayKey;
+    if(!key) return;
+    if(details.open) reviewOpenDays.add(key); else reviewOpenDays.delete(key);
+  }));
+  list.querySelectorAll("[data-more-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();reviewExpandedDays.add(btn.dataset.moreDay);renderReviewHistory(days);}));
+  list.querySelectorAll("[data-less-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();reviewExpandedDays.delete(btn.dataset.lessDay);renderReviewHistory(days);}));
 }
-document.querySelectorAll("[data-review-filter]").forEach(button=>button.addEventListener("click",()=>{reviewFilter=button.dataset.reviewFilter;document.querySelectorAll("[data-review-filter]").forEach(item=>item.classList.toggle("active",item.dataset.reviewFilter===reviewFilter));button.closest("details")?.removeAttribute("open");renderReviewHistory()}));
+// One shared setter keeps the quick All/Habits/Connections pills and the older Filter
+// dropdown (audited: it only ever exposed these same three options, nothing more
+// "advanced" to preserve behind it — see final report) in sync with a single source of
+// truth, so either control can drive reviewFilter without duplicating the filtering logic.
+function setReviewFilter(type){
+  reviewFilter=type;
+  document.querySelectorAll("[data-review-filter]").forEach(item=>item.classList.toggle("active",item.dataset.reviewFilter===type));
+  document.querySelectorAll("[data-review-filter-pill]").forEach(item=>{const active=item.dataset.reviewFilterPill===type;item.classList.toggle("active",active);item.setAttribute("aria-selected",String(active));});
+  document.getElementById("reviewFilterDetails")?.classList.toggle("active",type!=="all");
+  renderReviewHistory();
+}
+document.querySelectorAll("[data-review-filter]").forEach(button=>button.addEventListener("click",()=>{setReviewFilter(button.dataset.reviewFilter);button.closest("details")?.removeAttribute("open");}));
+document.querySelectorAll("[data-review-filter-pill]").forEach(button=>button.addEventListener("click",()=>setReviewFilter(button.dataset.reviewFilterPill)));
 
 function toggleHabitPaused(id){
   const h=state.habits.find(x=>x.id===id);
@@ -814,7 +919,7 @@ document.getElementById("deleteHabitBtn").addEventListener("click",()=>{
 });
 
 const manageModal=document.getElementById("manageModal");
-document.getElementById("manageBtn").addEventListener("click",()=>{renderManage();manageModal.classList.add("show");});
+document.getElementById("manageBtn").addEventListener("click",()=>{renderManage();renderGentleModeRow();manageModal.classList.add("show");});
 document.getElementById("closeManage").addEventListener("click",()=>manageModal.classList.remove("show"));
 manageModal.addEventListener("click",e=>{if(e.target===manageModal)manageModal.classList.remove("show");});
 document.getElementById("manageWeeklyDetailBtn").addEventListener("click",()=>{manageModal.classList.remove("show");switchView("practiceView");});

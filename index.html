@@ -65,9 +65,15 @@
         <div class="tab-hero-accent tw:mt-3 tw:max-w-[180px] tw:text-sm tw:leading-[1.2]" id="habitsHeroAccent"></div>
       </div>
       <div class="tab-hero-actions tw:top-4! tw:right-4! tw:z-20!">
-        <button class="icon-btn" id="gentleModeBtn" aria-label="Gentle day"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></button>
+        <button class="icon-btn" id="habitsSearchBtn" aria-label="Search habits"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg></button>
         <button class="icon-btn" id="manageBtn" aria-label="Manage habits"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
       </div>
+    </div>
+
+    <div class="habits-search-row" id="habitsSearchRow" hidden>
+      <span class="habits-search-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><path d="m21 21-4.3-4.3"></path></svg></span>
+      <input type="search" id="habitsSearchInput" placeholder="Search habits…" aria-label="Search habits" />
+      <button type="button" class="habits-search-clear" id="habitsSearchClear" aria-label="Close search">✕</button>
     </div>
 
     <div class="segmented" id="habitsPeriodSwitch" role="tablist" aria-label="Time of day">
@@ -211,15 +217,34 @@
     </div>
     <div class="section-head"><h2>Your rhythm</h2></div>
     <div class="rhythm-card"><div id="weekGrid" class="rhythm-grid"></div><div class="rhythm-help">A filled day means at least one check-in. Purple marks a return.</div></div>
-    <div class="section-head"><h2>What matters</h2></div>
-    <div class="stat-list">
-      <div class="stat-row"><span class="stat-icon sage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></span><span class="stat-copy"><span class="stat-label">Engagement</span><span class="stat-help">Normal, smaller, and returned versions</span></span><span class="stat-value" id="engagementMetric">—</span></div>
-      <div class="stat-row"><span class="stat-icon">↩</span><span class="stat-copy"><span class="stat-label">Returns</span><span class="stat-help">Check-ins that followed a missed day</span></span><span class="stat-value" id="returnsMetric">0</span></div>
-      <div class="stat-row"><span class="stat-icon">⏱</span><span class="stat-copy"><span class="stat-label">Time to return</span><span class="stat-help">Only shown when there is enough data</span></span><span class="stat-value" id="returnTimeMetric">—</span></div>
-    </div>
+    <details class="trend-section-toggle" id="whatMattersDetails" open>
+      <summary><h2>What matters</h2></summary>
+      <div class="stat-list">
+        <details class="stat-row">
+          <summary><span class="stat-icon sage"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></span><span class="stat-copy"><span class="stat-label">Engagement</span></span><span class="stat-value" id="engagementMetric">—</span></summary>
+          <div class="stat-help">Normal, smaller, and returned versions</div>
+        </details>
+        <details class="stat-row">
+          <summary><span class="stat-icon">↩</span><span class="stat-copy"><span class="stat-label">Returns</span></span><span class="stat-value" id="returnsMetric">0</span></summary>
+          <div class="stat-help">Check-ins that followed a missed day</div>
+        </details>
+        <details class="stat-row">
+          <summary><span class="stat-icon">⏱</span><span class="stat-copy"><span class="stat-label">Time to return</span></span><span class="stat-value" id="returnTimeMetric">—</span></summary>
+          <div class="stat-help">Only shown when there is enough data</div>
+        </details>
+      </div>
+    </details>
     <div class="pattern-card"><div class="pattern-label">A useful pattern</div><div class="pattern-text" id="trendPattern">We’re still gathering a little context.</div></div>
     <section class="review-history" aria-labelledby="reviewHistoryTitle">
-      <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div><details class="review-filter floating-menu" data-sheet-title="Filter activity"><summary>Filter</summary><div class="review-filter-menu floating-menu-panel"><button type="button" class="floating-menu-option active" data-review-filter="all">All activity</button><button type="button" class="floating-menu-option" data-review-filter="habit">Habits</button><button type="button" class="floating-menu-option" data-review-filter="circle">Circle</button></div></details></div>
+      <div class="review-history-head"><div><h2 id="reviewHistoryTitle">Recent activity</h2><p>Only what happened. Nothing to catch up on.</p></div></div>
+      <div class="review-filter-row">
+        <div class="segmented review-filter-pills" id="reviewFilterPills" role="tablist" aria-label="Activity type">
+          <button type="button" class="segmented-btn active" data-review-filter-pill="all" role="tab" aria-selected="true">All</button>
+          <button type="button" class="segmented-btn" data-review-filter-pill="habit" role="tab" aria-selected="false">Habits</button>
+          <button type="button" class="segmented-btn" data-review-filter-pill="circle" role="tab" aria-selected="false">Connections</button>
+        </div>
+        <details class="review-filter floating-menu" data-sheet-title="Filter activity" id="reviewFilterDetails"><summary>Filter</summary><div class="review-filter-menu floating-menu-panel"><button type="button" class="floating-menu-option active" data-review-filter="all">All activity</button><button type="button" class="floating-menu-option" data-review-filter="habit">Habits</button><button type="button" class="floating-menu-option" data-review-filter="circle">Circle</button></div></details>
+      </div>
       <div class="history-list" id="reviewHistory"></div>
     </section>
   </div>
@@ -558,6 +583,11 @@
     <div class="modal-head">
       <h3>Manage habits</h3>
       <button class="icon-btn" id="closeManage">✕</button>
+    </div>
+    <div class="manage-item" id="gentleModeRow">
+      <span class="habit-sheet-quick-icon" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"></path><path d="M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12"></path></svg></span>
+      <div class="grow"><strong>Gentle day</strong><small>Quick taps log the smaller version today.</small></div>
+      <button class="tiny-btn" id="gentleModeBtn">Off</button>
     </div>
     <div id="manageList" class="manage-list"></div>
     <button class="link-btn" id="manageWeeklyDetailBtn" style="padding-left:0">📊 Weekly Detail</button>
