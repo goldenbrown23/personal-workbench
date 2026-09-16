@@ -5,33 +5,6 @@ function habitAppliesOnDate(h, date){
   if(type === "days") return (h.weekdays||[]).map(Number).includes(date.getDay());
   return true;
 }
-function aggregateBlockStatus(entries){
-  if(!entries.length) return {status:"",isReturn:false};
-  const statuses=entries.map(e=>e.status);
-  const isReturn=entries.some(isReturnDay);
-  let status;
-  if(statuses.includes("returned")) status="returned";
-  else if(statuses.every(s=>s==="done")) status="done";
-  else if(statuses.includes("counted")) status="counted";
-  else if(statuses.every(s=>s==="miss")) status="miss";
-  else status="counted";
-  return {status,isReturn};
-}
-function blockBadge({status,isReturn}={status:"",isReturn:false}){
-  const map = {
-    done: ["✓","Done","done"],
-    counted: ["○","Counted","counted"],
-    miss: ["—","Not today","miss"],
-    returned: ["↩","Returned","returned"],
-    "": ["·","—","blank"]
-  };
-  const [icon,label,cls] = map[status] || map[""];
-  // A return keeps its real version label instead of collapsing to a generic "Returned"
-  // badge — the exception is a legacy entry whose actual version was never recorded.
-  if(isReturn&&status&&status!=="returned") return `<span class="status-chip returned">↩ ${label}</span>`;
-  return `<span class="status-chip ${cls}">${icon} ${label}</span>`;
-}
-
 function getDayNote(key){ return state.dayNotes?.[key] || ""; }
 function setDayNote(key, text){
   state.dayNotes ||= {};
@@ -81,31 +54,23 @@ function renderPracticeGrid(){
     : `${fmtRange(start)}–${fmtRange(end)}`;
   document.getElementById("practiceNextWeek").disabled = practiceWeekOffset>=0;
 
-  const body = document.getElementById("practiceGridBody");
-  body.innerHTML = "";
   // "returned" here is only the legacy bucket (records written before engagement version
   // and return context were split into separate fields — their real version is unknown).
-  // returnsCount is the true, version-independent tally used for the Returns metric and
-  // the Re-entry column, covering both legacy and new-style return records.
+  // returnsCount is the true, version-independent tally used for the Returns metric.
   let done=0, counted=0, miss=0, returned=0, returnsCount=0, engaged=0, possible=0;
 
   days.forEach(date=>{
     const key = dateKey(date);
-    const isToday = key===dateKey();
-    const blocks = {morning:[], afternoon:[], evening:[]};
-    let dayReturns = 0;
     state.habits.forEach(h=>{
       const applies = !h.paused && habitAppliesOnDate(h, date);
       const entry = getLogEntry(h.id, key);
       const status = entry?.status || "";
       if(status){
-        const block = (entry.timeBlock && blocks[entry.timeBlock]) ? entry.timeBlock : timeBlockOf(h);
-        blocks[block].push(entry);
         if(status==="done") done++;
         if(status==="counted") counted++;
         if(status==="miss") miss++;
         if(status==="returned") returned++;
-        if(isReturnDay(entry)){ returnsCount++; dayReturns++; }
+        if(isReturnDay(entry)) returnsCount++;
         if(["done","counted","returned"].includes(status)) engaged++;
       }
       // A weekly-rhythm habit doesn't have a daily opportunity to log — counting it as
@@ -114,21 +79,8 @@ function renderPracticeGrid(){
       // after this per-day loop, instead.
       if(applies && h.scheduleType!=="weekly") possible++;
     });
-    const row = document.createElement("tr");
-    row.className = isToday ? "today" : "";
-    const note = getDayNote(key);
-    row.innerHTML = `
-      <td data-label="Date">${escapeHTML(fmtRange(date))}</td>
-      <td data-label="Day">${escapeHTML(fmtShort(date))}</td>
-      <td data-label="🌅 Morning">${blockBadge(aggregateBlockStatus(blocks.morning))}</td>
-      <td data-label="☀️ Afternoon">${blockBadge(aggregateBlockStatus(blocks.afternoon))}</td>
-      <td data-label="🌙 Evening">${blockBadge(aggregateBlockStatus(blocks.evening))}</td>
-      <td data-label="↩ Re-entry">${dayReturns ? `<span class="status-chip returned">↩ ${dayReturns}</span>` : "<span class=\"status-chip blank\">—</span>"}</td>
-      <td data-label="Notes"><button class="note-btn" data-day-note="${key}">${note ? escapeHTML(note) : "+ Add note"}</button></td>
-    `;
-    body.appendChild(row);
   });
-  body.querySelectorAll("[data-day-note]").forEach(btn=>btn.addEventListener("click",()=>openDayNote(btn.dataset.dayNote)));
+  renderPracticeHistoryList(days);
 
   // Weekly-rhythm habits contribute their target once for the whole week (see the note in
   // the loop above), not once per day — added here rather than inside days.forEach.
@@ -160,6 +112,39 @@ function renderPracticeGrid(){
       <div class="overview-total">${total} / ${possible} possible</div>
     `;
   }
+}
+
+// Which days' event lists are expanded, kept separate from Habit Log's own
+// habitLogOpenDays (habits.js) — the two views share dateKeys but not open/closed state.
+let practiceHistoryOpenDays = new Set();
+// Reuses reviewHabitEvent/historyItemHTML/reviewDateLabel from habits.js (loaded first) —
+// same "what happened, skip what didn't" per-day list as Habit Log, just scoped to one
+// week instead of the whole archive. A day with nothing logged and no note collapses to a
+// single quiet line instead of repeating three empty time-block columns.
+function renderPracticeHistoryList(days){
+  const list = document.getElementById("practiceHistoryList"); if(!list) return;
+  list.innerHTML = days.map(date=>{
+    const key = dateKey(date);
+    const events = state.habits.map(h=>{const entry=getLogEntry(h.id,key); return entry?.status?reviewHabitEvent(h,entry):null}).filter(Boolean);
+    const note = getDayNote(key);
+    const label = reviewDateLabel(date);
+    if(!events.length && !note){
+      return `<div class="history-quiet-day"><span class="history-quiet-day-date">${escapeHTML(label)}</span><span class="history-quiet-day-note">Nothing logged</span><button type="button" class="note-btn" data-day-note="${escapeAttr(key)}">+ Note</button></div>`;
+    }
+    const open = practiceHistoryOpenDays.has(key);
+    const bodyId = `practiceHistoryBody-${key}`;
+    const rows = events.map(historyItemHTML).join("");
+    const noteRow = note
+      ? `<button type="button" class="history-day-note" data-day-note="${escapeAttr(key)}">${escapeHTML(note)}</button>`
+      : `<button type="button" class="history-day-note add" data-day-note="${escapeAttr(key)}">+ Add note</button>`;
+    return `<details class="history-day" data-day-key="${escapeAttr(key)}" ${open?"open":""}><summary aria-expanded="${open}" aria-controls="${escapeAttr(bodyId)}"><span class="history-day-label">${escapeHTML(label)}</span>${events.length?`<span class="history-day-count">${events.length}</span>`:""}</summary><div class="history-day-body" id="${escapeAttr(bodyId)}">${rows}${noteRow}</div></details>`;
+  }).join("");
+  list.querySelectorAll(".history-day").forEach(details=>details.addEventListener("toggle",()=>{
+    const key = details.dataset.dayKey; if(!key) return;
+    if(details.open) practiceHistoryOpenDays.add(key); else practiceHistoryOpenDays.delete(key);
+    details.querySelector("summary")?.setAttribute("aria-expanded", String(details.open));
+  }));
+  list.querySelectorAll("[data-day-note]").forEach(btn=>btn.addEventListener("click", e=>{ e.preventDefault(); openDayNote(btn.dataset.dayNote); }));
 }
 
 function renderPracticeMetrics(){

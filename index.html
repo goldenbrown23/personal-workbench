@@ -131,21 +131,8 @@
           <button class="icon-btn" id="practicePrevWeek" aria-label="Previous week">←</button>
           <button class="icon-btn" id="practiceNextWeek" aria-label="Next week">→</button>
         </div>
-        <div class="practice-table-wrap">
-          <table class="practice-table">
-            <thead>
-              <tr><th>Date</th><th>Day</th><th>🌅 Morning</th><th>☀️ Afternoon</th><th>🌙 Evening</th><th>↩ Re-entry</th><th>Notes</th></tr>
-            </thead>
-            <tbody id="practiceGridBody"></tbody>
-          </table>
-        </div>
-        <div class="legend">
-          <span>✓ Done = Regular version</span>
-          <span>○ Counted = Smaller version</span>
-          <span>— Not Today = Didn’t happen</span>
-          <span>↩ Returned = First engagement after a miss</span>
-        </div>
-        <div class="metric-grid">
+        <div class="history-list" id="practiceHistoryList"></div>
+        <div class="metric-grid" style="margin-top:14px">
           <div class="metric-card">
             <div class="metric-label">Engagement</div>
             <div class="metric-value" id="metricEngagement">—</div>
@@ -849,6 +836,18 @@
     <div class="settings-help" id="tagPickerHelp"></div>
     <div class="tag-pill-grid" id="tagPickerGrid" role="listbox" aria-label="Options"></div>
     <div class="modal-actions"><button class="btn" id="cancelTagPicker">Cancel</button></div>
+  </div>
+</div>
+
+<!-- Declared last of the .modal-backdrop siblings on purpose: every .modal-backdrop shares
+     one z-index and stacks by DOM order (see the stacking note in circle.js), and this
+     confirmation can be triggered from any other open sheet (habit log, contact log, edit
+     interaction) — it must always paint above whichever one opened it. -->
+<div id="replaceLogModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="replaceLogTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="replaceLogTitle">Replace this entry?</h3><button class="icon-btn" id="closeReplaceLog" aria-label="Keep current entry">✕</button></div>
+    <div class="settings-help" id="replaceLogText"></div>
+    <div class="modal-actions"><button class="btn" id="keepCurrentLogBtn">Keep current</button><button class="btn primary" id="replaceLogBtn">Replace</button></div>
   </div>
 </div>
 

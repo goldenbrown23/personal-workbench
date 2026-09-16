@@ -235,3 +235,25 @@ function fmtDate(d){ return d ? new Intl.DateTimeFormat(undefined,{month:"short"
 function escapeHTML(str=""){return String(str).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]));}
 function escapeAttr(str=""){return escapeHTML(str);}
 function jsEscape(str=""){return String(str).replace(/\\/g,"\\\\").replace(/'/g,"\\'");}
+
+// Shared in-product confirmation shown in place of window.confirm() whenever an action
+// (habit log, Circle interaction log) is about to overwrite an existing entry. Used by both
+// habits.js and circle.js so there's one calm "replace this?" pattern app-wide rather than a
+// per-feature copy. Keeping current makes no data change and just closes the sheet; Replace
+// runs whatever commit path the caller already used after the native confirm it replaced.
+const replaceLogModal=document.getElementById("replaceLogModal");
+let replaceLogPendingAction=null;
+function openReplaceLogModal(existingLine,replaceLine,onReplace){
+  document.getElementById("replaceLogText").innerHTML=`${escapeHTML(existingLine)}<br>${escapeHTML(replaceLine)}`;
+  replaceLogPendingAction=onReplace;
+  replaceLogModal.classList.add("show");
+}
+function closeReplaceLogModal(){replaceLogModal.classList.remove("show");replaceLogPendingAction=null}
+document.getElementById("closeReplaceLog").addEventListener("click",closeReplaceLogModal);
+document.getElementById("keepCurrentLogBtn").addEventListener("click",closeReplaceLogModal);
+replaceLogModal.addEventListener("click",e=>{if(e.target===replaceLogModal)closeReplaceLogModal()});
+document.getElementById("replaceLogBtn").addEventListener("click",()=>{
+  const action=replaceLogPendingAction;
+  closeReplaceLogModal();
+  if(action) action();
+});

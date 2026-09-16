@@ -565,15 +565,19 @@ function commitSingleStatusLog(status){
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
   const existing=getLogEntry(loggingHabitId,key);
+  const doCommit=()=>{
+    const timeBlock=document.getElementById("statusTimeBlock").value;
+    const note=document.getElementById("statusNote").value;
+    saveHabitLogEntry(loggingHabitId,{date:loggingSelectedDate,timeBlock,status,note});
+    closeStatusModal();
+  };
   if(existing?.status&&existing.status!==status){
     const newLabel=(statusOptions(h).find(([k])=>k===status)||[])[1]||status;
     const oldLabel=(statusOptions(h).find(([k])=>k===existing.status)||[])[1]||existing.status;
-    if(!confirm(`That day already has "${oldLabel}" logged. Replace it with "${newLabel}"?`)) return;
+    openReplaceLogModal(`You already logged “${oldLabel}” for this day.`,`Replace it with “${newLabel}”?`,doCommit);
+    return;
   }
-  const timeBlock=document.getElementById("statusTimeBlock").value;
-  const note=document.getElementById("statusNote").value;
-  saveHabitLogEntry(loggingHabitId,{date:loggingSelectedDate,timeBlock,status,note});
-  closeStatusModal();
+  doCommit();
 }
 function closeStatusModal(){statusModal.classList.remove("show");loggingHabitId=null}
 document.getElementById("closeStatusModal").addEventListener("click",closeStatusModal);statusModal.addEventListener("click",e=>{if(e.target===statusModal)closeStatusModal()});
@@ -596,14 +600,20 @@ document.getElementById("multiLogBtn").addEventListener("click",()=>{
   const dates=[...loggingMultiDates].sort();
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const existingCount=dates.filter(d=>getStatus(loggingHabitId,d)).length;
+  const doCommit=()=>{
+    const timeBlock=document.getElementById("statusTimeBlock").value;
+    const note=document.getElementById("statusNote").value;
+    saveHabitLogEntriesBatch(loggingHabitId,dates,{timeBlock,status:loggingPendingStatus,note});
+    closeStatusModal();
+  };
   if(existingCount){
     const label=(statusOptions(h).find(([k])=>k===loggingPendingStatus)||[])[1]||loggingPendingStatus;
-    if(!confirm(`${existingCount} of these ${dates.length} dates already ${existingCount===1?"has":"have"} an entry. Replace ${existingCount===1?"it":"them"} with "${label}"? The rest will be added safely.`)) return;
+    const line1=`${existingCount} of these ${dates.length} dates already ${existingCount===1?"has":"have"} an entry.`;
+    const line2=`Replace ${existingCount===1?"it":"them"} with “${label}”? The rest will be added safely.`;
+    openReplaceLogModal(line1,line2,doCommit);
+    return;
   }
-  const timeBlock=document.getElementById("statusTimeBlock").value;
-  const note=document.getElementById("statusNote").value;
-  saveHabitLogEntriesBatch(loggingHabitId,dates,{timeBlock,status:loggingPendingStatus,note});
-  closeStatusModal();
+  doCommit();
 });
 
 // Only the versions a habit actually has configured — never a placeholder for an

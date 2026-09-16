@@ -410,19 +410,25 @@ document.getElementById("saveContactBtn").addEventListener("click",()=>{
   const countsAsSeen=document.getElementById("contactSeenRow").style.display!=="none"&&document.getElementById("contactCountsAsSeen").checked;
   p.interactions ||= [];
   const dup=p.interactions.find(item=>item.date===date&&item.method===method);
+  const doCommit=()=>{
+    if(dup){
+      dup.note=note;dup.countsAsSeen=countsAsSeen;dup.updatedAt=new Date().toISOString();
+    }else{
+      p.interactions.push({id:"i-"+Date.now(),date,method,note,countsAsSeen,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    }
+    btn.disabled=true;
+    syncLastContact(p);
+    localStorage.setItem(METHOD_KEY,method);
+    closeContactModal();saveState();
+    showSaved(date===dateKey()?`Contact logged · ${p.name}`:"Added. Your timeline is more accurate now.",before);
+  };
   if(dup){
     // The disabled-button guard only engages once we're actually committing — declining this
     // confirm must leave Save clickable again, not stuck disabled with no way to retry.
-    if(!confirm(`That day already has a ${method} contact logged. Update it instead of adding another?`)) return;
-    dup.note=note;dup.countsAsSeen=countsAsSeen;dup.updatedAt=new Date().toISOString();
-  }else{
-    p.interactions.push({id:"i-"+Date.now(),date,method,note,countsAsSeen,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString()});
+    openReplaceLogModal(`You already logged a ${method} contact for this day.`,`Update it with these details instead of adding another?`,doCommit);
+    return;
   }
-  btn.disabled=true;
-  syncLastContact(p);
-  localStorage.setItem(METHOD_KEY,method);
-  closeContactModal();saveState();
-  showSaved(date===dateKey()?`Contact logged · ${p.name}`:"Added. Your timeline is more accurate now.",before);
+  doCommit();
 });
 contactModal.addEventListener("click",e=>{if(e.target===contactModal)closeContactModal()});
 
@@ -530,21 +536,27 @@ document.getElementById("saveEditInteractionBtn").addEventListener("click",()=>{
   const nextMethod=document.getElementById("editInteractionMethod").value;
   let nextNote=document.getElementById("editInteractionNote").value.trim();
   const duplicate=(p.interactions||[]).find(x=>x.id!==item.id&&x.date===nextDate&&x.method===nextMethod);
+  const doCommit=()=>{
+    if(duplicate){
+      if(duplicate.note&&duplicate.note!==nextNote) nextNote=[nextNote,duplicate.note].filter(Boolean).join(" · ");
+      p.interactions=(p.interactions||[]).filter(x=>x.id!==duplicate.id);
+    }
+    btn.disabled=true;
+    item.date=nextDate;
+    item.method=nextMethod;
+    item.note=nextNote;
+    item.countsAsSeen=document.getElementById("editInteractionSeenRow").style.display!=="none"&&document.getElementById("editInteractionCountsAsSeen").checked;
+    item.updatedAt=new Date().toISOString();
+    syncLastContact(p);
+    saveState();
+    showSaved("Interaction updated",before);
+    closeEditInteraction();
+  };
   if(duplicate){
-    if(!confirm(`That day already has a ${nextMethod} contact logged. Replace the existing entry with these changes?`)) return;
-    if(duplicate.note&&duplicate.note!==nextNote) nextNote=[nextNote,duplicate.note].filter(Boolean).join(" · ");
-    p.interactions=(p.interactions||[]).filter(x=>x.id!==duplicate.id);
+    openReplaceLogModal(`You already logged a ${nextMethod} contact for this day.`,`Replace the existing entry with these changes?`,doCommit);
+    return;
   }
-  btn.disabled=true;
-  item.date=nextDate;
-  item.method=nextMethod;
-  item.note=nextNote;
-  item.countsAsSeen=document.getElementById("editInteractionSeenRow").style.display!=="none"&&document.getElementById("editInteractionCountsAsSeen").checked;
-  item.updatedAt=new Date().toISOString();
-  syncLastContact(p);
-  saveState();
-  showSaved("Interaction updated",before);
-  closeEditInteraction();
+  doCommit();
 });
 function deleteInteractionConfirm(personId,interactionId){
   if(!confirm("Delete this interaction? This can't be undone.")) return false;

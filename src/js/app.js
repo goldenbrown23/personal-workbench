@@ -152,7 +152,7 @@ document.querySelectorAll("[data-jump]").forEach(btn=>btn.addEventListener("clic
 // (tap or swipe) and no parallel "half-open" view state to keep consistent.
 // Every listener stays passive (no preventDefault, anywhere) so this can never swallow
 // iOS Safari/PWA's own edge-swipe-back gesture or block ordinary page scrolling.
-const SWIPE_IGNORE_SELECTOR='.practice-table-wrap, .segmented, .filter-row, .date-chip-row, .weekday-picker, .week-nav, .calendar-grid, .contact-calendar, .tag-picker-grid, input[type="range"], [data-swipe-ignore]';
+const SWIPE_IGNORE_SELECTOR='.segmented, .filter-row, .date-chip-row, .weekday-picker, .week-nav, .calendar-grid, .contact-calendar, .tag-picker-grid, input[type="range"], [data-swipe-ignore]';
 const SWIPE_MIN_DIST=56,SWIPE_MAX_OFF_AXIS_RATIO=0.55,SWIPE_MAX_DURATION=700,SWIPE_EDGE_GUARD=24;
 let swipeTracking=null;
 function elementIsHorizontallyScrollable(el){
