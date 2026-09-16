@@ -82,24 +82,50 @@ function isReturnDay(entry,habitId,key){
   if(!habitId||!key) return false;
   return wasMissedPreviousRecordedDay(habitId,parseLocalDate(key)||new Date());
 }
-function wasMissedPreviousRecordedDay(habitId, fromDate=new Date()){
-  // most recent earlier day that has a status for this habit
-  for(let i=1;i<=30;i++){
-    const k=dateKey(addDays(fromDate,-i));
-    const s=getStatus(habitId,k);
-    if(s) return s==="miss";
+// The one canonical "what happened most recently before this date, for this habit" lookup
+// — return detection and time-to-return both need exactly this, so both are built on it
+// rather than each re-walking days on their own. Log-driven (scans the dateKeys that
+// actually exist in state.logs) instead of day-by-day, so there is no artificial lookback
+// cap: a return after a 6-month silence is found exactly as reliably as one after 3 days.
+// Date keys are "YYYY-MM-DD" strings, which sort/compare lexically identically to
+// chronologically — safe to compare directly without parsing back to Date objects.
+function previousRecordedHabitEntry(habitId, beforeDate){
+  const beforeKey=dateKey(beforeDate);
+  let best=null;
+  for(const key in state.logs){
+    if(key>=beforeKey) continue;
+    const status=getStatus(habitId,key);
+    if(!status) continue;
+    if(!best||key>best.key) best={key,status};
   }
-  return false;
+  return best;
+}
+function wasMissedPreviousRecordedDay(habitId, fromDate=new Date()){
+  const prev=previousRecordedHabitEntry(habitId,fromDate);
+  return prev?prev.status==="miss":false;
 }
 function lastMissDistance(habitId, returnDate){
-  // count calendar days back to the most recent miss before a returned log
-  for(let i=1;i<=60;i++){
-    const k=dateKey(addDays(returnDate,-i));
-    const s=getStatus(habitId,k);
-    if(s==="miss") return i;
-    if(s==="done" || s==="counted" || s==="returned") return null;
-  }
-  return null;
+  // The qualifying miss (if any) is simply the previous recorded entry itself — if that
+  // entry isn't a miss, nothing before it matters (a completion in between already breaks
+  // the chain), exactly as the old day-by-day scan's early-return-on-completion did.
+  const prev=previousRecordedHabitEntry(habitId,returnDate);
+  if(!prev||prev.status!=="miss") return null;
+  return daysBetween(parseLocalDate(prev.key),returnDate);
+}
+// Compact, calm duration label for a raw day-count distance (Time to Return's averaged
+// gap, potentially fractional) — a distinct formatter from My Circle's
+// compactRelativeLabel (circle.js), which labels a fixed point in time relative to "now"
+// under its own thresholds for a different surface; this one labels an arbitrary day-count
+// distance and rounds to a whole day first, since sub-day precision on "how long a gap was"
+// isn't meaningful here.
+function formatReturnDays(days){
+  const n=Math.round(days);
+  if(n<=0) return "0d";
+  if(n<14) return `${n}d`;
+  if(n<60) return `${Math.round(n/7)}w`;
+  if(n<365) return `~${Math.round(n/30)} mo`;
+  const years=Math.round((n/365)*2)/2;
+  return `~${years} yr`;
 }
 function startOfWeek(d=new Date()){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()),day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x}
 function weeklyProgress(h){let count=0;const start=startOfWeek();for(let i=0;i<7;i++){const s=getStatus(h.id,dateKey(addDays(start,i)));if(["done","counted","returned"].includes(s))count++}return count}
@@ -745,7 +771,7 @@ function renderWeek(){
   dayStats.forEach(day=>{const el=document.createElement("div");const hasReturn=day.returns>0;el.className=`rhythm-day ${day.engaged?"active":""} ${hasReturn?"returned":""} ${dateKey(day.date)===dateKey()?"today":""}`;el.innerHTML=`<div class="rhythm-name">${fmtShort(day.date).slice(0,2)}</div><div class="rhythm-orb">${hasReturn?"↩":day.engaged||day.recorded?String(day.engaged||"—"):""}</div>`;grid.appendChild(el)});
   document.getElementById("engagementMetric").textContent = considered ? String(engaged) : "—";
   document.getElementById("returnsMetric").textContent = String(returns);
-  document.getElementById("returnTimeMetric").textContent = returnDistances.length ? (Math.round((returnDistances.reduce((a,b)=>a+b,0)/returnDistances.length)*10)/10)+" d" : "—";
+  document.getElementById("returnTimeMetric").textContent = returnDistances.length ? formatReturnDays(returnDistances.reduce((a,b)=>a+b,0)/returnDistances.length) : "—";
   const headline=document.getElementById("trendHeadline"),copy=document.getElementById("trendCopy"),pattern=document.getElementById("trendPattern");
   if(!considered){headline.textContent="Not enough check-ins yet.";copy.textContent="Patterns will show up after a few days.";pattern.textContent="Not enough information yet."}
   else if(returns){headline.textContent=returns===1?"You came back once.":`You came back ${returns} times.`;copy.textContent=`${engaged} check-in${engaged===1?"":"s"} across ${activeDays} day${activeDays===1?"":"s"}.`;pattern.textContent=`You engaged on ${activeDays} of the last 7 days, and ${returns} of your check-ins were a return.`}

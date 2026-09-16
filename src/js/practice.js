@@ -172,7 +172,7 @@ function renderPracticeMetrics(){
 
   if(returnEvents.length){
     const avg = returnEvents.reduce((sum,e)=>sum+e.dist,0)/returnEvents.length;
-    document.getElementById("metricReturnTime").textContent = `${Math.round(avg*10)/10} d`;
+    document.getElementById("metricReturnTime").textContent = formatReturnDays(avg);
     const half = Math.floor(returnEvents.length/2);
     if(half>=2){
       const older = returnEvents.slice(0,half), recent = returnEvents.slice(half);
