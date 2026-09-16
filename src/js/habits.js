@@ -793,18 +793,14 @@ function renderReviewHistory(days=getLast7Days()){
   list.querySelectorAll("[data-more-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();reviewExpandedDays.add(btn.dataset.moreDay);renderReviewHistory(days);}));
   list.querySelectorAll("[data-less-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();reviewExpandedDays.delete(btn.dataset.lessDay);renderReviewHistory(days);}));
 }
-// One shared setter keeps the quick All/Habits/Connections pills and the older Filter
-// dropdown (audited: it only ever exposed these same three options, nothing more
-// "advanced" to preserve behind it — see final report) in sync with a single source of
-// truth, so either control can drive reviewFilter without duplicating the filtering logic.
+// The All/Habits/Connections pills are the one control for this — a second "Filter"
+// dropdown used to duplicate these same three options with nothing extra behind it, so
+// it was removed rather than kept as a redundant second way to make the same choice.
 function setReviewFilter(type){
   reviewFilter=type;
-  document.querySelectorAll("[data-review-filter]").forEach(item=>item.classList.toggle("active",item.dataset.reviewFilter===type));
   document.querySelectorAll("[data-review-filter-pill]").forEach(item=>{const active=item.dataset.reviewFilterPill===type;item.classList.toggle("active",active);item.setAttribute("aria-selected",String(active));});
-  document.getElementById("reviewFilterDetails")?.classList.toggle("active",type!=="all");
   renderReviewHistory();
 }
-document.querySelectorAll("[data-review-filter]").forEach(button=>button.addEventListener("click",()=>{setReviewFilter(button.dataset.reviewFilter);button.closest("details")?.removeAttribute("open");}));
 document.querySelectorAll("[data-review-filter-pill]").forEach(button=>button.addEventListener("click",()=>setReviewFilter(button.dataset.reviewFilterPill)));
 
 function toggleHabitPaused(id){

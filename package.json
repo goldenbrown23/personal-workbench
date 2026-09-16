@@ -10,6 +10,7 @@
     "build": "npm run build:css",
     "build:css": "tailwindcss -i ./src/styles/tailwind.css -o ./src/styles/tailwind.generated.css --minify",
     "watch:css": "tailwindcss -i ./src/styles/tailwind.css -o ./src/styles/tailwind.generated.css --watch",
-    "test": "playwright test"
+    "test": "playwright test",
+    "check:cache": "node scripts/check-cache-version.js"
   }
 }

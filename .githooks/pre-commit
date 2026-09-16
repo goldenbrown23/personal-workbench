@@ -1,0 +1,5 @@
+#!/bin/sh
+# Blocks a commit that changes a Service-Worker-cached file without bumping CACHE_NAME
+# in sw.js. One-time setup per clone: `git config core.hooksPath .githooks`
+# See scripts/check-cache-version.js and CLAUDE.md's "Bump CACHE_NAME" rule.
+node scripts/check-cache-version.js

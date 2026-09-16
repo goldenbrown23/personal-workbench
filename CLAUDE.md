@@ -219,7 +219,14 @@ Just decide and proceed when:
 5. Don't ship a feature that requires the user to remember something across screens or
    make more than one decision to do the common-case action.
 6. **Bump `CACHE_NAME` in `sw.js` on every deploy/update that changes cached assets** —
-   otherwise update-detection silently breaks for installed PWA users.
+   otherwise update-detection silently breaks for installed PWA users. This is enforced,
+   not just a reminder: `npm run check:cache` (`scripts/check-cache-version.js`, no
+   dependencies) compares `sw.js`'s `APP_SHELL` list against `git diff` and fails if any
+   cached file changed while `CACHE_NAME` stayed the same as the last commit. Run it
+   before every deploy, or install it as a real gate once per clone with
+   `git config core.hooksPath .githooks` (a committed `pre-commit` hook that runs the same
+   check). `CACHE_NAME` must stay a literal string in `sw.js` itself — see the comment at
+   the top of that file for why it can't be derived from `src/js/version.js`.
 
 ## Design Review Policy
 
