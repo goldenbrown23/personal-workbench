@@ -210,8 +210,8 @@ function parseLocalDate(key){ if(!key) return null; const [y,m,d]=key.split("-")
 function setupDatePicker({chipsId,customId,summaryId,getState,setState}){
   const chips=document.getElementById(chipsId), custom=document.getElementById(customId), summary=document.getElementById(summaryId);
   if(!chips||!custom) return;
-  const today=dateKey(), yesterday=dateKey(addDays(new Date(),-1)), twoAgo=dateKey(addDays(new Date(),-2));
-  const presets=[[today,"Today"],[yesterday,"Yesterday"],[twoAgo,"2 days ago"]];
+  const today=dateKey(), yesterday=dateKey(addDays(new Date(),-1));
+  const presets=[[today,"Today"],[yesterday,"Yesterday"]];
   const {date:current,isCustom}=getState();
   const presetMatch=!isCustom&&presets.find(([d])=>d===current);
   chips.innerHTML=presets.map(([d,label])=>`<button type="button" class="filter-chip ${!isCustom&&current===d?"active":""}" data-pick="${d}">${label}</button>`).join("")+`<button type="button" class="filter-chip ${isCustom?"active":""}" data-pick="custom">Pick date</button>`;
