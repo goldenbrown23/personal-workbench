@@ -740,7 +740,7 @@ function dayEventsHTML(events,key){
   const remaining=events.length-shown.length;
   const rows=shown.map(historyItemHTML).join("");
   const more=remaining>0
-    ?`<button type="button" class="history-show-more" data-more-day="${escapeAttr(key)}">+ ${remaining} more</button>`
+    ?`<button type="button" class="history-show-more" data-more-day="${escapeAttr(key)}">Show ${remaining} more</button>`
     :(expanded&&events.length>REVIEW_DAY_VISIBLE_CAP?`<button type="button" class="history-show-more" data-less-day="${escapeAttr(key)}">Show less</button>`:"");
   return rows+more;
 }
@@ -768,8 +768,13 @@ function renderReviewHistory(days=getLast7Days()){
     flushQuiet();
     const day=document.createElement("details");
     day.className="history-day";
-    if(reviewOpenDays.has(key)) day.open=true;
-    day.innerHTML=`<summary class="history-day-label" data-day-key="${escapeAttr(key)}">${escapeHTML(reviewDateLabel(date))}<span> · ${visible.length} ${visible.length===1?"entry":"entries"}</span></summary><div class="history-day-body">${dayEventsHTML(visible,key)}</div>`;
+    const open=reviewOpenDays.has(key);
+    if(open) day.open=true;
+    const bodyId=`historyDayBody-${key}`;
+    // "N" alone, not "N entries" — the section heading and surrounding context already
+    // establish these are activity counts; repeating "entries" on every row is system
+    // vocabulary the user doesn't need to read seven times per page.
+    day.innerHTML=`<summary data-day-key="${escapeAttr(key)}" aria-expanded="${open}" aria-controls="${escapeAttr(bodyId)}"><span class="history-day-label">${escapeHTML(reviewDateLabel(date))}</span><span class="history-day-count">${visible.length}</span></summary><div class="history-day-body" id="${escapeAttr(bodyId)}">${dayEventsHTML(visible,key)}</div>`;
     list.appendChild(day);
   });
   flushQuiet();
@@ -780,9 +785,10 @@ function renderReviewHistory(days=getLast7Days()){
     list.innerHTML=`<div class="history-quiet-run">${escapeHTML(emptyText)}</div>`;
   }
   list.querySelectorAll(".history-day").forEach(details=>details.addEventListener("toggle",()=>{
-    const key=details.querySelector("[data-day-key]")?.dataset.dayKey;
+    const summary=details.querySelector("[data-day-key]"),key=summary?.dataset.dayKey;
     if(!key) return;
     if(details.open) reviewOpenDays.add(key); else reviewOpenDays.delete(key);
+    summary.setAttribute("aria-expanded",String(details.open));
   }));
   list.querySelectorAll("[data-more-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();reviewExpandedDays.add(btn.dataset.moreDay);renderReviewHistory(days);}));
   list.querySelectorAll("[data-less-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();reviewExpandedDays.delete(btn.dataset.lessDay);renderReviewHistory(days);}));
