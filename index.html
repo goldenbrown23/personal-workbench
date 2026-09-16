@@ -76,6 +76,8 @@
       <button type="button" class="habits-search-clear" id="habitsSearchClear" aria-label="Close search">✕</button>
     </div>
 
+    <div class="filter-row" id="habitsCategoryFilter" role="tablist" aria-label="Category"></div>
+
     <div class="segmented" id="habitsPeriodSwitch" role="tablist" aria-label="Time of day">
       <button type="button" class="segmented-btn" data-block="morning" role="tab">Morning</button>
       <button type="button" class="segmented-btn" data-block="afternoon" role="tab">Afternoon</button>
@@ -583,6 +585,7 @@
     <div class="visual-field"><div class="visual-preview visual-tone-sage" id="habitVisualPreview"></div><div class="visual-field-copy"><div class="visual-field-title">Visual</div><span class="visual-field-note">Choose an icon and color to recognize this quickly.</span></div><button class="visual-change" id="chooseHabitVisual" type="button">Customize</button></div>
     <div class="form-row"><label for="habitGoalType">What kind of goal?</label><select id="habitGoalType"><option value="practice">Practice something</option><option value="reduce">Reduce something</option></select></div>
     <div class="form-row"><label for="habitTimeBlock">When</label><select id="habitTimeBlock"><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option></select></div>
+    <div class="form-row"><label for="habitCategory">Category <span style="font-weight:500">(optional)</span></label><select id="habitCategory"><option value="">None</option><option value="wellbeing">Wellbeing</option><option value="home">Home</option><option value="growth">Growth</option><option value="relationships">Relationships</option><option value="other">Other</option></select></div>
     <details class="goal-plan" id="goalPlanDetails">
       <summary><span class="goal-plan-title">Goal plan</span><span class="goal-plan-summary-note">Define what counts</span></summary><div class="goal-plan-help" id="goalPlanHelp">Define the versions once so you do not have to renegotiate what counts each day.</div>
       <div class="form-row"><label for="habitFull" id="habitFullLabel">Full version <span style="font-weight:500">(optional)</span></label><input id="habitFull" placeholder="e.g. Wash face for 60 seconds" /></div>

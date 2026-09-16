@@ -95,12 +95,38 @@ const TIME_BLOCKS = {
   evening: {label:"Evening", icon:"🌙"}
 };
 function timeBlockOf(h){ return (h?.timeBlock==="afternoon"||h?.timeBlock==="evening") ? h.timeBlock : "morning"; }
+// "What area of life is this?" — a separate dimension from scheduleType (how often) and
+// timeBlock (when it fits), never conflated with either. Optional, single-select, fixed
+// set on purpose (see CLAUDE.md-adjacent product intent: not a tagging system). A future
+// longer-horizon/monthly rhythm can reuse this exact field without any rework here.
+const HABIT_CATEGORIES=[
+  {id:"wellbeing",label:"Wellbeing",icon:"heart",tone:"rose"},
+  {id:"home",label:"Home",icon:"home",tone:"sand"},
+  {id:"growth",label:"Growth",icon:"trending-up",tone:"blue"},
+  {id:"relationships",label:"Relationships",icon:"people",tone:"lavender"},
+  {id:"other",label:"Other",icon:"star",tone:"gray"}
+];
+function habitCategoryTag(id){return HABIT_CATEGORIES.find(c=>c.id===id)}
+// Uncategorized is "" (never null/undefined in normalized state), matching the existing
+// normalizeRelation()/RELATIONSHIP_TAGS convention below — a habit simply has no badge to
+// show rather than an explicit "Uncategorized" value anywhere in the UI.
+function normalizeHabitCategory(value){
+  if(!value) return "";
+  const v=String(value).trim().toLowerCase();
+  return HABIT_CATEGORIES.some(c=>c.id===v)?v:"";
+}
+function habitCategoryPillHTML(h,className="checklist-category-pill"){
+  const tag=habitCategoryTag(h?.category);
+  if(!tag) return "";
+  return `<span class="${className} tone-${tag.tone}">${iconSVG(tag.icon)}<span>${escapeHTML(tag.label)}</span></span>`;
+}
 function normalizeHabit(h){
   const source=h&&typeof h==="object"&&!Array.isArray(h)?h:{};
-  const merged={goalType:"practice",full:"",small2:"",scheduleType:"daily",weekdays:[],weeklyTarget:1,timeBlock:"morning",paused:false,...source};
+  const merged={goalType:"practice",full:"",small2:"",scheduleType:"daily",weekdays:[],weeklyTarget:1,timeBlock:"morning",paused:false,category:"",...source};
   merged.timeBlock=Object.hasOwn(TIME_BLOCKS,merged.timeBlock)?merged.timeBlock:"morning";
   merged.icon=safeIcon(merged.icon,"leaf");
   merged.color=safeTone(merged.color);
+  merged.category=normalizeHabitCategory(merged.category);
   return merged;
 }
 function normalizePerson(p){

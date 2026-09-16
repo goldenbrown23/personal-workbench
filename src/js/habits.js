@@ -341,9 +341,35 @@ function renderHabitsBanner(){
   const el=document.getElementById("habitsBanner");
   el.innerHTML=`<span class="habits-banner-icon" aria-hidden="true">🌿</span><span>${escapeHTML(HABITS_BLOCK_BANNER[habitsSelectedBlock]||HABITS_BLOCK_BANNER.morning)}</span>`;
 }
+// "What area of life?" — additive with, never a replacement for, the Morning/Afternoon/
+// Evening daypart switch below (habitsSelectedBlock): the two filters narrow the SAME list
+// together (category AND daypart), each independent of the other's current value. Resets
+// to "all" each session, same as habitsSelectedBlock resets to the current daypart — this
+// is UI browsing state, not data worth persisting across reloads.
+let habitsSelectedCategory="all";
+function renderHabitsCategoryFilter(){
+  const wrap=document.getElementById("habitsCategoryFilter");
+  if(!wrap) return;
+  const chip=(id,label,iconName)=>{
+    const active=habitsSelectedCategory===id;
+    return `<button type="button" class="filter-chip ${active?"active":""}" data-category="${id}" role="tab" aria-selected="${active}">${iconSVG(iconName)}<span>${escapeHTML(label)}</span></button>`;
+  };
+  wrap.innerHTML=chip("all","All","leaf")+HABIT_CATEGORIES.map(c=>chip(c.id,c.label,c.icon)).join("");
+}
+function setHabitsCategory(id){
+  habitsSelectedCategory=id;
+  renderHabitsCategoryFilter();
+  renderHabitsChecklist();
+  renderHabitsDone();
+}
+document.getElementById("habitsCategoryFilter").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-category]");
+  if(btn) setHabitsCategory(btn.dataset.category);
+});
 function renderToday(){
   renderTabHeroCopy("habits","habitsHeroSupporting","habitsHeroAccent");
   if(!habitsSelectedBlock) habitsSelectedBlock=defaultHabitsBlock();
+  renderHabitsCategoryFilter();
   renderHabitsPeriodSwitch();
   renderHabitsBanner();
   renderHabitsChecklist();
@@ -391,7 +417,10 @@ function checklistRowHTML(h,contextLabel=null){
   const label=status?`${escapeAttr(h.name)}, ${statusLabel(status)}. Tap to change.`:`Mark ${escapeAttr(h.name)} done`;
   const hasEasier=Boolean((h.full||"").trim())&&Boolean((h.small||"").trim()||(h.small2||"").trim());
   const easierPill=hasEasier?`<span class="checklist-easier-pill">Easier</span>`:"";
-  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openHabitSheet('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name-row"><span class="checklist-name">${escapeHTML(h.name)}</span>${easierPill}</span><span class="checklist-sub">${escapeHTML(subtext)}</span></span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button><button type="button" class="checklist-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
+  // Secondary metadata only — omitted entirely for an uncategorized habit rather than
+  // ever rendering an "Uncategorized" badge (see habitCategoryPillHTML in state.js).
+  const categoryPill=habitCategoryPillHTML(h);
+  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openHabitSheet('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name-row"><span class="checklist-name">${escapeHTML(h.name)}</span>${easierPill}</span><span class="checklist-sub">${escapeHTML(subtext)}</span>${categoryPill}</span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button><button type="button" class="checklist-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
 }
 // Search is retrieval, not prioritization: it runs over every habit regardless of
 // paused/schedule/daypart/completion state, and never touches habitsSelectedBlock — the
@@ -399,7 +428,8 @@ function checklistRowHTML(h,contextLabel=null){
 let habitsSearchQuery="";
 function habitMatchesSearch(h,query){
   if(!query) return true;
-  const haystack=[h.name,h.small,h.small2].filter(Boolean).join(" ").toLowerCase();
+  const categoryLabel=habitCategoryTag(h.category)?.label||"";
+  const haystack=[h.name,h.small,h.small2,categoryLabel].filter(Boolean).join(" ").toLowerCase();
   return haystack.includes(query);
 }
 function habitDaypartLabel(h){
@@ -434,10 +464,15 @@ function renderHabitsChecklist(){
   // as everywhere else — it used to duplicate only the weekly-target half of that rule,
   // which let an already-logged daily/specific-day habit stay in Today alongside Logged
   // today. It stays reachable via Search, its own detail sheet, and history.
-  const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock&&habitStillNeedsAttentionToday(h));
+  // Category and daypart are additive filters on the SAME list — never a grouping/
+  // hierarchy within Today (see habits.js's category-filter comment above) — so this is
+  // one combined predicate, not two passes.
+  const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock&&habitStillNeedsAttentionToday(h)&&(habitsSelectedCategory==="all"||h.category===habitsSelectedCategory));
   countLabel.textContent=`Today · ${items.length}`;
   if(!items.length){
-    wrap.innerHTML=`<div class="empty-card">Nothing scheduled for ${escapeHTML(BLOCK_LABEL[habitsSelectedBlock]||"this")}.</div>`;
+    const categoryTag=habitsSelectedCategory!=="all"?habitCategoryTag(habitsSelectedCategory):null;
+    const message=categoryTag?`No ${categoryTag.label} habits here yet.`:`Nothing scheduled for ${BLOCK_LABEL[habitsSelectedBlock]||"this"}.`;
+    wrap.innerHTML=`<div class="empty-card">${escapeHTML(message)}</div>`;
     return;
   }
   wrap.innerHTML=items.map(h=>checklistRowHTML(h)).join("");
@@ -462,7 +497,11 @@ function laterRowHTML(h,timeText){
 }
 function renderHabitsDone(){
   const details=document.getElementById("habitsDoneDetails");
-  const done=state.habits.filter(h=>Boolean(getStatus(h.id)));
+  // Logged today has never been filtered by daypart (a habit logged this morning still
+  // shows up here in the afternoon) — category filtering follows that same precedent,
+  // narrowing by category alone so Today and Logged today never disagree about a habit
+  // being "still actionable" vs "already handled" purely because of which filter is active.
+  const done=state.habits.filter(h=>Boolean(getStatus(h.id))&&(habitsSelectedCategory==="all"||h.category===habitsSelectedCategory));
   document.getElementById("habitsDoneCount").textContent=String(done.length);
   details.style.display=done.length?"block":"none";
   document.getElementById("habitsDoneList").innerHTML=done.map(h=>{
@@ -1016,6 +1055,7 @@ function openHabitModal(id=null){
   document.getElementById("habitName").value=h?.name||"";
   document.getElementById("habitGoalType").value=h?.goalType||"practice";
   document.getElementById("habitTimeBlock").value=timeBlockOf(h);
+  document.getElementById("habitCategory").value=h?.category||"";
   document.getElementById("habitFull").value=h?.full||"";
   document.getElementById("habitSmall").value=h?.small||"";
   document.getElementById("habitSmall2").value=h?.small2||"";
@@ -1067,6 +1107,7 @@ document.getElementById("saveHabitBtn").addEventListener("click",()=>{
   const color=safeTone(document.getElementById("habitColor").value);
   const goalType=document.getElementById("habitGoalType").value;
   const timeBlock=document.getElementById("habitTimeBlock").value;
+  const category=normalizeHabitCategory(document.getElementById("habitCategory").value);
   const full=document.getElementById("habitFull").value.trim();
   const small=document.getElementById("habitSmall").value.trim();
   const small2=document.getElementById("habitSmall2").value.trim();
@@ -1076,9 +1117,9 @@ document.getElementById("saveHabitBtn").addEventListener("click",()=>{
   const schedule={scheduleType,weekdays:scheduleType==="days"?weekdays:[],weeklyTarget:scheduleType==="weekly"?weeklyTarget:1};
   if(editingId){
     const h=state.habits.find(x=>x.id===editingId);
-    Object.assign(h,{name,icon,color,goalType,timeBlock,full,small,small2,...schedule});
+    Object.assign(h,{name,icon,color,goalType,timeBlock,category,full,small,small2,...schedule});
   }else{
-    state.habits.push({id:"h-"+Date.now(),name,icon,color,goalType,timeBlock,full,small,small2,...schedule});
+    state.habits.push({id:"h-"+Date.now(),name,icon,color,goalType,timeBlock,category,full,small,small2,...schedule});
   }
   closeHabitModal();saveState();
 });
