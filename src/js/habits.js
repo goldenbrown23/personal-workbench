@@ -13,11 +13,12 @@ function getStatus(habitId, key=dateKey()){ return getLogEntry(habitId,key)?.sta
 function setStatus(habitId, status){
   const before=structuredClone(state);
   const key=dateKey();
+  const h=state.habits.find(x=>x.id===habitId);
   state.logs[key] ||= {};
   const hadEntry=Boolean(getStatus(habitId,key));
   if(getStatus(habitId,key)===status){ delete state.logs[key][habitId]; }
   else{
-    const isReturn=!hadEntry&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId);
+    const isReturn=!hadEntry&&["done","counted"].includes(status)&&h&&wasExpectedOpportunityMissed(h);
     if(isReturn){
       const existing=getLogEntry(habitId,key),now=new Date().toISOString();
       state.logs[key][habitId]={status,isReturn:true,timeBlock:existing?.timeBlock||null,note:existing?.note||"",createdAt:existing?.createdAt||now,updatedAt:now};
@@ -33,7 +34,8 @@ function saveHabitLogEntry(habitId,{date,timeBlock,status,note}){
   const targetDate=parseLocalDate(date)||new Date();
   const key=dateKey(targetDate);
   const existing=getLogEntry(habitId,key);
-  const isReturn=!existing?.status&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId,targetDate);
+  const h=state.habits.find(x=>x.id===habitId);
+  const isReturn=!existing?.status&&["done","counted"].includes(status)&&h&&wasExpectedOpportunityMissed(h,targetDate);
   state.logs[key] ||= {};
   const now=new Date().toISOString();
   state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
@@ -44,11 +46,12 @@ function saveHabitLogEntriesBatch(habitId,dates,{timeBlock,status,note}){
   const before=structuredClone(state);
   const now=new Date().toISOString();
   const sorted=[...dates].sort();
+  const h=state.habits.find(x=>x.id===habitId);
   let created=0,updated=0;
   sorted.forEach(key=>{
     const targetDate=parseLocalDate(key)||new Date();
     const existing=getLogEntry(habitId,key);
-    const isReturn=!existing?.status&&["done","counted"].includes(status)&&wasMissedPreviousRecordedDay(habitId,targetDate);
+    const isReturn=!existing?.status&&["done","counted"].includes(status)&&h&&wasExpectedOpportunityMissed(h,targetDate);
     state.logs[key] ||= {};
     state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
     if(existing?.status) updated++; else created++;
@@ -64,7 +67,7 @@ function clearHabitLogEntry(habitId,date){
   saveState();
   showSaved("Log cleared",before);
 }
-// Return-ness is DERIVED fresh from the live timeline via wasMissedPreviousRecordedDay(),
+// Return-ness is DERIVED fresh from the live timeline via wasExpectedOpportunityMissed(),
 // never trusted from the entry's own persisted isReturn flag — that flag is only computed
 // once, at the moment a day is first saved, so backfilling or editing an EARLIER day (which
 // changes what "the previous recorded day" actually was) would otherwise leave every later
@@ -73,22 +76,22 @@ function clearHabitLogEntry(habitId,date){
 // required. The one exception is the legacy status:"returned" bucket (records written
 // before engagement version and return context were split into separate fields) — those
 // carry no separate version to re-derive from, so they're still read directly off status.
-// habitId+key give the timeline context to derive from; without them (a caller that hasn't
-// been updated) this can only fall back to the legacy bucket.
-function isReturnDay(entry,habitId,key){
+// h(abit object)+key give the timeline+schedule context to derive from; without them (a
+// caller that hasn't been updated) this can only fall back to the legacy bucket.
+function isReturnDay(entry,h,key){
   if(!entry) return false;
   if(entry.status==="returned") return true;
   if(!["done","counted"].includes(entry.status)) return false;
-  if(!habitId||!key) return false;
-  return wasMissedPreviousRecordedDay(habitId,parseLocalDate(key)||new Date());
+  if(!h||!key) return false;
+  return wasExpectedOpportunityMissed(h,parseLocalDate(key)||new Date());
 }
 // The one canonical "what happened most recently before this date, for this habit" lookup
-// — return detection and time-to-return both need exactly this, so both are built on it
-// rather than each re-walking days on their own. Log-driven (scans the dateKeys that
-// actually exist in state.logs) instead of day-by-day, so there is no artificial lookback
-// cap: a return after a 6-month silence is found exactly as reliably as one after 3 days.
-// Date keys are "YYYY-MM-DD" strings, which sort/compare lexically identically to
-// chronologically — safe to compare directly without parsing back to Date objects.
+// — every other helper on this page is built on it rather than re-walking days on its own.
+// Log-driven (scans the dateKeys that actually exist in state.logs) instead of day-by-day,
+// so there is no artificial lookback cap: an entry from 6 months ago is found exactly as
+// reliably as one from 3 days ago. Date keys are "YYYY-MM-DD" strings, which sort/compare
+// lexically identically to chronologically — safe to compare directly without parsing back
+// to Date objects.
 function previousRecordedHabitEntry(habitId, beforeDate){
   const beforeKey=dateKey(beforeDate);
   let best=null;
@@ -100,17 +103,63 @@ function previousRecordedHabitEntry(habitId, beforeDate){
   }
   return best;
 }
-function wasMissedPreviousRecordedDay(habitId, fromDate=new Date()){
-  const prev=previousRecordedHabitEntry(habitId,fromDate);
-  return prev?prev.status==="miss":false;
+// A daily habit expects an opportunity every day; a specific-days habit only on its chosen
+// weekdays. Weekly-target and flexible habits aren't day-granular at all (see
+// missedOpportunityAnchor's own weekly branch, and flexible's "never infer" rule) — this is
+// deliberately never asked about those two types.
+function habitExpectsDayOpportunity(h,date){
+  const type=h.scheduleType||"daily";
+  if(type==="days") return (h.weekdays||[]).map(Number).includes(date.getDay());
+  return type==="daily";
 }
-function lastMissDistance(habitId, returnDate){
-  // The qualifying miss (if any) is simply the previous recorded entry itself — if that
-  // entry isn't a miss, nothing before it matters (a completion in between already breaks
-  // the chain), exactly as the old day-by-day scan's early-return-on-completion did.
-  const prev=previousRecordedHabitEntry(habitId,returnDate);
-  if(!prev||prev.status!=="miss") return null;
-  return daysBetween(parseLocalDate(prev.key),returnDate);
+// The schedule-aware generalization of "was the previous recorded day a miss." An explicit
+// Not Today always qualifies, regardless of schedule. Beyond that, a genuinely blank day
+// only qualifies as a missed opportunity when the habit's own schedule actually expected
+// something there — never inferred from silence alone:
+//   - daily / specific-days: any calendar day, strictly between the last logged entry and
+//     the target date, that the schedule expected and that has no log at all.
+//   - weekly-target: any ISO week (Mon-start, matching startOfWeek/weeklyProgress) strictly
+//     between the last entry's week and the target's week whose total completions fell
+//     short of the habit's weeklyTarget. A week still in progress is never checked — you
+//     only know a week fell short once it's actually over. Blank days *within* the same
+//     week as either endpoint are exactly the flexibility the weekly-target model already
+//     grants and never count on their own.
+//   - flexible: never infers a miss from a blank day — there's no cadence to fall behind on.
+// Nothing here reads or writes createdAt/updatedAt, and nothing here ever persists a
+// synthetic miss for a blank day — nowhere in state.logs is touched, the blank day simply
+// stays blank, and only the LATER completion's derived return status changes.
+// Returns the anchor Date the gap is measured from (the first missed day, or the failed
+// week's last day) so lastMissDistance() and wasExpectedOpportunityMissed() can share one
+// walk instead of two.
+function missedOpportunityAnchor(h,beforeDate){
+  const prev=previousRecordedHabitEntry(h.id,beforeDate);
+  if(prev&&prev.status==="miss") return parseLocalDate(prev.key);
+  if(!prev||!["done","counted","returned"].includes(prev.status)) return null;
+  const prevDate=parseLocalDate(prev.key);
+  const beforeKey=dateKey(beforeDate);
+  const type=h.scheduleType||"daily";
+  if(type==="daily"||type==="days"){
+    for(let d=addDays(prevDate,1);dateKey(d)<beforeKey;d=addDays(d,1)){
+      if(habitExpectsDayOpportunity(h,d)) return d;
+    }
+    return null;
+  }
+  if(type==="weekly"){
+    const target=Number(h.weeklyTarget||1);
+    const targetWeekStart=startOfWeek(beforeDate);
+    for(let week=addDays(startOfWeek(prevDate),7);dateKey(week)<dateKey(targetWeekStart);week=addDays(week,7)){
+      if(weeklyProgressForWeek(h,week)<target) return addDays(week,6); // the failed week's own last day
+    }
+    return null;
+  }
+  return null; // flexible — no cadence to infer a miss from
+}
+function wasExpectedOpportunityMissed(h, fromDate=new Date()){
+  return missedOpportunityAnchor(h,fromDate)!==null;
+}
+function lastMissDistance(h, returnDate){
+  const anchor=missedOpportunityAnchor(h,returnDate);
+  return anchor?daysBetween(anchor,returnDate):null;
 }
 // Compact, calm duration label for a raw day-count distance (Time to Return's averaged
 // gap, potentially fractional) — a distinct formatter from My Circle's
@@ -128,7 +177,11 @@ function formatReturnDays(days){
   return `~${years} yr`;
 }
 function startOfWeek(d=new Date()){const x=new Date(d.getFullYear(),d.getMonth(),d.getDate()),day=x.getDay()||7;x.setDate(x.getDate()-day+1);return x}
-function weeklyProgress(h){let count=0;const start=startOfWeek();for(let i=0;i<7;i++){const s=getStatus(h.id,dateKey(addDays(start,i)));if(["done","counted","returned"].includes(s))count++}return count}
+// Generalized so missedOpportunityAnchor() can ask "did THIS particular past week meet
+// target" for arbitrary weeks, not just the current one — weeklyProgress(h) is just this
+// applied to today's week, kept as the shorthand every existing caller already uses.
+function weeklyProgressForWeek(h,weekStart){let count=0;for(let i=0;i<7;i++){const s=getStatus(h.id,dateKey(addDays(weekStart,i)));if(["done","counted","returned"].includes(s))count++}return count}
+function weeklyProgress(h){return weeklyProgressForWeek(h,startOfWeek())}
 // "days" is the only schedule type that's ever NOT available on a given day — daily,
 // weekly-target ("3x this week"), and flexible habits are all fair game any day. This used
 // to default to false for weekly/flexible, which silently removed them from every
@@ -192,7 +245,7 @@ function unloggedTodayHabitsInBlock(block){return state.habits.filter(h=>habitAp
 function pickHabitForBlock(block){
   const candidates=unloggedTodayHabitsInBlock(block);
   if(!candidates.length) return null;
-  const returnPick=candidates.find(h=>wasMissedPreviousRecordedDay(h.id));
+  const returnPick=candidates.find(h=>wasExpectedOpportunityMissed(h));
   if(returnPick) return {habit:returnPick,isReturn:true};
   const withSmaller=candidates.find(h=>(h.small2||h.small||"").trim());
   if(withSmaller) return {habit:withSmaller,isReturn:false};
@@ -393,7 +446,7 @@ function renderHabitsDone(){
   details.style.display=done.length?"block":"none";
   document.getElementById("habitsDoneList").innerHTML=done.map(h=>{
     const entry=getLogEntry(h.id);
-    const label=statusLabel(entry.status)+(isReturnDay(entry,h.id,dateKey())&&entry.status!=="returned"?" · Return":"");
+    const label=statusLabel(entry.status)+(isReturnDay(entry,h,dateKey())&&entry.status!=="returned"?" · Return":"");
     return laterRowHTML(h,label);
   }).join("");
 }
@@ -758,9 +811,9 @@ function renderWeek(){
       if(s){
         considered++;dayRecorded++;
         if(["done","counted","returned"].includes(s)){engaged++;dayEngaged++}
-        if(isReturnDay(entry,h.id,k)){
+        if(isReturnDay(entry,h,k)){
           returns++;dayReturns++;
-          const dist=lastMissDistance(h.id,d);
+          const dist=lastMissDistance(h,d);
           if(dist) returnDistances.push(dist);
         }
       }
@@ -795,7 +848,7 @@ let habitLogDaysShown=HABIT_LOG_DAYS_STEP;
 function reviewDateLabel(date){const today=dateKey(),key=dateKey(date),yesterday=dateKey(addDays(new Date(),-1));if(key===today)return "Today";if(key===yesterday)return "Yesterday";return fmtLong(date)}
 function reviewHabitEvent(h,entry,key){
   const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};
-  const isReturn=isReturnDay(entry,h.id,key),baseLabel=labels[entry.status]||entry.status;
+  const isReturn=isReturnDay(entry,h,key),baseLabel=labels[entry.status]||entry.status;
   // A new-style return keeps its real version label ("Full version · Return") instead of
   // collapsing to a generic "Returned" that hides which version was actually logged.
   const label=isReturn&&entry.status!=="returned"?`${baseLabel} · Return`:baseLabel;

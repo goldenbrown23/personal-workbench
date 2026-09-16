@@ -70,7 +70,7 @@ function renderPracticeGrid(){
         if(status==="counted") counted++;
         if(status==="miss") miss++;
         if(status==="returned") returned++;
-        if(isReturnDay(entry,h.id,key)) returnsCount++;
+        if(isReturnDay(entry,h,key)) returnsCount++;
         if(["done","counted","returned"].includes(status)) engaged++;
       }
       // A weekly-rhythm habit doesn't have a daily opportunity to log — counting it as
@@ -158,8 +158,8 @@ function renderPracticeMetrics(){
     state.habits.forEach(h=>{
       const entry = getLogEntry(h.id, key), status = entry?.status || "";
       if(["done","counted","returned"].includes(status)) dayEngaged = true;
-      if(isReturnDay(entry,h.id,key)){
-        const dist = lastMissDistance(h.id, date);
+      if(isReturnDay(entry,h,key)){
+        const dist = lastMissDistance(h, date);
         if(dist) returnEvents.push({date, dist});
       }
     });
