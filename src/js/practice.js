@@ -70,7 +70,7 @@ function renderPracticeGrid(){
         if(status==="counted") counted++;
         if(status==="miss") miss++;
         if(status==="returned") returned++;
-        if(isReturnDay(entry)) returnsCount++;
+        if(isReturnDay(entry,h.id,key)) returnsCount++;
         if(["done","counted","returned"].includes(status)) engaged++;
       }
       // A weekly-rhythm habit doesn't have a daily opportunity to log — counting it as
@@ -125,7 +125,7 @@ function renderPracticeHistoryList(days){
   const list = document.getElementById("practiceHistoryList"); if(!list) return;
   list.innerHTML = days.map(date=>{
     const key = dateKey(date);
-    const events = state.habits.map(h=>{const entry=getLogEntry(h.id,key); return entry?.status?reviewHabitEvent(h,entry):null}).filter(Boolean);
+    const events = state.habits.map(h=>{const entry=getLogEntry(h.id,key); return entry?.status?reviewHabitEvent(h,entry,key):null}).filter(Boolean);
     const note = getDayNote(key);
     const label = reviewDateLabel(date);
     if(!events.length && !note){
@@ -158,7 +158,7 @@ function renderPracticeMetrics(){
     state.habits.forEach(h=>{
       const entry = getLogEntry(h.id, key), status = entry?.status || "";
       if(["done","counted","returned"].includes(status)) dayEngaged = true;
-      if(isReturnDay(entry)){
+      if(isReturnDay(entry,h.id,key)){
         const dist = lastMissDistance(h.id, date);
         if(dist) returnEvents.push({date, dist});
       }
@@ -233,3 +233,7 @@ function renderPractice(){
 }
 document.getElementById("practicePrevWeek").addEventListener("click", ()=>{ practiceWeekOffset--; renderPracticeGrid(); });
 document.getElementById("practiceNextWeek").addEventListener("click", ()=>{ if(practiceWeekOffset<0){ practiceWeekOffset++; renderPracticeGrid(); } });
+// Reuses the same habit-picker → statusModal flow as Habit Log's "+ Add past log"
+// (habits.js) rather than a second backfill implementation — Weekly Detail just needed
+// its own low-friction entry point into it.
+document.getElementById("practiceAddPastLogBtn")?.addEventListener("click", ()=>openPastLogPicker());

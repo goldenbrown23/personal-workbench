@@ -1,12 +1,13 @@
 function renderAll(){ renderHome(); renderToday(); renderWeek(); renderManage(); renderCircle(); renderManagePeople(); renderSettings(); renderPractice(); renderMoreModules(); }
 
-// The tab strip's own DOM order drives the tap-transition direction (Home → Habits →
-// My Circle → Trends → More) — reading it live instead of hardcoding view ids means a
-// future tab is picked up automatically. Swipe is intentionally a SEPARATE, shorter list:
-// only the four core sections, never "More" — Settings/future module screens are reached
-// by tapping in, not by swiping past Trends.
+// The tab strip's own DOM order drives both the tap-transition direction and swipe
+// navigation (Home → Habits → My Circle → Trends → More) — reading it live instead of
+// hardcoding view ids means a future tab is picked up automatically on both. Swipe covers
+// every primary tab, More included, so swiping past Trends reaches it exactly like tapping
+// it would; only non-tab screens reached by tapping in (Settings, Weekly Detail, modals)
+// are excluded, via SWIPE_VIEWS.indexOf(currentViewId)===-1 in finishSwipe() below.
 const PRIMARY_TAB_VIEWS=[...document.querySelectorAll(".tabbar .tab")].map(b=>b.dataset.view);
-const SWIPE_VIEWS=PRIMARY_TAB_VIEWS.filter(v=>v!=="moreView");
+const SWIPE_VIEWS=PRIMARY_TAB_VIEWS;
 
 // ---- "Your Workbench" (More) — a registry, not a hardcoded list, so a future module
 // only ever needs a new entry here plus its own view; it never has to become a bottom
@@ -196,7 +197,7 @@ function finishSwipe(endX,endY){
   if(Math.abs(dy)>Math.abs(dx)*SWIPE_MAX_OFF_AXIS_RATIO) return;
   const currentViewId=document.querySelector(".view.active")?.id;
   const currentIndex=SWIPE_VIEWS.indexOf(currentViewId);
-  if(currentIndex===-1) return; // not one of the four core sections (e.g. Settings/More) — swipe does nothing
+  if(currentIndex===-1) return; // not one of the five primary tabs (e.g. Settings/Weekly Detail) — swipe does nothing
   const nextIndex=currentIndex+(dx<0?1:-1); // swipe left → next tab, swipe right → previous tab
   if(nextIndex<0||nextIndex>=SWIPE_VIEWS.length) return; // no wrap past either end
   switchView(SWIPE_VIEWS[nextIndex]);

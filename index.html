@@ -127,7 +127,9 @@
     <details class="settings-disclosure" id="practiceDetailDisclosure">
       <summary><span><strong>Detailed history</strong><small>Day-by-day log, longer-range metrics, recent returns</small></span><span aria-hidden="true">⌄</span></summary>
       <div class="settings-disclosure-body">
-        <div class="week-nav" style="justify-content:flex-end;margin-bottom:10px">
+        <div class="week-nav" style="margin-bottom:10px">
+          <button type="button" class="link-btn" id="practiceAddPastLogBtn">+ Add past log</button>
+          <span class="grow"></span>
           <button class="icon-btn" id="practicePrevWeek" aria-label="Previous week">←</button>
           <button class="icon-btn" id="practiceNextWeek" aria-label="Next week">→</button>
         </div>
@@ -405,6 +407,10 @@
       <div><div class="eyebrow">Retrieval</div><h1>Habit Log</h1><div class="sub">Your habit check-in history. An archive, not a to-do list.</div></div>
       <button class="icon-btn" data-jump="moreView" aria-label="Close habit log">✕</button>
     </header>
+    <div class="history-toolbar">
+      <select id="habitLogFilter" class="history-filter" aria-label="Filter by habit"></select>
+      <button type="button" class="link-btn" id="habitLogAddPastBtn">+ Add past log</button>
+    </div>
     <div class="history-list" id="habitLogHistory"></div>
   </div>
 
@@ -665,6 +671,14 @@
     <button class="btn primary habit-sheet-complete" id="multiLogBtn" style="display:none" disabled>Log entries</button>
     <button type="button" class="status-not-today-btn" id="statusNotTodayBtn">Not today</button>
     <button type="button" class="status-clear-link" id="clearStatusBtn" style="display:none">Clear this day’s log</button>
+  </div>
+</div>
+
+<div id="pastLogPickerModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="pastLogPickerTitle">
+  <div class="modal">
+    <div class="modal-head"><h3 id="pastLogPickerTitle">Add past log</h3><button class="icon-btn" id="closePastLogPicker" aria-label="Close">✕</button></div>
+    <div class="sub" style="margin:-6px 0 10px">Which habit did you forget to log?</div>
+    <div id="pastLogPickerList"></div>
   </div>
 </div>
 

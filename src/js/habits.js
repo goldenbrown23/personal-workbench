@@ -64,11 +64,24 @@ function clearHabitLogEntry(habitId,date){
   saveState();
   showSaved("Log cleared",before);
 }
-// True whether a return is stored as the new {status,isReturn:true} shape or the
-// legacy status:"returned" shape — callers should use this instead of comparing
-// entry.status==="returned" directly, since a new-style return keeps its real
-// engagement status (done/counted) and flags isReturn separately.
-function isReturnDay(entry){ return Boolean(entry)&&(entry.isReturn===true||entry.status==="returned"); }
+// Return-ness is DERIVED fresh from the live timeline via wasMissedPreviousRecordedDay(),
+// never trusted from the entry's own persisted isReturn flag — that flag is only computed
+// once, at the moment a day is first saved, so backfilling or editing an EARLIER day (which
+// changes what "the previous recorded day" actually was) would otherwise leave every later
+// day's stored isReturn stale until it happened to be re-saved. Deriving it here means
+// Returns/Time-to-Return always reflect the corrected timeline immediately, no re-save
+// required. The one exception is the legacy status:"returned" bucket (records written
+// before engagement version and return context were split into separate fields) — those
+// carry no separate version to re-derive from, so they're still read directly off status.
+// habitId+key give the timeline context to derive from; without them (a caller that hasn't
+// been updated) this can only fall back to the legacy bucket.
+function isReturnDay(entry,habitId,key){
+  if(!entry) return false;
+  if(entry.status==="returned") return true;
+  if(!["done","counted"].includes(entry.status)) return false;
+  if(!habitId||!key) return false;
+  return wasMissedPreviousRecordedDay(habitId,parseLocalDate(key)||new Date());
+}
 function wasMissedPreviousRecordedDay(habitId, fromDate=new Date()){
   // most recent earlier day that has a status for this habit
   for(let i=1;i<=30;i++){
@@ -354,7 +367,7 @@ function renderHabitsDone(){
   details.style.display=done.length?"block":"none";
   document.getElementById("habitsDoneList").innerHTML=done.map(h=>{
     const entry=getLogEntry(h.id);
-    const label=statusLabel(entry.status)+(isReturnDay(entry)&&entry.status!=="returned"?" · Return":"");
+    const label=statusLabel(entry.status)+(isReturnDay(entry,h.id,dateKey())&&entry.status!=="returned"?" · Return":"");
     return laterRowHTML(h,label);
   }).join("");
 }
@@ -719,7 +732,7 @@ function renderWeek(){
       if(s){
         considered++;dayRecorded++;
         if(["done","counted","returned"].includes(s)){engaged++;dayEngaged++}
-        if(isReturnDay(entry)){
+        if(isReturnDay(entry,h.id,k)){
           returns++;dayReturns++;
           const dist=lastMissDistance(h.id,d);
           if(dist) returnDistances.push(dist);
@@ -754,19 +767,31 @@ const REVIEW_DAY_VISIBLE_CAP=5;
 const HABIT_LOG_DAYS_STEP=20;
 let habitLogDaysShown=HABIT_LOG_DAYS_STEP;
 function reviewDateLabel(date){const today=dateKey(),key=dateKey(date),yesterday=dateKey(addDays(new Date(),-1));if(key===today)return "Today";if(key===yesterday)return "Yesterday";return fmtLong(date)}
-function reviewHabitEvent(h,entry){
+function reviewHabitEvent(h,entry,key){
   const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};
-  const isReturn=isReturnDay(entry),baseLabel=labels[entry.status]||entry.status;
+  const isReturn=isReturnDay(entry,h.id,key),baseLabel=labels[entry.status]||entry.status;
   // A new-style return keeps its real version label ("Full version · Return") instead of
   // collapsing to a generic "Returned" that hides which version was actually logged.
   const label=isReturn&&entry.status!=="returned"?`${baseLabel} · Return`:baseLabel;
   const icon=isReturn?"↩":({done:"✓",counted:"○",miss:"—",returned:"↩"})[entry.status];
   const note=label+(entry.note?` · ${entry.note}`:"");
-  return {type:"habit",status:entry.status,title:h.name,note,icon};
+  // habitId+dateKey let historyItemHTML open this exact event in the shared statusModal
+  // editor (openStatusModal) — the one place habit events are ever created or corrected,
+  // whether logging today or fixing something from last week.
+  return {type:"habit",status:entry.status,title:h.name,note,icon,habitId:h.id,dateKey:key};
 }
+// Editable habit events (anything reviewHabitEvent produced, i.e. carrying habitId+dateKey)
+// render as a full-row button that reopens the exact same editor used for everyday logging —
+// tap the row, correct the version/When/note/date, save. Non-editable events (the cross-
+// cutting Notes view's excerpt-only rows, Circle Moments) keep the original static markup.
 function historyItemHTML(event){
   const iconHTML=event.type==="circle"?iconSVG("message"):escapeHTML(event.icon);
-  return `<div class="history-item ${event.type} ${event.status==="miss"?"miss":""}"><span class="history-item-icon">${iconHTML}</span><span class="history-item-copy"><span class="history-item-title">${escapeHTML(event.title)}</span><span class="history-item-note">${escapeHTML(event.note)}</span></span></div>`;
+  const inner=`<span class="history-item-icon">${iconHTML}</span><span class="history-item-copy"><span class="history-item-title">${escapeHTML(event.title)}</span><span class="history-item-note">${escapeHTML(event.note)}</span></span>`;
+  const cls=`history-item ${event.type} ${event.status==="miss"?"miss":""}`;
+  if(event.type==="habit"&&event.habitId&&event.dateKey){
+    return `<button type="button" class="${cls} history-item-edit" onclick="openStatusModal('${jsEscape(event.habitId)}','${jsEscape(event.dateKey)}')">${inner}</button>`;
+  }
+  return `<div class="${cls}">${inner}</div>`;
 }
 // Every day (not just Today) gets the same 5-item cap for a single consistent code path —
 // in practice only Today is ever likely to have enough entries for this to matter, since
@@ -781,16 +806,32 @@ function dayEventsHTML(events,key){
     :(expanded&&events.length>REVIEW_DAY_VISIBLE_CAP?`<button type="button" class="history-show-more" data-less-day="${escapeAttr(key)}">Show less</button>`:"");
   return rows+more;
 }
+// Which habit's events to show — "" means every habit, same as the archive always showed
+// before. Kept as a single flat filter (no multi-select, no sort controls) per the "one
+// simple habit filter is enough" guidance; resets are unnecessary since it's session-only.
+let habitLogFilterHabitId="";
+function renderHabitLogFilter(){
+  const sel=document.getElementById("habitLogFilter");if(!sel)return;
+  const current=habitLogFilterHabitId;
+  sel.innerHTML=`<option value="">All habits</option>`+state.habits.map(h=>`<option value="${escapeAttr(h.id)}">${escapeHTML(h.name)}</option>`).join("");
+  sel.value=state.habits.some(h=>h.id===current)?current:"";
+  habitLogFilterHabitId=sel.value;
+}
 // An archive, not a to-do list: only days that actually have a habit check-in appear at
 // all (no "quiet day" placeholders — Habit Log only ever shows what happened).
 function renderHabitLog(){
   const list=document.getElementById("habitLogHistory");if(!list)return;
-  const dayKeys=Object.keys(state.logs||{}).filter(k=>Object.values(state.logs[k]||{}).some(e=>e?.status)).sort((a,b)=>b.localeCompare(a));
-  if(!dayKeys.length){ list.innerHTML=`<div class="history-quiet-run">Nothing logged yet. Your habit check-ins will show up here.</div>`; return; }
+  renderHabitLogFilter();
+  const habits=habitLogFilterHabitId?state.habits.filter(h=>h.id===habitLogFilterHabitId):state.habits;
+  const dayKeys=Object.keys(state.logs||{}).filter(k=>habits.some(h=>getStatus(h.id,k))).sort((a,b)=>b.localeCompare(a));
+  if(!dayKeys.length){
+    list.innerHTML=`<div class="history-quiet-run">${habitLogFilterHabitId?"Nothing logged yet for this habit.":"Nothing logged yet. Your habit check-ins will show up here."}</div>`;
+    return;
+  }
   const shownKeys=dayKeys.slice(0,habitLogDaysShown);
   const rows=shownKeys.map(key=>{
     const date=parseLocalDate(key);
-    const events=state.habits.map(h=>{const entry=getLogEntry(h.id,key);return entry?.status?reviewHabitEvent(h,entry):null}).filter(Boolean);
+    const events=habits.map(h=>{const entry=getLogEntry(h.id,key);return entry?.status?reviewHabitEvent(h,entry,key):null}).filter(Boolean);
     if(!events.length) return "";
     const open=habitLogOpenDays.has(key);
     const bodyId=`habitLogDayBody-${key}`;
@@ -808,6 +849,29 @@ function renderHabitLog(){
   list.querySelectorAll("[data-less-day]").forEach(btn=>btn.addEventListener("click",e=>{e.preventDefault();habitLogExpandedDays.delete(btn.dataset.lessDay);renderHabitLog();}));
   document.getElementById("habitLogShowMoreDays")?.addEventListener("click",()=>{habitLogDaysShown+=HABIT_LOG_DAYS_STEP;renderHabitLog();});
 }
+document.getElementById("habitLogFilter")?.addEventListener("change",e=>{habitLogFilterHabitId=e.target.value;renderHabitLog();});
+document.getElementById("habitLogAddPastBtn")?.addEventListener("click",()=>openPastLogPicker());
+
+// ---- Add past log: a single lightweight habit-picker in front of the same statusModal
+// editor everything else uses. Picking a habit here is the only new interaction this
+// feature adds; logging itself is 100% the existing openStatusModal flow, landed with the
+// "When" section already open so the backfilled date is the very next thing to set.
+const pastLogPickerModal=document.getElementById("pastLogPickerModal");
+function openPastLogPicker(){
+  const list=document.getElementById("pastLogPickerList");
+  const active=state.habits.filter(h=>!h.paused);
+  list.innerHTML=active.length?active.map(h=>`<button type="button" class="later-row" onclick="choosePastLogHabit('${jsEscape(h.id)}')">${visualHTML(h,"later-row-icon")}<span class="later-row-copy"><span class="later-row-name">${escapeHTML(h.name)}</span></span></button>`).join("")
+    :`<div class="empty-card">No habits yet.</div>`;
+  pastLogPickerModal.classList.add("show");
+}
+function closePastLogPicker(){pastLogPickerModal.classList.remove("show")}
+function choosePastLogHabit(habitId){
+  closePastLogPicker();
+  openStatusModal(habitId);
+  document.getElementById("statusDateDetails").open=true;
+}
+document.getElementById("closePastLogPicker")?.addEventListener("click",closePastLogPicker);
+pastLogPickerModal?.addEventListener("click",e=>{if(e.target===pastLogPickerModal)closePastLogPicker()});
 
 function toggleHabitPaused(id){
   const h=state.habits.find(x=>x.id===id);
