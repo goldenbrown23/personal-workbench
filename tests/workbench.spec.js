@@ -149,8 +149,15 @@ test.describe('habit logging', () => {
 
     await page.locator('.checklist-row', {hasText: 'Drink water'}).locator('.checklist-overflow').click();
     await page.locator('#statusDateDetails > summary').click();
-    await page.locator('#statusDateChips [data-pick="2026-09-11"]').click();
+    // The date picker's own preset chips are only Today/Yesterday now (see setupDatePicker
+    // in state.js) — any other date goes through "Pick date", which reveals the native
+    // #statusDateCustom input.
+    await page.locator('#statusDateChips [data-pick="custom"]').click();
+    await page.locator('#statusDateCustom').fill('2026-09-11');
     await page.locator('#statusVersionList .version-option').first().click();
+    // Selecting a version only stages it now (handleLogStatusClick) — the Log button is the
+    // one place a single-date entry actually commits (commitSingleStatusLog).
+    await page.locator('#statusLogBtn').click();
 
     const logs = (await readState(page)).logs;
     expect(logs['2026-09-11']['h-bare'].status).toBe('counted');
@@ -185,8 +192,12 @@ test.describe('My Circle: My People / single nudge / Recent Moments', () => {
       state: seedState({people: [personWith('p1', 'Mom'), personWith('p2', 'Dad'), personWith('p3', 'Alex')]}),
     });
     const names = await page.locator('#circlePeopleList .circle-people-item .circle-people-name').allInnerTexts();
-    // Add Person tile shares the same item class, so it shows up in this list too.
-    expect(names).toEqual(expect.arrayContaining(['Mom', 'Dad', 'Alex', 'Add Person']));
+    // Add Person no longer has a tile of its own in this rail — it lives only in the hero's
+    // addPersonBtn now (see circle.js's comment on circlePeopleRowHTML: "a second entry
+    // point in this limited-width rail would just cost space that should go to actual
+    // people"), so the rail holds exactly the people added, nothing else.
+    expect(names).toEqual(['Mom', 'Dad', 'Alex']);
+    await expect(page.locator('#addPersonBtn')).toBeVisible();
     await expect(page.locator('.circle-main-card, .circle-people-card:has-text("Other People")')).toHaveCount(0);
   });
 
@@ -226,7 +237,12 @@ test.describe('My Circle: My People / single nudge / Recent Moments', () => {
     await expect(page.locator('.circle-hero-name')).toHaveText('Overdue2');
   });
 
-  test('Log moment updates last contact and Recent Moments immediately', async ({page}) => {
+  // Recent Moments no longer renders inline on the My Circle landing page — the full
+  // chronological interaction archive moved to More → Circle Moments (circleMomentsView),
+  // reusing the same row markup (circleRecentRowHTML/.circle-row). See circle.js's comment
+  // on renderCircleMoments: "the full interaction archive that used to render inline on the
+  // My Circle landing page ('Recent Moments') ... only where it's shown moved."
+  test('Log moment updates last contact immediately and appears in Circle Moments', async ({page}) => {
     await boot(page, {
       view: 'circleView',
       state: seedState({people: [personWith('p1', 'Sam', {frequency: 7})]}),
@@ -234,10 +250,13 @@ test.describe('My Circle: My People / single nudge / Recent Moments', () => {
     await page.locator('#circleHeroCard .circle-hero-btn.primary').click();
     await page.locator('#contactNote').fill('Sent a photo');
     await page.locator('#saveContactBtn').click();
-    await expect(page.locator('#circleRecentList')).toContainText('Sent a photo');
+    await expect(page.locator('#circleHeroCard')).toContainText('caught up');
+
+    await page.evaluate(() => switchView('circleMomentsView'));
+    await expect(page.locator('#circleMomentsList .circle-row')).toContainText('Sent a photo');
   });
 
-  test('Recent Moments shows at most two items on the landing page', async ({page}) => {
+  test('Circle Moments (More → Circle Moments) lists every logged interaction, not just a landing-page preview', async ({page}) => {
     const interactions = ['2026-09-10', '2026-09-11', '2026-09-12'].map((date, i) => ({
       id: `i-${i}`, date, method: 'Text', note: `Moment ${i}`, countsAsSeen: false,
       createdAt: `${date}T00:00:00.000Z`, updatedAt: `${date}T00:00:00.000Z`,
@@ -246,8 +265,12 @@ test.describe('My Circle: My People / single nudge / Recent Moments', () => {
       view: 'circleView',
       state: seedState({people: [personWith('p1', 'Sam', {interactions})]}),
     });
-    await expect(page.locator('#circleRecentList .circle-row')).toHaveCount(2);
-    await expect(page.locator('#circleRecentViewAll')).toBeVisible();
+    // The landing page itself carries no Recent Moments list at all any more — just the
+    // hero and My People.
+    await expect(page.locator('#circleView .circle-row')).toHaveCount(0);
+
+    await page.evaluate(() => switchView('circleMomentsView'));
+    await expect(page.locator('#circleMomentsList .circle-row')).toHaveCount(3);
   });
 
   test('"See all" on My People opens the people directory', async ({page}) => {
@@ -292,7 +315,9 @@ test.describe('My Circle', () => {
     // Logging today's interaction recalculates Next Due Date to 7 days out, so Sam
     // immediately drops out of "People to check in with" — nobody else is due either.
     await expect(page.locator('#circleHeroCard')).toContainText("caught up");
-    await expect(page.locator('#circleRecentList')).toContainText('Quick catch-up');
+    await page.evaluate(() => switchView('circleMomentsView'));
+    await expect(page.locator('#circleMomentsList .circle-row')).toContainText('Quick catch-up');
+    await page.evaluate(() => switchView('circleView'));
 
     const person = (await readState(page)).people[0];
     expect(person.interactions).toHaveLength(1);
@@ -301,13 +326,18 @@ test.describe('My Circle', () => {
 
     await page.reload();
     await expect(page.locator('#circleHeroCard')).toContainText("caught up");
-    await expect(page.locator('#circleRecentList')).toContainText('Quick catch-up');
+    await page.evaluate(() => switchView('circleMomentsView'));
+    await expect(page.locator('#circleMomentsList .circle-row')).toContainText('Quick catch-up');
   });
 
-  test('the empty state offers no dead "View all" controls', async ({page}) => {
+  // Recent Moments (and its "View all" link) no longer exists on the landing page at all —
+  // see the note above renderCircleMoments() in circle.js. The current equivalent of "no
+  // dead controls in the empty state" is simply that the empty state renders its own
+  // friendly copy with nothing else alongside it.
+  test('the empty state offers no dead controls and no stray interaction list', async ({page}) => {
     await boot(page, {view: 'circleView'});
     await expect(page.locator('#circleHeroCard')).toContainText('Your Circle starts here');
-    await expect(page.locator('#circleRecentViewAll')).toBeHidden();
+    await expect(page.locator('#circleView .circle-row')).toHaveCount(0);
   });
 
   test('an interaction\'s ••• menu opens even when it sits below the fold', async ({page}) => {
@@ -356,35 +386,47 @@ test.describe('Trends', () => {
     }],
   });
 
-  test('metrics match the stored logs', async ({page}) => {
+  // Trends' own inline activity feed (#reviewHistory, with its habit/circle/all type
+  // filter) was removed from this screen entirely. The habit side moved to Habit Log
+  // (More → Habit Log, its own per-habit filter — see habits.js's renderHabitLogFilter
+  // comment: "reuses this same day-grouping/collapsible-list approach that used to render
+  // Trends' 'Recent activity' — only WHERE it's shown moved"); the Circle side moved to
+  // Circle Moments (see circle.js's renderCircleMoments comment). Trends itself now only
+  // shows the rhythm grid and the "What matters" stat rollups.
+  test('metrics match the stored logs, with no NaN/undefined leaking into the rendered stats', async ({page}) => {
     await boot(page, {view: 'weekView', state: loggedState});
     await expect(page.locator('#engagementMetric')).toHaveText('2');
     await expect(page.locator('#returnsMetric')).toHaveText('0');
-    await expect(page.locator('#reviewHistory')).not.toContainText(/NaN|undefined/);
+    const trendsText = await page.locator('.trend-insight, .pattern-card').allInnerTexts();
+    expect(trendsText.join(' ')).not.toMatch(/NaN|undefined/);
   });
 
-  test('each activity filter shows only its own kind of entry', async ({page}) => {
-    await boot(page, {view: 'weekView', state: loggedState});
+  // Current equivalent of the old "each activity filter shows only its own kind of entry"
+  // test: the habit and circle feeds are no longer one filterable list, they're two
+  // separate, non-overlapping archives. This asserts the replacement behavior — Habit Log's
+  // own per-habit filter dropdown actually filters, and Circle Moments never shows habit
+  // entries (there's nothing in its markup that could).
+  test('Habit Log\'s per-habit filter shows only that habit\'s entries; Circle Moments never mixes in habit entries', async ({page}) => {
+    const otherHabit = {...twoVersionHabit, id: 'h-other', name: 'Morning pages'};
+    const state = seedState({
+      ...loggedState,
+      habits: [twoVersionHabit, otherHabit],
+      logs: {...loggedState.logs, '2026-09-13': {...loggedState.logs['2026-09-13'], 'h-other': 'done'}},
+    });
+    await boot(page, {view: 'habitLogView', state});
 
-    const openFilter = async () => {
-      await page.locator('#weekView details.floating-menu').scrollIntoViewIfNeeded();
-      await page.locator('#weekView details.floating-menu > summary').click();
-    };
+    await page.locator('#habitLogFilter').selectOption('h-stretch');
+    await expect(page.locator('#habitLogHistory')).toContainText('Evening stretch');
+    await expect(page.locator('#habitLogHistory')).not.toContainText('Morning pages');
 
-    await openFilter();
-    await page.locator('[data-review-filter="habit"]').click();
-    await expect(page.locator('#reviewHistory')).toContainText('Evening stretch');
-    await expect(page.locator('#reviewHistory')).not.toContainText('Connected with Sam');
+    await page.locator('#habitLogFilter').selectOption('h-other');
+    await expect(page.locator('#habitLogHistory')).toContainText('Morning pages');
+    await expect(page.locator('#habitLogHistory')).not.toContainText('Evening stretch');
 
-    await openFilter();
-    await page.locator('[data-review-filter="circle"]').click();
-    await expect(page.locator('#reviewHistory')).toContainText('Connected with Sam');
-    await expect(page.locator('#reviewHistory')).not.toContainText('Evening stretch');
-
-    await openFilter();
-    await page.locator('[data-review-filter="all"]').click();
-    await expect(page.locator('#reviewHistory')).toContainText('Evening stretch');
-    await expect(page.locator('#reviewHistory')).toContainText('Connected with Sam');
+    await page.evaluate(() => switchView('circleMomentsView'));
+    await expect(page.locator('#circleMomentsList')).not.toContainText('Evening stretch');
+    await expect(page.locator('#circleMomentsList')).not.toContainText('Morning pages');
+    await expect(page.locator('#circleMomentsList .circle-row')).toHaveCount(1);
   });
 
   test('Weekly Detail engagement % excludes paused habits from "possible"', async ({page}) => {

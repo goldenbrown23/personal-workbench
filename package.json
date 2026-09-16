@@ -11,6 +11,7 @@
     "build:css": "tailwindcss -i ./src/styles/tailwind.css -o ./src/styles/tailwind.generated.css --minify",
     "watch:css": "tailwindcss -i ./src/styles/tailwind.css -o ./src/styles/tailwind.generated.css --watch",
     "test": "playwright test",
+    "test:regression": "playwright test tests/regression --project=mobile-390",
     "check:cache": "node scripts/check-cache-version.js"
   }
 }

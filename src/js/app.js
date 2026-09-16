@@ -1,4 +1,9 @@
-function renderAll(){ renderHome(); renderToday(); renderWeek(); renderManage(); renderCircle(); renderManagePeople(); renderSettings(); renderPractice(); renderMoreModules(); }
+// Habit Log isn't a primary tab, so unlike the views above it's normally only rendered on
+// entry (see switchView's viewId==="habitLogView" branch) — but its own rows can trigger a
+// mutation (tap a row to edit, delete a past log) without ever leaving the view, so it must
+// also re-render here when it's the one currently on screen, or an edit/delete made from
+// inside it goes stale until the user navigates away and back.
+function renderAll(){ renderHome(); renderToday(); renderWeek(); renderManage(); renderCircle(); renderManagePeople(); renderSettings(); renderPractice(); renderMoreModules(); if(document.getElementById("habitLogView")?.classList.contains("active")) renderHabitLog(); }
 
 // The tab strip's own DOM order drives both the tap-transition direction and swipe
 // navigation (Home → Habits → My Circle → Trends → More) — reading it live instead of

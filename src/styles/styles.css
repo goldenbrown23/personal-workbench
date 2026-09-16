@@ -146,10 +146,15 @@
     .tab-hero-copy h1{font-size:30px;line-height:1.08;margin:8px 0 6px;letter-spacing:-.02em;max-width:100%}
     .tab-hero-copy .sub{font-size:15px;line-height:1.35;max-width:94%;color:rgba(58,47,39,.72)}
     .tab-hero-actions{position:absolute;z-index:3;top:18px;right:16px;display:flex;gap:6px}
-    /* Verified at 320×568: "People make life richer" (Circle's eyebrow) wraps to a
-       second line at this width and that line sits directly under the action icons,
-       clipped behind them. Habits/Trends' shorter eyebrows never wrap here, so this is
-       scoped to Circle only. Push its copy column below the icon row and loosen its
+    /* Originally verified/scoped at 320×568 only, but the underlying geometry problem is
+       wider than that: "People make life richer" (Circle's eyebrow) sits under the three
+       action icons (search/add-person/settings — more icons than Habits' two, hence Circle
+       only) anywhere the copy column's 62.5% width leaves less room than those three 44px
+       icons+gaps need. Measured directly in-browser: the eyebrow still runs 11-26px under
+       the search icon at 390/402/430/460px (the app's own primary mobile range per
+       CLAUDE.md) and only clears at 480px, well past where the original 359px cutoff
+       assumed it was safe. Habits/Trends never hit this (fewer/no action icons), so this
+       stays scoped to Circle only. Push its copy column below the icon row and loosen its
        width back up rather than narrowing text further.
        Needs its own named layer: Tailwind's own utilities (tw:h-55!, tw:w-[62.5%]!) are
        !important inside `@layer utilities`, and for !important declarations the cascade
@@ -157,7 +162,7 @@
        loses that tie (verified directly in-browser). Declaring this layer up front, before
        tailwind.generated.css ever declares its own layers, makes it the earlier one. */
     @layer overrides{
-      @media(max-width:359px){
+      @media(max-width:479px){
         #circleView .tab-hero--circle{height:230px !important}
         #circleView .tab-hero--circle .tab-hero-copy{width:70% !important;padding-top:44px !important}
       }

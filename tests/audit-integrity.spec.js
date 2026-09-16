@@ -65,8 +65,19 @@ test.describe('weekly-target habits', () => {
     expect(progress).toBe(2);
   });
 
-  test('a weekly habit that already met its target drops out of Start Here / Later, but stays visible in the Habits checklist', async ({page}) => {
+  // As of the "habit system update" (d3ad0d9), a weekly habit that already met its rhythm
+  // for the week steps out of the Habits checklist entirely, not just Start Here / Later —
+  // renderHabitsChecklist's own comment: "same 'enough attention for now' rule ... also
+  // applied here so it doesn't keep appearing in the main Today checklist. It stays
+  // reachable via Search, its own detail sheet, and history." This replaces the older
+  // "stays visible" expectation with the current, intentionally quieter one.
+  test('a weekly habit that already met its target drops out of Start Here / Later AND the Habits checklist, but stays visible before the target is met', async ({page}) => {
     await boot(page, {state: seedState({habits: [weeklyHabit]})});
+
+    await page.locator('.tabbar .tab[data-view="todayView"]').click();
+    await page.locator('#habitsPeriodSwitch [data-block="morning"]').click();
+    await expect(page.locator('#habitsChecklist .checklist-name', {hasText: 'Call a friend'})).toBeVisible();
+
     await page.evaluate(() => {
       state.logs['2026-09-14'] = {'h-weekly': 'done'};
       state.logs['2026-09-15'] = {'h-weekly': 'done'};
@@ -76,9 +87,9 @@ test.describe('weekly-target habits', () => {
     const stillNeeds = await page.evaluate(() => habitStillNeedsAttentionToday(state.habits[0]));
     expect(stillNeeds).toBe(false);
 
-    await page.locator('.tabbar .tab[data-view="todayView"]').click();
-    await page.locator('#habitsPeriodSwitch [data-block="morning"]').click();
-    await expect(page.locator('#habitsChecklist .checklist-name', {hasText: 'Call a friend'})).toBeVisible();
+    await expect(page.locator('#habitsChecklist .checklist-name', {hasText: 'Call a friend'})).toHaveCount(0);
+    // Still reachable through the rest of the app — not deleted, just quieted for the week.
+    await expect.poll(() => page.evaluate(() => weeklyProgress(state.habits[0]))).toBe(3);
   });
 
   test('scheduleLabel reflects live progress and resets to 0 in the new week', async ({page}) => {
@@ -100,24 +111,30 @@ const versionedHabit = {
 };
 
 test.describe('Smaller Version logging and historical edits', () => {
+  // The overwrite guard no longer runs through window.confirm() from inside
+  // handleLogStatusClick — handleLogStatusClick only stages a pending version now (see its
+  // own comment: "never saves by itself"). The actual write, and the overwrite guard, live
+  // in commitSingleStatusLog(), which opens the shared in-app #replaceLogModal (not the
+  // browser's confirm()) whenever the day already has a different status. Declining is
+  // "Keep current" (#keepCurrentLogBtn); confirming is "Replace" (#replaceLogBtn).
   test('logging a Smaller Version for a past day never overwrites an existing Full Completion unless explicitly confirmed', async ({page}) => {
     await boot(page, {state: seedState({habits: [versionedHabit]})});
     await page.evaluate(() => {
       state.logs['2026-09-10'] = {'h-versions': {status: 'done', isReturn: false, timeBlock: 'evening', note: '', createdAt: 't', updatedAt: 't'}};
       saveState();
     });
-    // Attempt to backfill the same day with a Smaller Version via the shared save path,
-    // declining the overwrite confirmation (confirm stubbed to return false).
-    await page.evaluate(() => { window.confirm = () => false; });
     const before = await readState(page);
     await page.evaluate(() => {
-      // Simulate the modal flow: existing status differs, handleLogStatusClick guards with confirm().
       loggingHabitId = 'h-versions';
       loggingSelectedDate = '2026-09-10';
       loggingDateIsCustom = true;
       loggingMode = 'single';
-      handleLogStatusClick('counted');
+      commitSingleStatusLog('counted');
     });
+    await expect(page.locator('#replaceLogModal')).toHaveClass(/show/);
+    await page.locator('#keepCurrentLogBtn').click();
+    await expect(page.locator('#replaceLogModal')).not.toHaveClass(/show/);
+
     const after = await readState(page);
     expect(after.logs['2026-09-10']['h-versions'].status).toBe('done');
     expect(after).toEqual(before);
@@ -128,13 +145,15 @@ test.describe('Smaller Version logging and historical edits', () => {
     await page.evaluate(() => {
       state.logs['2026-09-10'] = {'h-versions': {status: 'done', isReturn: false, timeBlock: 'evening', note: '', createdAt: 't', updatedAt: 't'}};
       saveState();
-      window.confirm = () => true;
       loggingHabitId = 'h-versions';
       loggingSelectedDate = '2026-09-10';
       loggingDateIsCustom = true;
       loggingMode = 'single';
-      handleLogStatusClick('counted');
+      commitSingleStatusLog('counted');
     });
+    await expect(page.locator('#replaceLogModal')).toHaveClass(/show/);
+    await page.locator('#replaceLogBtn').click();
+
     const after = await readState(page);
     expect(after.logs['2026-09-10']['h-versions'].status).toBe('counted');
   });
