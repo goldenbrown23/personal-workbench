@@ -301,7 +301,28 @@ function renderHabitsPaused(){
 
 let loggingHabitId=null,loggingSelectedDate=dateKey(),loggingDateIsCustom=false;
 let loggingMode="single",loggingMultiDates=new Set(),loggingMultiMonth=new Date(),loggingRangeArmed=false,loggingRangeAnchor=null,loggingPendingStatus=null;
+let loggingLastRenderedKey=null;
 const statusModal=document.getElementById("statusModal");
+// Only "done"/"counted" are real engagement versions a user can pick from statusVersionList —
+// a day already logged "miss"/"returned" falls back to the habit's default version so
+// reopening the sheet invites a real choice, while the separate Not-today highlight (see
+// renderStatusChoices) still reflects the actual stored status for that day.
+function defaultPendingStatusForCurrentDate(){
+  const h=state.habits.find(x=>x.id===loggingHabitId);
+  const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
+  const existing=getStatus(loggingHabitId,key);
+  const rows=versionRowsForHabit(h);
+  const fallback=rows.length?rows[0].status:"counted";
+  return (existing==="done"||existing==="counted")?existing:fallback;
+}
+// A note already on this day's entry stays visibly expanded (per-day, not per-session) so
+// backdated/edited entries never hide existing content behind a collapsed disclosure.
+function syncNoteExpansionForCurrentEntry(){
+  const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
+  const entry=getLogEntry(loggingHabitId,key);
+  const details=document.getElementById("statusNoteDetails");
+  if(details) details.open=Boolean(entry?.note);
+}
 function openStatusModal(id,presetDate=null){
   loggingHabitId=id;
   loggingSelectedDate=presetDate||dateKey();
@@ -309,21 +330,21 @@ function openStatusModal(id,presetDate=null){
   loggingMode="single";
   loggingMultiDates=new Set();
   loggingMultiMonth=parseLocalDate(loggingSelectedDate)||new Date();
-  loggingRangeArmed=false;loggingRangeAnchor=null;loggingPendingStatus=null;
+  loggingRangeArmed=false;loggingRangeAnchor=null;
+  loggingLastRenderedKey=null;
+  loggingPendingStatus=defaultPendingStatusForCurrentDate();
   document.getElementById("statusDateDetails").open=false;
+  syncNoteExpansionForCurrentEntry();
   renderStatusSharedFields();
   setLoggingMode("single");
   statusModal.classList.add("show");
 }
 function setLoggingMode(mode){
   loggingMode=mode;
-  document.getElementById("statusModeSingleBtn").classList.toggle("active",mode==="single");
-  document.getElementById("statusModeSingleBtn").setAttribute("aria-selected",String(mode==="single"));
-  document.getElementById("statusModeMultiBtn").classList.toggle("active",mode==="multi");
-  document.getElementById("statusModeMultiBtn").setAttribute("aria-selected",String(mode==="multi"));
   document.getElementById("statusSingleDateWrap").style.display=mode==="single"?"block":"none";
   document.getElementById("statusMultiDateWrap").style.display=mode==="multi"?"block":"none";
-  document.getElementById("multiLogBtn").style.display=mode==="multi"?"inline-block":"none";
+  document.getElementById("statusLogBtn").style.display=mode==="single"?"block":"none";
+  document.getElementById("multiLogBtn").style.display=mode==="multi"?"block":"none";
   if(mode==="multi"){ renderMultiCalendar();renderMultiSummary(); }
   renderStatusModalForDate();
 }
@@ -332,18 +353,34 @@ function renderStatusSharedFields(){
   document.getElementById("statusModalTitle").textContent=h?h.name:"Log habit";
   document.getElementById("statusTimeBlock").value=timeBlockOf(h);
 }
+// The habit name when it fits, or a generic fallback when it doesn't — keeps the button's
+// single line of text from ever forcing sheet width or wrapping awkwardly.
+function statusLogBtnLabel(h){
+  const name=(h?.name||"").trim();
+  return name&&name.length<=20?`✓ Log ${name}`:"✓ Log habit";
+}
+function updateStatusLogBtn(){
+  const btn=document.getElementById("statusLogBtn");
+  if(!btn) return;
+  btn.textContent=statusLogBtnLabel(state.habits.find(x=>x.id===loggingHabitId));
+  btn.disabled=!loggingPendingStatus;
+}
 // Engagement versions render as the same large tappable cards used by the Home
 // "easier version" sheet — only what's actually configured for this habit, never a
-// placeholder example. "Not today" lives outside this list as a quiet tertiary action
-// (see statusNotTodayBtn) since it isn't a version of engagement, it's the absence of one.
+// placeholder example. Tapping one only selects it (see handleLogStatusClick); the Log
+// button below is the single place a version actually commits. "Not today" lives outside
+// this list as a quiet tertiary action (see statusNotTodayBtn) since it isn't a version of
+// engagement, it's the absence of one, and it commits immediately on tap as it always has.
 function renderStatusChoices(){
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
-  const active=loggingMode==="multi"?loggingPendingStatus:getStatus(loggingHabitId,key);
+  const existingStatus=getStatus(loggingHabitId,key);
+  const active=loggingPendingStatus;
   let rows=versionRowsForHabit(h);
   if(!rows.length) rows=[{status:"counted",label:"Check-in",text:"A tiny check-in counts."}];
   document.getElementById("statusVersionList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${active===r.status?"active":""}" onclick="handleLogStatusClick('${jsEscape(r.status)}')"><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></button>`).join("");
-  document.getElementById("statusNotTodayBtn").classList.toggle("active",active==="miss");
+  document.getElementById("statusNotTodayBtn").classList.toggle("active",loggingMode==="single"&&existingStatus==="miss");
+  updateStatusLogBtn();
 }
 function renderStatusModalForDate(){
   const id=loggingHabitId,h=state.habits.find(x=>x.id===id);
@@ -351,16 +388,33 @@ function renderStatusModalForDate(){
   const current=getStatus(id,key),entry=getLogEntry(id,key);
   renderStatusChoices();
   document.getElementById("clearStatusBtn").style.display=loggingMode==="single"&&current?"block":"none";
-  document.getElementById("statusTimeBlock").value=entry?.timeBlock||timeBlockOf(h);
-  document.getElementById("statusNote").value=entry?.note||"";
+  // Only reload the note/time-block fields when the date actually changed — a plain mode
+  // toggle (single <-> multiple) re-renders this same function and must not clobber a note
+  // the user is mid-typing just because they tapped "Log for multiple dates" and back.
+  if(key!==loggingLastRenderedKey){
+    document.getElementById("statusTimeBlock").value=entry?.timeBlock||timeBlockOf(h);
+    document.getElementById("statusNote").value=entry?.note||"";
+    loggingLastRenderedKey=key;
+  }
   renderStatusDatePicker();
 }
 function renderStatusDatePicker(){
   setupDatePicker({
     chipsId:"statusDateChips",customId:"statusDateCustom",summaryId:"statusDateSummary",
     getState:()=>({date:loggingSelectedDate,isCustom:loggingDateIsCustom}),
-    setState:(d,isCustom)=>{loggingSelectedDate=d;loggingDateIsCustom=isCustom;renderStatusModalForDate();}
+    setState:(d,isCustom)=>{
+      loggingSelectedDate=d;loggingDateIsCustom=isCustom;
+      loggingPendingStatus=defaultPendingStatusForCurrentDate();
+      syncNoteExpansionForCurrentEntry();
+      renderStatusModalForDate();
+    }
   });
+  // setupDatePicker only knows the date half of the summary — append the time block so the
+  // collapsed "When" row reads as a single glance ("Today · Morning") without duplicating
+  // its preset-label logic here.
+  const summaryEl=document.getElementById("statusDateSummary");
+  const blockVal=document.getElementById("statusTimeBlock").value;
+  if(summaryEl&&blockVal) summaryEl.textContent=`${summaryEl.textContent} · ${blockVal.charAt(0).toUpperCase()}${blockVal.slice(1)}`;
 }
 function renderMultiCalendar(){
   const month=loggingMultiMonth||new Date();
@@ -419,14 +473,19 @@ function renderMultiSummary(){
   btn.textContent=n<=1?"Log entry":`Log ${n} entries`;
   btn.disabled=n===0||!loggingPendingStatus;
 }
+// Selecting a version (or Not-today) never saves by itself — it only updates what's
+// pending. commitSingleStatusLog() below is the one place a single-date log actually writes.
 function handleLogStatusClick(status){
   if(!loggingHabitId) return;
-  if(loggingMode==="multi"){
-    loggingPendingStatus=status;
-    renderStatusChoices();
-    renderMultiSummary();
-    return;
-  }
+  loggingPendingStatus=status;
+  renderStatusChoices();
+  if(loggingMode==="multi") renderMultiSummary();
+}
+// The one commit path for single-date logging — used by both the primary Log button
+// (with the selected version) and Not-today (which has always logged immediately on tap,
+// since declining a day isn't a choice that needs a separate confirm step).
+function commitSingleStatusLog(status){
+  if(!loggingHabitId||!status) return;
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
   const existing=getLogEntry(loggingHabitId,key);
@@ -442,10 +501,12 @@ function handleLogStatusClick(status){
 }
 function closeStatusModal(){statusModal.classList.remove("show");loggingHabitId=null}
 document.getElementById("closeStatusModal").addEventListener("click",closeStatusModal);statusModal.addEventListener("click",e=>{if(e.target===statusModal)closeStatusModal()});
-document.getElementById("statusNotTodayBtn").addEventListener("click",()=>handleLogStatusClick("miss"));
+document.getElementById("statusLogBtn").addEventListener("click",()=>commitSingleStatusLog(loggingPendingStatus));
+document.getElementById("statusNotTodayBtn").addEventListener("click",()=>commitSingleStatusLog("miss"));
 document.getElementById("clearStatusBtn").addEventListener("click",()=>{if(loggingHabitId)clearHabitLogEntry(loggingHabitId,loggingSelectedDate);closeStatusModal()});
-document.getElementById("statusModeSingleBtn").addEventListener("click",()=>setLoggingMode("single"));
-document.getElementById("statusModeMultiBtn").addEventListener("click",()=>setLoggingMode("multi"));
+document.getElementById("statusGoMultiBtn").addEventListener("click",()=>setLoggingMode("multi"));
+document.getElementById("statusBackToSingleBtn").addEventListener("click",()=>setLoggingMode("single"));
+document.getElementById("statusTimeBlock").addEventListener("change",renderStatusDatePicker);
 document.getElementById("statusMultiClearBtn").addEventListener("click",()=>{loggingMultiDates=new Set();loggingRangeArmed=false;loggingRangeAnchor=null;const rangeBtn=document.getElementById("statusMultiRangeBtn");rangeBtn.classList.remove("primary");rangeBtn.textContent="Select range";renderMultiCalendar();renderMultiSummary();});
 document.getElementById("statusMultiRangeBtn").addEventListener("click",()=>{
   loggingRangeArmed=!loggingRangeArmed;loggingRangeAnchor=null;

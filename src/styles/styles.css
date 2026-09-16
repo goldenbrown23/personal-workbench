@@ -762,9 +762,6 @@
 
     .date-chip-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:2px}
 
-    .date-mode-row{display:flex;gap:8px;margin-bottom:13px}
-    .date-mode-btn{flex:1;border:1px solid var(--line);background:var(--card);color:var(--muted);border-radius:12px;min-height:40px;padding:8px 10px;font-size:12px;font-weight:780}
-    .date-mode-btn.active{background:#f3e6d8;color:var(--accent);border-color:#ecd6bc}
     .calendar-day.selectable{border:0;font:inherit;cursor:pointer;background:#f3e6d8;color:var(--text)}
     .calendar-day.selectable:disabled{opacity:.32;cursor:not-allowed}
     .calendar-day.selectable.selected{background:var(--accent);color:#fff;font-weight:850}

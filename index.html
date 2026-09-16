@@ -581,15 +581,17 @@
     <div class="version-option-list" id="statusVersionList"></div>
     <details class="goal-plan" id="statusDateDetails">
       <summary><span class="goal-plan-title">When</span><span class="goal-plan-summary-note" id="statusDateSummary">Today</span></summary>
-      <div class="date-mode-row" role="tablist" aria-label="Date selection mode">
-        <button type="button" class="date-mode-btn active" id="statusModeSingleBtn" role="tab" aria-selected="true">One date</button>
-        <button type="button" class="date-mode-btn" id="statusModeMultiBtn" role="tab" aria-selected="false">Multiple dates</button>
-      </div>
       <div id="statusSingleDateWrap">
         <div class="date-chip-row" id="statusDateChips"></div>
         <input id="statusDateCustom" type="date" style="display:none;margin-top:8px" />
+        <div class="form-row">
+          <label for="statusTimeBlock">Time block</label>
+          <select id="statusTimeBlock"><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="anytime">Anytime</option></select>
+        </div>
+        <button type="button" class="link-btn" id="statusGoMultiBtn">Log for multiple dates</button>
       </div>
       <div id="statusMultiDateWrap" style="display:none">
+        <button type="button" class="link-btn" id="statusBackToSingleBtn">‹ Back to one date</button>
         <div class="contact-calendar" id="statusMultiCalendar"></div>
         <div class="multi-date-summary" id="statusMultiSummary"></div>
         <div class="multi-date-controls">
@@ -597,20 +599,17 @@
           <button type="button" class="btn" id="statusMultiClearBtn">Clear</button>
         </div>
       </div>
+    </details>
+    <details class="goal-plan" id="statusNoteDetails">
+      <summary><span class="goal-plan-title">Add a note</span></summary>
       <div class="form-row">
-        <label for="statusTimeBlock">Time block</label>
-        <select id="statusTimeBlock"><option value="morning">Morning</option><option value="afternoon">Afternoon</option><option value="evening">Evening</option><option value="anytime">Anytime</option></select>
-      </div>
-      <div class="form-row">
-        <label for="statusNote">Note <span style="font-weight:500">(optional)</span></label>
         <textarea id="statusNote" rows="2" placeholder="Anything worth remembering about this?"></textarea>
       </div>
     </details>
+    <button class="btn primary habit-sheet-complete" id="statusLogBtn">✓ Log habit</button>
+    <button class="btn primary habit-sheet-complete" id="multiLogBtn" style="display:none" disabled>Log entries</button>
     <button type="button" class="status-not-today-btn" id="statusNotTodayBtn">Not today</button>
-    <div class="modal-actions">
-      <button class="btn primary" id="multiLogBtn" style="display:none" disabled>Log entries</button>
-      <button type="button" class="status-clear-link" id="clearStatusBtn" style="display:none">Clear this day’s log</button>
-    </div>
+    <button type="button" class="status-clear-link" id="clearStatusBtn" style="display:none">Clear this day’s log</button>
   </div>
 </div>
 
