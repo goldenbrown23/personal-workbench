@@ -1,0 +1,36 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - generic [ref=f7e3]:
+      - banner [ref=f7e5]:
+        - generic [ref=f7e6]:
+          - generic [ref=f7e7]:
+            - generic [ref=f7e8]: Tuesday, September 15
+            - heading "Good evening" [level=1] [ref=f7e9]
+            - generic [ref=f7e10]: Rest counts too.
+          - generic [ref=f7e11]: A calmer tomorrow is still possible ♡
+      - generic [ref=f7e12]:
+        - generic [ref=f7e13]:
+          - generic [ref=f7e14]: Do this next
+          - button "More options for Night Face Wash" [ref=f7e20] [cursor=pointer]: •••
+        - generic [ref=f7e25]:
+          - generic [ref=f7e26]: Night Face Wash
+          - generic [ref=f7e27]: A smaller valid version still counts.
+        - button "✓ Done" [ref=f7e29] [cursor=pointer]
+      - generic [ref=f7e30]:
+        - generic [ref=f7e31]: A little for today
+        - button "Habits One small rhythm is enough." [ref=f7e32] [cursor=pointer]:
+          - generic [ref=f7e37]:
+            - generic [ref=f7e38]: Habits
+            - generic [ref=f7e39]: One small rhythm is enough.
+        - button "My Circle Keep the people who matter close." [ref=f7e46] [cursor=pointer]:
+          - generic [ref=f7e50]:
+            - generic [ref=f7e51]: My Circle
+            - generic [ref=f7e52]: Keep the people who matter close.
+    - text: ＋ ＋ ＋ Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes Date Day 🌅 Morning ☀️ Afternoon 🌙 Evening ↩ Re-entry Notes ＋
+  - navigation "Navigation" [ref=f7e56]:
+    - button "Home" [ref=f7e57] [cursor=pointer]
+    - button "Habits" [ref=f7e63] [cursor=pointer]
+    - button "My Circle" [ref=f7e69] [cursor=pointer]
+    - button "Trends" [ref=f7e74] [cursor=pointer]
+    - button "More" [ref=f7e80] [cursor=pointer]
+  - text: ＋ ＋ ＋ ＋

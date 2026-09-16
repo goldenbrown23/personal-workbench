@@ -30,22 +30,22 @@ const HOME_HERO_VARIANTS={
 // picks one greeting, one supportive line, and one handwritten accent; see pickHomeCopy().
 const HOME_COPY_POOLS={
   morning:{
-    greetings:["Good morning","Morning"],
+    greetings:["Good morning"],
     supportive:["Start small. That’s enough.","One thing first.","You don’t have to do the whole day at once.","A little start still counts.","Begin gently."],
     accents:["A little start is still a start ♡","One thing at a time ♡","Small steps are enough ♡"]
   },
   afternoon:{
-    greetings:["Good afternoon","Keep going"],
+    greetings:["Good afternoon"],
     supportive:["You can begin again from here.","Small progress still changes the day.","No need to catch up. Just continue.","A small reset can still help.","The day is not over yet."],
     accents:["Keep a little momentum ♡","Small effort still matters ♡","You can restart from here ♡"]
   },
   evening:{
-    greetings:["Good evening","You made it through"],
+    greetings:["Good evening"],
     supportive:["You’ve done enough for today.","Rest counts too.","Tomorrow can hold what’s left.","You can stop here.","Leave some room for tomorrow."],
     accents:["Leave a little space for tomorrow ♡","A calmer tomorrow is still possible ♡","Rest is part of the rhythm ♡"]
   },
   lateNight:{
-    greetings:["Still up","Late night"],
+    greetings:["Late night"],
     supportive:["Nothing needs to be fixed tonight.","You made it through today. Rest is also progress.","Tomorrow can hold what’s left.","You can stop here.","The rest can wait."],
     accents:["A calmer tomorrow is still possible ♡","Tomorrow is still there ♡","Rest counts too ♡"]
   }
