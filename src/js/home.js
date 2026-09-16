@@ -192,7 +192,7 @@ function renderHome(){
   const nudges=state.people.map(p=>({person:p,timing:personTiming(p)})).filter(x=>x.timing.class==="due");
 
   renderStartHere(period,gentle,nudges);
-  renderHomeWidgets(nudges);
+  renderHomeWidgets(period,nudges);
 }
 function homeViewActive(){ return document.getElementById("homeView")?.classList.contains("active"); }
 function refreshHomeIfActive(){ if(homeViewActive()) renderHome(); }
@@ -285,29 +285,47 @@ function doNextHTML(pick,{gentle=false,blockPeriod=null}={}){
   return `<div class="do-next-eyebrow"><span class="do-next-eyebrow-label"><span class="do-next-eyebrow-icon" aria-hidden="true">${TARGET_SVG}</span>Do this next</span><button type="button" class="do-next-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div><div class="do-next-row">${visualHTML(h,"do-next-icon")}<div class="do-next-copy"><div class="do-next-title">${escapeHTML(h.name)}</div><div class="do-next-detail">${escapeHTML(detail)}</div></div></div>${blockNote}<div class="do-next-actions"><button class="do-next-btn primary" onclick="homeLogStatus('${jsEscape(h.id)}','${primaryStatus}')">✓ Done</button>${easierBtn}</div>`;
 }
 
-// Level 2 of Home's hierarchy — compact, fully-tappable summary rows, not a second copy
-// of the Habits/Circle screens. They keep status visual and supportive while routing
-// through the existing switchView entry points, so Home never becomes a second place
-// habit/person data has to be kept in sync.
-function renderHomeWidgets(nudges){
+// Level 2 of Home's hierarchy — a quiet daily glance, not a second Do This Next. Each
+// card is a single derived sentence (see getHabitsTodaySummary/getCircleTodaySummary
+// below) plus the existing switchView entry points, so Home never becomes a second place
+// habit/person data has to be kept in sync, and never exposes the underlying queue.
+function renderHomeWidgets(period,nudges){
   const wrap=document.getElementById("homeWidgets");
   if(!wrap) return;
-  wrap.innerHTML=`<div class="home-section-title">A little for today</div>${homeHabitsWidgetHTML()}${homeCircleWidgetHTML(nudges)}`;
+  wrap.innerHTML=`<div class="home-section-head"><div class="home-section-title">A little for today</div><div class="home-section-hint">Just a glance. No pressure.</div></div>${homeHabitsWidgetHTML(period)}${homeCircleWidgetHTML(nudges)}`;
 }
-function homeHabitsWidgetHTML(){
-  const today=state.habits.filter(h=>habitAppliesToday(h)&&!h.paused);
-  const done=today.filter(h=>["done","counted","returned"].includes(getStatus(h.id)));
-  const support=!today.length?"Begin when it feels useful.":done.length===today.length?"Your rhythm is complete for today.":done.length?"A little progress is already here.":"One small rhythm is enough.";
-  const markerCount=Math.max(3,Math.min(4,today.length));
-  const markers=Array.from({length:markerCount},(_,index)=>{
-    const habit=today[index];
-    const status=habit?getStatus(habit.id):"";
-    const dotClass=status==="done"?"done":status==="counted"?"counted":status==="returned"?"returned":status==="miss"?"miss":"";
-    return `<span class="home-widget-dot ${dotClass}"></span>`;
-  }).join("");
-  return `<button type="button" class="home-widget" onclick="switchView('todayView')"><span class="home-widget-icon sage">${iconSVG("leaf")}</span><span class="home-widget-copy"><span class="home-widget-title">Habits</span><span class="home-widget-support">${support}</span></span><span class="home-widget-meta home-widget-markers" aria-hidden="true">${markers}${CHEVRON_SVG}</span></button>`;
+// Late-night isn't one of the three habit blocks (BLOCK_LABEL only covers morning/
+// afternoon/evening) — pickStartHereHabit's own BLOCK_SEARCH_ORDER treats late-night as
+// an extension of evening, so the Habits card does the same rather than inventing a
+// fourth label.
+function homeDisplayBlock(period){ return period==="late-night"?"evening":period; }
+// Derives a single "where things stand" sentence from the exact same habit-block data
+// pickStartHereHabit already reads (timeBlockOf/habitAppliesToday/habitStillNeedsAttentionToday)
+// — never a second scheduling system. Deliberately says nothing about WHICH habits remain;
+// that's Do This Next's job, so the two cards never repeat each other's content.
+function getHabitsTodaySummary(period){
+  const block=homeDisplayBlock(period),label=BLOCK_LABEL[block]||"today";
+  const configuredToday=state.habits.filter(h=>habitAppliesToday(h)&&!h.paused&&timeBlockOf(h)===block);
+  if(!configuredToday.length) return `Nothing planned for this ${label}.`;
+  const remaining=unloggedTodayHabitsInBlock(block);
+  if(!remaining.length) return `Nothing else for this ${label}.`;
+  if(remaining.length===1) return `One little thing left for this ${label}`;
+  return `${remaining.length} small things for this ${label}`;
+}
+function homeHabitsWidgetHTML(period){
+  const support=getHabitsTodaySummary(period);
+  return `<button type="button" class="home-widget" onclick="switchView('todayView')"><span class="home-widget-icon sage">${iconSVG("leaf")}</span><span class="home-widget-copy"><span class="home-widget-title">Habits</span><span class="home-widget-support">${escapeHTML(support)}</span></span><span class="home-widget-meta">${CHEVRON_SVG}</span></button>`;
+}
+// nudges is the same class==="due" list renderHome already built via personTiming — the
+// single source of truth My Circle itself uses — so this card can never disagree with
+// My Circle's own "People to check in with" about who currently needs a check-in.
+function getCircleTodaySummary(nudges){
+  if(!state.people.length) return "Your circle can start with one person.";
+  if(!nudges.length) return "No one needs a check-in today.";
+  if(nudges.length===1) return `${nudges[0].person.name} is ready for a little hello.`;
+  return `${nudges.length} people are ready for a check-in.`;
 }
 function homeCircleWidgetHTML(nudges){
-  const support=!state.people.length?"Keep the people who matter close.":nudges.length?"One small hello can be enough.":"Your connections can stay gentle.";
-  return `<button type="button" class="home-widget" onclick="switchView('circleView')"><span class="home-widget-icon peach">${iconSVG("heart")}</span><span class="home-widget-copy"><span class="home-widget-title">My Circle</span><span class="home-widget-support">${support}</span></span><span class="home-widget-meta">${CHEVRON_SVG}</span></button>`;
+  const support=getCircleTodaySummary(nudges);
+  return `<button type="button" class="home-widget" onclick="switchView('circleView')"><span class="home-widget-icon peach">${iconSVG("heart")}</span><span class="home-widget-copy"><span class="home-widget-title">My Circle</span><span class="home-widget-support">${escapeHTML(support)}</span></span><span class="home-widget-meta">${CHEVRON_SVG}</span></button>`;
 }
