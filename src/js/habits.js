@@ -1074,4 +1074,3 @@ const manageModal=document.getElementById("manageModal");
 document.getElementById("manageBtn").addEventListener("click",()=>{renderManage();renderGentleModeRow();manageModal.classList.add("show");});
 document.getElementById("closeManage").addEventListener("click",()=>manageModal.classList.remove("show"));
 manageModal.addEventListener("click",e=>{if(e.target===manageModal)manageModal.classList.remove("show");});
-document.getElementById("manageWeeklyDetailBtn").addEventListener("click",()=>{manageModal.classList.remove("show");switchView("practiceView");});
