@@ -299,6 +299,7 @@ function openVisualPicker(target){
   pendingPhotoBlob=null;pendingPhotoRemoved=false;
   if(ownedPhotoURL){URL.revokeObjectURL(ownedPhotoURL);ownedPhotoURL=null}
   pendingPhotoURL=null;
+  closeCropStage();
   const supportsPhoto=Boolean(f.photo);
   document.getElementById("visualModeRow").hidden=!supportsPhoto;
   document.getElementById("visualPhotoError").hidden=true;
@@ -322,6 +323,7 @@ function closeVisualPicker(){
   visualPickerModal.classList.remove("show");visualTarget=null;
   if(ownedPhotoURL){URL.revokeObjectURL(ownedPhotoURL);ownedPhotoURL=null}
   pendingPhotoURL=null;pendingPhotoBlob=null;pendingPhotoRemoved=false;
+  closeCropStage();
 }
 function applyVisualChoice(){
   if(!visualTarget)return;
@@ -352,16 +354,96 @@ document.getElementById("closeVisualPicker").addEventListener("click",closeVisua
 document.getElementById("visualModePhoto").addEventListener("click",()=>setVisualMode("photo"));
 document.getElementById("visualModeIcon").addEventListener("click",()=>setVisualMode("icon"));
 document.getElementById("choosePhotoBtn").addEventListener("click",()=>document.getElementById("personPhotoInput").click());
-document.getElementById("personPhotoInput").addEventListener("change",async e=>{
+document.getElementById("personPhotoInput").addEventListener("change",e=>{
   const file=e.target.files?.[0];e.target.value="";if(!file)return;
+  openCropStage(file);
+});
+
+// --- Crop stage: lets the user reposition/zoom a freshly-picked photo into the circular
+// avatar frame before it's compressed and staged. Runs entirely on the real file (via an
+// <img>, not a giant canvas) — only the final confirmed crop is drawn to a canvas, at a
+// fixed small output size, so the source resolution never matters for storage cost.
+const CROP_FRAME_SIZE=220;
+let cropSourceURL=null,cropNaturalW=0,cropNaturalH=0,cropBaseScale=1,cropZoom=1,cropLeft=0,cropTop=0;
+let cropDrag=null;
+const cropImageEl=document.getElementById("cropImage");
+function cropClamp(){
+  const scale=cropBaseScale*cropZoom;
+  const dispW=cropNaturalW*scale,dispH=cropNaturalH*scale;
+  cropLeft=Math.min(0,Math.max(CROP_FRAME_SIZE-dispW,cropLeft));
+  cropTop=Math.min(0,Math.max(CROP_FRAME_SIZE-dispH,cropTop));
+}
+function cropRender(){
+  const scale=cropBaseScale*cropZoom;
+  cropImageEl.style.width=(cropNaturalW*scale)+"px";
+  cropImageEl.style.height=(cropNaturalH*scale)+"px";
+  cropImageEl.style.left=cropLeft+"px";
+  cropImageEl.style.top=cropTop+"px";
+}
+function openCropStage(file){
   const errorEl=document.getElementById("visualPhotoError");errorEl.hidden=true;
+  if(cropSourceURL)URL.revokeObjectURL(cropSourceURL);
+  cropSourceURL=URL.createObjectURL(file);
+  const img=new Image();
+  img.onload=()=>{
+    cropNaturalW=img.naturalWidth;cropNaturalH=img.naturalHeight;
+    cropBaseScale=Math.max(CROP_FRAME_SIZE/cropNaturalW,CROP_FRAME_SIZE/cropNaturalH);
+    cropZoom=1;
+    cropLeft=(CROP_FRAME_SIZE-cropNaturalW*cropBaseScale)/2;
+    cropTop=(CROP_FRAME_SIZE-cropNaturalH*cropBaseScale)/2;
+    cropImageEl.src=cropSourceURL;
+    document.getElementById("cropZoom").value="1";
+    cropRender();
+    document.getElementById("visualPhotoPreviewRow").hidden=true;
+    document.getElementById("visualPickerMainActions").hidden=true;
+    document.getElementById("cropStage").hidden=false;
+  };
+  img.onerror=()=>{
+    URL.revokeObjectURL(cropSourceURL);cropSourceURL=null;
+    errorEl.textContent="That photo couldn't be used — try a different image.";errorEl.hidden=false;
+  };
+  img.src=cropSourceURL;
+}
+function closeCropStage(){
+  document.getElementById("cropStage").hidden=true;
+  document.getElementById("visualPhotoPreviewRow").hidden=false;
+  document.getElementById("visualPickerMainActions").hidden=false;
+  if(cropSourceURL){URL.revokeObjectURL(cropSourceURL);cropSourceURL=null}
+}
+const cropFrameEl=document.getElementById("cropFrame");
+cropFrameEl.addEventListener("pointerdown",e=>{
+  cropDrag={id:e.pointerId,startX:e.clientX,startY:e.clientY,startLeft:cropLeft,startTop:cropTop};
+  cropFrameEl.setPointerCapture(e.pointerId);
+});
+cropFrameEl.addEventListener("pointermove",e=>{
+  if(!cropDrag||e.pointerId!==cropDrag.id)return;
+  cropLeft=cropDrag.startLeft+(e.clientX-cropDrag.startX);
+  cropTop=cropDrag.startTop+(e.clientY-cropDrag.startY);
+  cropClamp();cropRender();
+});
+function endCropDrag(e){ if(cropDrag&&e.pointerId===cropDrag.id) cropDrag=null; }
+cropFrameEl.addEventListener("pointerup",endCropDrag);
+cropFrameEl.addEventListener("pointercancel",endCropDrag);
+document.getElementById("cropZoom").addEventListener("input",e=>{
+  cropZoom=Number(e.target.value)||1;
+  cropClamp();cropRender();
+});
+document.getElementById("cropCancelBtn").addEventListener("click",closeCropStage);
+document.getElementById("cropConfirmBtn").addEventListener("click",async()=>{
+  const scale=cropBaseScale*cropZoom;
+  const sSize=CROP_FRAME_SIZE/scale; // the visible circle, back in the source image's own natural pixels
+  const sx=-cropLeft/scale, sy=-cropTop/scale;
   try{
-    const blob=await resizePhotoFile(file);
+    const blob=await cropToBlob(cropImageEl,sx,sy,sSize);
     if(ownedPhotoURL)URL.revokeObjectURL(ownedPhotoURL);
     pendingPhotoBlob=blob;pendingPhotoRemoved=false;
     ownedPhotoURL=pendingPhotoURL=URL.createObjectURL(blob);
     renderVisualPhotoPreview();
-  }catch(_err){errorEl.textContent="That photo couldn't be used — try a different image.";errorEl.hidden=false}
+  }catch(_err){
+    document.getElementById("visualPhotoError").textContent="That photo couldn't be used — try a different image.";
+    document.getElementById("visualPhotoError").hidden=false;
+  }
+  closeCropStage();
 });
 document.getElementById("removePhotoBtn").addEventListener("click",()=>{
   // If this URL was borrowed from the shared avatar-photo cache (an existing committed

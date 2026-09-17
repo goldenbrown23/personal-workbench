@@ -824,7 +824,7 @@
       <button type="button" class="segmented-btn" id="visualModeIcon" data-visual-mode="icon" aria-pressed="true">Icon</button>
     </div>
     <div class="visual-photo-section" id="visualPhotoSection" hidden>
-      <div class="visual-photo-preview-row">
+      <div class="visual-photo-preview-row" id="visualPhotoPreviewRow">
         <span class="visual-photo-preview" id="visualPhotoPreview"><img id="visualPhotoPreviewImg" alt="" /></span>
         <div class="visual-photo-actions">
           <button type="button" class="btn" id="choosePhotoBtn">Choose photo</button>
@@ -833,12 +833,18 @@
       </div>
       <input type="file" id="personPhotoInput" accept="image/*" hidden />
       <div class="settings-help" id="visualPhotoError" hidden></div>
+      <div class="crop-stage" id="cropStage" hidden>
+        <div class="settings-help">Drag to reposition, use the slider to zoom.</div>
+        <div class="crop-frame" id="cropFrame"><img id="cropImage" alt="" draggable="false" /></div>
+        <input type="range" id="cropZoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom" />
+        <div class="modal-actions"><button type="button" class="btn" id="cropCancelBtn">Cancel</button><button type="button" class="btn primary" id="cropConfirmBtn">Use photo</button></div>
+      </div>
     </div>
     <div id="visualIconSection">
       <label id="visualIconGridLabel">Icon</label><div class="icon-grid" id="visualIconGrid" role="group" aria-labelledby="visualIconGridLabel"></div>
       <div class="form-row"><label id="visualToneRowLabel">Color</label><div class="tone-row" id="visualToneRow" role="group" aria-labelledby="visualToneRowLabel"></div></div>
     </div>
-    <div class="modal-actions"><button class="btn" id="cancelVisualPicker">Cancel</button><button class="btn primary" id="applyVisualPicker">Apply</button></div>
+    <div class="modal-actions" id="visualPickerMainActions"><button class="btn" id="cancelVisualPicker">Cancel</button><button class="btn primary" id="applyVisualPicker">Apply</button></div>
   </div>
 </div>
 

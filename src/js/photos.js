@@ -65,23 +65,16 @@ async function clearAllPhotos(){
   }catch(_e){}
 }
 
-// Resizes/compresses an uploaded image file down to an avatar-appropriate JPEG blob before
-// it ever reaches IndexedDB, so a multi-megabyte phone photo doesn't get stored as-is.
-function resizePhotoFile(file,maxDimension=PHOTO_MAX_DIMENSION,quality=PHOTO_QUALITY){
+// Draws the user-chosen crop rectangle (in the source image's own natural pixels, from the
+// crop UI in state.js) down to a fixed square avatar-appropriate JPEG blob. The output stays
+// small/compressed regardless of the original photo's resolution — cropping and downscaling
+// happen in the same canvas draw rather than as two separate passes.
+function cropToBlob(img,sx,sy,sSize,outputSize=PHOTO_MAX_DIMENSION,quality=PHOTO_QUALITY){
   return new Promise((resolve,reject)=>{
-    const img=new Image();
-    const url=URL.createObjectURL(file);
-    img.onload=()=>{
-      URL.revokeObjectURL(url);
-      const scale=Math.min(1,maxDimension/Math.max(img.width,img.height));
-      const w=Math.max(1,Math.round(img.width*scale)),h=Math.max(1,Math.round(img.height*scale));
-      const canvas=document.createElement("canvas");
-      canvas.width=w;canvas.height=h;
-      canvas.getContext("2d").drawImage(img,0,0,w,h);
-      canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("Could not process that image")),"image/jpeg",quality);
-    };
-    img.onerror=()=>{URL.revokeObjectURL(url);reject(new Error("Could not read that image"))};
-    img.src=url;
+    const canvas=document.createElement("canvas");
+    canvas.width=outputSize;canvas.height=outputSize;
+    canvas.getContext("2d").drawImage(img,sx,sy,sSize,sSize,0,0,outputSize,outputSize);
+    canvas.toBlob(blob=>blob?resolve(blob):reject(new Error("Could not process that image")),"image/jpeg",quality);
   });
 }
 

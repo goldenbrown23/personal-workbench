@@ -15,19 +15,87 @@ const iconOnlyPerson = {
   lastContact: null, interactions: [], notes: [],
 };
 
+// Picking a file opens the crop stage (drag-to-reposition + zoom, src/js/state.js) rather
+// than staging the photo directly — "Use photo" there is what actually crops/compresses it
+// and returns to the normal preview.
+async function pickAndCropPhoto(page, file = TEST_PHOTO) {
+  await page.locator('#personPhotoInput').setInputFiles(file);
+  await expect(page.locator('#cropStage')).toBeVisible();
+  await page.locator('#cropConfirmBtn').click();
+  await expect(page.locator('#cropStage')).toBeHidden();
+  await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
+}
+
 async function addPersonWithPhoto(page, name) {
   await page.locator('#addPersonBtn').click();
   await page.locator('#personName').fill(name);
   await page.locator('#choosePersonVisual').click();
   await page.locator('#visualModePhoto').click();
-  await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
-  await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
+  await pickAndCropPhoto(page);
   await page.locator('#applyVisualPicker').click();
   await page.locator('#savePersonBtn').click();
   // savePersonBtn's handler awaits the IndexedDB write before closing the modal — wait for
   // that instead of reading state immediately after the click.
   await expect(page.locator('#personModal')).not.toHaveClass(/show/);
 }
+
+test.describe('My Circle: photo cropping', () => {
+  test('choosing a photo opens a crop stage with zoom, and confirming produces a usable photo', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Blake');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+    await expect(page.locator('#visualPhotoPreviewRow')).toBeHidden();
+    await expect(page.locator('#visualPickerMainActions')).toBeHidden();
+
+    // Drag to reposition, then zoom in — the crop must still produce a valid image.
+    const frame = page.locator('#cropFrame');
+    const box = await frame.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 20, box.y + box.height / 2 + 10, {steps: 5});
+    await page.mouse.up();
+    await page.locator('#cropZoom').fill('2');
+
+    await page.locator('#cropConfirmBtn').click();
+    await expect(page.locator('#cropStage')).toBeHidden();
+    await expect(page.locator('#visualPhotoPreviewRow')).toBeVisible();
+    await expect(page.locator('#visualPickerMainActions')).toBeVisible();
+    await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
+
+    await page.locator('#applyVisualPicker').click();
+    await page.locator('#savePersonBtn').click();
+    await expect(page.locator('#personModal')).not.toHaveClass(/show/);
+    const after = await readState(page);
+    expect(after.people[0].photoId).toBeTruthy();
+    await expect(page.locator('#circlePeopleList .circle-people-avatar img.avatar-photo-img')).toHaveClass(/loaded/);
+  });
+
+  test('cancelling the crop stage discards the pick and leaves the previous photo/state untouched', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await addPersonWithPhoto(page, 'Drew');
+    const before = await readState(page);
+
+    await page.locator('#circlePeopleList .circle-people-item').click();
+    await page.locator('#editFromDetailBtn').click();
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+    await page.locator('#cropCancelBtn').click();
+    await expect(page.locator('#cropStage')).toBeHidden();
+    // The existing photo (from before this crop attempt) is still what's shown.
+    await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
+
+    await page.locator('#applyVisualPicker').click();
+    await page.locator('#savePersonBtn').click();
+    await expect(page.locator('#personModal')).not.toHaveClass(/show/);
+    const after = await readState(page);
+    expect(after.people[0].photoId).toBe(before.people[0].photoId);
+  });
+});
 
 test.describe('My Circle: optional profile photos', () => {
   test('1. adding a person with icon only never sets a photoId', async ({page}) => {
@@ -60,8 +128,7 @@ test.describe('My Circle: optional profile photos', () => {
     await page.locator('#editFromDetailBtn').click();
     await page.locator('#choosePersonVisual').click();
     await page.locator('#visualModePhoto').click();
-    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
-    await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
+    await pickAndCropPhoto(page);
     await page.locator('#applyVisualPicker').click();
     await page.locator('#savePersonBtn').click();
     await expect(page.locator('#personModal')).not.toHaveClass(/show/);
@@ -74,8 +141,7 @@ test.describe('My Circle: optional profile photos', () => {
     await page.locator('#circlePeopleList .circle-people-item').click();
     await page.locator('#editFromDetailBtn').click();
     await page.locator('#choosePersonVisual').click();
-    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
-    await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
+    await pickAndCropPhoto(page);
     await page.locator('#applyVisualPicker').click();
     await page.locator('#savePersonBtn').click();
     await expect(page.locator('#personModal')).not.toHaveClass(/show/);
