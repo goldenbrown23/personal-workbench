@@ -1,2 +1,2 @@
-const APP_VERSION = "v0.44.0";
-const APP_UPDATED_AT = "2026-09-16";
+const APP_VERSION = "v0.45.1";
+const APP_UPDATED_AT = "2026-09-17";

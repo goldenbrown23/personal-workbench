@@ -444,15 +444,34 @@ test.describe('Trends', () => {
     await expect(page.locator('#metricEngagementNote')).toHaveText('0 / 7 possible');
   });
 
-  test('Weekly Detail "coming up, gently" nudge ignores paused habits', async ({page}) => {
+  test('Weekly Detail "Worth noticing" ignores paused habits and stays hidden below the miss threshold', async ({page}) => {
     // A 3-miss streak on a habit the user already paused shouldn't nudge them about it —
-    // pausing is a deliberate break, not a failure to be flagged.
+    // pausing is a deliberate break, not a failure to be flagged. With no non-paused habit
+    // reaching the 3-miss threshold, the section has nothing grounded to say, so it hides
+    // entirely instead of showing a placeholder.
     const paused = {...twoVersionHabit, id: 'h-paused', paused: true};
     const logs = {};
     ['2026-09-11', '2026-09-12', '2026-09-13'].forEach(d => { logs[d] = {'h-paused': 'miss'}; });
     await boot(page, {view: 'practiceView', state: seedState({habits: [paused], logs})});
-    await expect(page.locator('#practiceSystemLock')).toContainText('0 / 3');
-    await expect(page.locator('#practiceSystemLock')).toContainText('Nothing to act on yet');
+    await expect(page.locator('#practiceInsightSection')).toBeHidden();
+  });
+
+  test('Weekly Detail "Worth noticing" surfaces the top miss-streak habit in plain, non-streak language', async ({page}) => {
+    const active = {...twoVersionHabit, id: 'h-active', paused: false};
+    const logs = {};
+    ['2026-09-11', '2026-09-12', '2026-09-13'].forEach(d => { logs[d] = {'h-active': 'miss'}; });
+    await boot(page, {view: 'practiceView', state: seedState({habits: [active], logs})});
+    await expect(page.locator('#practiceInsightSection')).toBeVisible();
+    await expect(page.locator('#practiceSystemLock')).toContainText('Evening stretch keeps coming up');
+    await expect(page.locator('#practiceSystemLock')).toContainText("harder to get to lately");
+    await expect(page.locator('#practiceSystemLock')).toContainText('smaller version');
+    const cardText = await page.locator('#practiceSystemLock').innerText();
+    // Detection can use the miss streak internally, but the count/streak language must
+    // never surface in the copy — see habitCurrentMissStreak() in src/js/practice.js.
+    expect(cardText).not.toMatch(/\d+\s*days?\s*in a row/i);
+    expect(cardText).not.toMatch(/missed\s*\d+/i);
+    expect(cardText).not.toContain('/ 3');
+    expect(cardText).not.toContain('%');
   });
 });
 

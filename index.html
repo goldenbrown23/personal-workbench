@@ -123,8 +123,10 @@
     <div class="section-head"><h2 id="practiceWeekLabel">This Week</h2></div>
     <div class="overview-card" id="practiceOverview"></div>
 
-    <div class="section-head"><h2>Worth noticing</h2></div>
-    <div class="lock-card" id="practiceSystemLock"></div>
+    <div id="practiceInsightSection">
+      <div class="section-head"><h2>Worth noticing</h2></div>
+      <div class="lock-card" id="practiceSystemLock"></div>
+    </div>
 
     <details class="settings-disclosure" id="practiceDetailDisclosure">
       <summary><span><strong>Detailed history</strong><small>Day-by-day log, longer-range metrics, recent returns</small></span><span aria-hidden="true">⌄</span></summary>
@@ -132,8 +134,8 @@
         <div class="week-nav" style="margin-bottom:10px">
           <button type="button" class="link-btn" id="practiceAddPastLogBtn">+ Add past log</button>
           <span class="grow"></span>
-          <button class="icon-btn" id="practicePrevWeek" aria-label="Previous week">←</button>
-          <button class="icon-btn" id="practiceNextWeek" aria-label="Next week">→</button>
+          <button class="icon-btn" id="practicePrevWeek" aria-label="Older days">←</button>
+          <button class="icon-btn" id="practiceNextWeek" aria-label="Newer days">→</button>
         </div>
         <div class="history-list" id="practiceHistoryList"></div>
         <div class="metric-grid" style="margin-top:14px">

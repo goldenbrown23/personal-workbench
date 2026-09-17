@@ -38,20 +38,24 @@ document.getElementById("clearDayNoteBtn").addEventListener("click", ()=>{
   closeDayNote();
 });
 
-function practiceWeekStart(){ return startOfWeek(addDays(new Date(), practiceWeekOffset*7)); }
-function practiceWeekDays(){ const start=practiceWeekStart(); return Array.from({length:7},(_, i)=>addDays(start,i)); }
+// Detailed History reads as a log, not a calendar week: each window is the 7 days ending
+// at an anchor (today, for offset 0), newest first, so paging never shows unlogged future
+// days and never resets to a Monday mid-window. Overview reuses the same `days` array so
+// its totals stay in sync with whatever window History is currently showing.
+function practiceWindowAnchor(){ return addDays(new Date(), practiceWeekOffset*7); }
+function practiceWeekDays(){ const anchor=practiceWindowAnchor(); return Array.from({length:7},(_, i)=>addDays(anchor,-i)); }
 
 function renderPracticeGrid(){
   const days = practiceWeekDays();
-  const start = days[0], end = days[6];
-  // A week that isn't in the current calendar year needs the year shown, or "Jan 1–Jan 7"
-  // is ambiguous with any other year you can reach via the prev-week button — the previous
+  const newest = days[0], oldest = days[days.length-1];
+  // A window that isn't in the current calendar year needs the year shown, or "Jan 1–Jan 7"
+  // is ambiguous with any other year you can reach via the prev-window button — the previous
   // version computed this (as `sameYear`) but never actually appended it anywhere.
-  const showYear = start.getFullYear()!==new Date().getFullYear()||end.getFullYear()!==new Date().getFullYear();
+  const showYear = oldest.getFullYear()!==new Date().getFullYear()||newest.getFullYear()!==new Date().getFullYear();
   const fmtRange = d=>new Intl.DateTimeFormat(undefined,{month:"short",day:"numeric",...(showYear?{year:"numeric"}:{})}).format(d);
   document.getElementById("practiceWeekLabel").textContent = practiceWeekOffset===0
-    ? `This Week · ${fmtRange(start)}–${fmtRange(end)}`
-    : `${fmtRange(start)}–${fmtRange(end)}`;
+    ? `Last 7 Days · ${fmtRange(oldest)}–${fmtRange(newest)}`
+    : `${fmtRange(oldest)}–${fmtRange(newest)}`;
   document.getElementById("practiceNextWeek").disabled = practiceWeekOffset>=0;
 
   // "returned" here is only the legacy bucket (records written before engagement version
@@ -118,9 +122,11 @@ function renderPracticeGrid(){
 // habitLogOpenDays (habits.js) — the two views share dateKeys but not open/closed state.
 let practiceHistoryOpenDays = new Set();
 // Reuses reviewHabitEvent/historyItemHTML/reviewDateLabel from habits.js (loaded first) —
-// same "what happened, skip what didn't" per-day list as Habit Log, just scoped to one
-// week instead of the whole archive. A day with nothing logged and no note collapses to a
-// single quiet line instead of repeating three empty time-block columns.
+// same "what happened, skip what didn't" per-day list as Habit Log, just scoped to a 7-day
+// window instead of the whole archive. `days` already arrives newest-first (see
+// practiceWeekDays above), so this just renders them in the order given — Today and
+// Yesterday lead, older days descend below. A day with nothing logged and no note collapses
+// to a single quiet line instead of repeating three empty time-block columns.
 function renderPracticeHistoryList(days){
   const list = document.getElementById("practiceHistoryList"); if(!list) return;
   list.innerHTML = days.map(date=>{
@@ -213,15 +219,24 @@ function renderPracticeSystemLock(){
   // about its miss streak.
   const streaks = state.habits.filter(h=>!h.paused).map(h=>({habit:h, streak:habitCurrentMissStreak(h)}));
   const top = streaks.sort((a,b)=>b.streak-a.streak)[0] || {streak:0};
-  const n = Math.min(top.streak, 9);
+  const section = document.getElementById("practiceInsightSection");
   const card = document.getElementById("practiceSystemLock");
-  const ready = top.streak>=3;
+  // "3+ repeated problems in a row" (see the "Why we track this way" copy above) is the
+  // one pattern this data can genuinely support today. Below that threshold there isn't
+  // a specific, grounded observation to make, so the section stays hidden rather than
+  // filling the space with a vague placeholder or a count the user has to interpret.
+  if(top.streak < 3){
+    section.style.display = "none";
+    card.innerHTML = "";
+    return;
+  }
+  section.style.display = "";
+  // Detection can be quantitative (habitCurrentMissStreak, the >=3 threshold above); the
+  // copy stays human. The streak count is what decides whether this renders at all — it
+  // never appears in the sentence itself, so this doesn't read as a failure tally.
   card.innerHTML = `
-    <div class="lock-card-head"><span>Coming up, gently</span><strong>${top.streak} / 3</strong></div>
-    <div class="progress-track"><div class="progress-fill lock" style="width:${Math.min(100, Math.round((n/3)*100))}%"></div></div>
-    <div class="settings-help">${ready
-      ? `${escapeHTML(top.habit?.name||"A habit")} keeps coming up. Worth a gentle look — maybe a smaller version.`
-      : "Taking shape. Nothing to act on yet."}</div>
+    <div class="lock-card-head">${escapeHTML(top.habit.name)} keeps coming up</div>
+    <div class="settings-help">This one's been harder to get to lately. Maybe the smaller version fits better right now.</div>
   `;
 }
 
