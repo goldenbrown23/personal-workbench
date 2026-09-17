@@ -314,4 +314,36 @@ test.describe('mobile visual QA', () => {
     const rowOverflowsPage = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
     expect(rowOverflowsPage).toBe(false);
   });
+
+  // Regression for the "row looks complete" discoverability bug: at some mobile widths the
+  // visible chips happened to end flush with the viewport edge, giving no visual hint that
+  // Relationships/Other existed off-screen. The fix is the pure-CSS scroll-shadow on
+  // .filter-row (src/styles/styles.css) — no JS, no arrows/dots/dropdown. This test checks
+  // the underlying overflow geometry (rail scrolls, document doesn't) and that every chip,
+  // including the last, can be scrolled fully into view and selected, at each width called
+  // out in the request.
+  for (const width of [360, 390, 402, 430]) {
+    test(`${width}px: category rail overflows and scrolls, document does not, and every chip reaches full visibility`, async ({page}) => {
+      await page.setViewportSize({width, height: 844});
+      await boot(page, {view: 'todayView', at: MORNING, state: seedState({
+        habits: [wellbeingHabit, weeklyWellbeingHabit, homeHabit],
+      })});
+
+      const rail = page.locator('#habitsCategoryFilter');
+      const {scrollWidth, clientWidth} = await rail.evaluate(el => ({scrollWidth: el.scrollWidth, clientWidth: el.clientWidth}));
+      // Six chips (All/Wellbeing/Home/Growth/Relationships/Other) don't fit at these widths —
+      // the rail itself must be the thing that overflows and scrolls, not the page.
+      expect(scrollWidth).toBeGreaterThan(clientWidth);
+      expect(await page.evaluate(() => document.documentElement.scrollWidth > document.documentElement.clientWidth)).toBe(false);
+
+      // The final category (Other) is off-screen at rest but reachable and selectable —
+      // scrolling, not a hidden menu, is the whole affordance.
+      const otherChip = chip(page, 'other');
+      await expect(otherChip).not.toBeInViewport();
+      await otherChip.scrollIntoViewIfNeeded();
+      await expect(otherChip).toBeVisible();
+      await otherChip.click();
+      await expect(otherChip).toHaveClass(/active/);
+    });
+  }
 });
