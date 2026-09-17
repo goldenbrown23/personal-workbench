@@ -9,6 +9,47 @@ export const STORAGE_KEY = 'return_habit_tracker_v1';
 export const VIEW_KEY = 'personal_workbench_last_view';
 export const PRIMARY_TABS = ['homeView', 'todayView', 'circleView', 'weekView', 'moreView'];
 
+// Shared habit fixtures reused verbatim across completion-status-integrity.spec.js,
+// gentle-day-integrity.spec.js, and last-7-days-summary.spec.js — kept here once rather
+// than redefined per file so the Goal Plan shapes they test against can't quietly drift
+// out of sync between suites that all depend on the exact same "bare"/"full-only"/
+// "full+small"/"weekly, no versions" combinations.
+export const bareHabit = {
+  id: 'h-bare', name: 'Night Face Wash', icon: 'leaf', color: 'sage', goalType: 'practice',
+  timeBlock: 'evening', full: '', small: '', small2: '',
+  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
+};
+// Whitespace-only values must trim to "nothing configured" exactly like empty strings —
+// the bug's root fields (homePrimaryTier's bareMin/smaller/full) already trim, but the
+// fallback status they defaulted to was wrong regardless of how "empty" was spelled.
+export const whitespaceOnlyHabit = {
+  id: 'h-whitespace', name: 'Evening Reset', icon: 'leaf', color: 'sage', goalType: 'practice',
+  timeBlock: 'evening', full: '   ', small: '  \t ', small2: ' ',
+  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
+};
+export const fullOnlyHabit = {
+  id: 'h-full-only', name: 'Wash Face', icon: 'leaf', color: 'sage', goalType: 'practice',
+  timeBlock: 'evening', full: 'Wash face for 60 seconds', small: '', small2: '',
+  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
+};
+export const fullSmallHabit = {
+  id: 'h-full-small', name: 'Wash Face Plus', icon: 'leaf', color: 'sage', goalType: 'practice',
+  timeBlock: 'evening', full: 'Wash face for 60 seconds', small: 'Use a cleansing wipe', small2: '',
+  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
+};
+export const weeklyBareHabit = {
+  id: 'h-weekly-bare', name: 'Call a Friend', icon: 'phone', color: 'sage', goalType: 'practice',
+  timeBlock: 'evening', full: '', small: '', small2: '',
+  scheduleType: 'weekly', weekdays: [], weeklyTarget: 2, paused: false,
+};
+// Plain daily habit with a Full + Small version, used by both the Last 7 Days summary
+// tests and the obsolete-explainer-removal tests.
+export const dailyHabit = {
+  id: 'h-daily', name: 'Morning walk', icon: 'leaf', color: 'sage', goalType: 'practice',
+  timeBlock: 'morning', full: 'Full walk', small: 'Short walk', small2: '',
+  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
+};
+
 export function seedState(overrides = {}) {
   return {
     habits: [], logs: {}, people: [], dayNotes: {},

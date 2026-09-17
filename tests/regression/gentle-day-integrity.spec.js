@@ -12,37 +12,15 @@
 // the same single source of truth completion-status-integrity.spec.js already guards for
 // the non-Gentle-Day path) — never from Gentle Day alone. See CLAUDE.md's completion
 // invariant: done = normal completion, counted = a real chosen smaller version.
-import { test, expect, boot, seedState, readState } from './helpers.js';
+import {
+  test, expect, boot, seedState, readState,
+  bareHabit, whitespaceOnlyHabit, fullOnlyHabit, fullSmallHabit, weeklyBareHabit,
+} from './helpers.js';
 
-const bareHabit = {
-  id: 'h-bare', name: 'Night Face Wash', icon: 'leaf', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: '', small: '', small2: '',
-  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
-const whitespaceOnlyHabit = {
-  id: 'h-whitespace', name: 'Evening Reset', icon: 'leaf', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: '   ', small: '  \t ', small2: ' ',
-  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
-const fullOnlyHabit = {
-  id: 'h-full-only', name: 'Wash Face', icon: 'leaf', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: 'Wash face for 60 seconds', small: '', small2: '',
-  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
-const fullSmallHabit = {
-  id: 'h-full-small', name: 'Wash Face Plus', icon: 'leaf', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: 'Wash face for 60 seconds', small: 'Use a cleansing wipe', small2: '',
-  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
 const threeVersionHabit = {
   id: 'h-three', name: 'Morning Face Wash', icon: 'leaf', color: 'sage', goalType: 'practice',
   timeBlock: 'evening', full: 'Wash face normally', small: 'Use a cleansing wipe', small2: 'Rinse face',
   scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
-const weeklyBareHabit = {
-  id: 'h-weekly-bare', name: 'Call a Friend', icon: 'phone', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: '', small: '', small2: '',
-  scheduleType: 'weekly', weekdays: [], weeklyTarget: 2, paused: false,
 };
 
 const EVENING = '2026-09-16T20:00:00';
@@ -142,8 +120,8 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await turnGentleDayOn(page);
     await page.reload();
     const overview = page.locator('#practiceOverview');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('0 (0%)');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('1 (100%)');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('0');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('1');
   });
 
   test('11. Trends: an actual smaller-version selection during Gentle Day tallies as "Smaller"', async ({page}) => {
@@ -154,8 +132,8 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await turnGentleDayOn(page);
     await page.reload();
     const overview = page.locator('#practiceOverview');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('1 (100%)');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('0 (0%)');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('1');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('0');
   });
 
   test('12. weekly progress for a Gentle Day completion is unchanged', async ({page}) => {

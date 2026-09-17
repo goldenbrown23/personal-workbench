@@ -686,11 +686,6 @@
     .history-toolbar .link-btn{flex:0 0 auto;white-space:nowrap}
     .history-item-edit{display:flex;width:100%;border:0;background:transparent;text-align:left;cursor:pointer;border-radius:12px;padding:6px 6px}
     .history-item-edit:hover,.history-item-edit:active{background:#f3ece0}
-    .status-chip{display:inline-flex;align-items:center;gap:4px;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:780;white-space:nowrap}
-    .status-chip.done{background:var(--green);color:var(--greenText)}
-    .status-chip.counted{background:var(--yellow);color:var(--yellowText)}
-    .status-chip.miss{background:var(--gray);color:var(--grayText)}
-    .status-chip.returned{background:var(--purple);color:var(--purpleText)}
     .note-btn{border:0;background:transparent;color:var(--muted);font-size:11px;font-weight:700;padding:5px 0;max-width:120px;overflow:hidden;text-overflow:ellipsis;text-align:left}
     .note-btn:hover{color:var(--accent)}
     .overview-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:var(--shadow)}
@@ -700,7 +695,6 @@
     .overview-bar-seg.done{background:#8a9b5e}
     .overview-bar-seg.counted{background:#e0b95e}
     .overview-bar-seg.miss{background:#c7cdc6}
-    .overview-bar-seg.returned{background:#b3735a}
     .overview-legend{display:grid;gap:8px;margin-top:13px}
     .overview-legend-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text);font-weight:700}
     .overview-legend-row .grow{flex:1}
@@ -708,18 +702,15 @@
     .overview-dot.done{background:#8a9b5e}
     .overview-dot.counted{background:#e0b95e}
     .overview-dot.miss{background:#c7cdc6}
-    .overview-dot.returned{background:#b3735a}
-    .overview-total{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);font-size:11px;color:var(--muted);font-weight:700}
+    /* Returns is context on a completion, not a fourth bucket — shown as its own quiet
+       line below the legend rather than a segment/dot in the same distribution. */
+    .overview-returns{margin-top:11px;padding-top:11px;border-top:1px solid var(--line);font-size:12px;color:var(--muted);font-weight:700}
     .reminder-card{background:#fdf3f5;border:1px solid #f2dde1;border-radius:18px;padding:15px}
     .reminder-card .settings-title{color:#8b5963}
     .lock-card{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:15px;box-shadow:var(--shadow)}
     .lock-card-head{display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:800;margin-bottom:9px}
     .progress-fill.lock{background:#b3735a}
     .lock-card .settings-help{margin-top:10px}
-    .example-row{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:12px}
-    .example-day{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:700}
-    .example-arrow{color:var(--muted);font-size:12px}
-    .example-success{font-size:12px;font-weight:820;color:var(--accent)}
     .toggle-state{font-size:11px;font-weight:800;color:var(--muted);flex:0 0 auto;min-width:26px;text-align:right}
     .settings-mascot{width:88px;height:88px;flex:0 0 auto;margin-top:-6px}
     .settings-hero{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:15px 16px;display:flex;align-items:center;gap:13px}

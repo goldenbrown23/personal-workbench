@@ -58,10 +58,17 @@ function renderPracticeGrid(){
     : `${fmtRange(oldest)}–${fmtRange(newest)}`;
   document.getElementById("practiceNextWeek").disabled = practiceWeekOffset>=0;
 
-  // "returned" here is only the legacy bucket (records written before engagement version
-  // and return context were split into separate fields — their real version is unknown).
-  // returnsCount is the true, version-independent tally used for the Returns metric.
-  let done=0, counted=0, miss=0, returned=0, returnsCount=0, engaged=0, possible=0;
+  // Return is context on a completion, not a fourth completion type — a returned "done" is
+  // still Regular and a returned "counted" is still Smaller (see isReturnDay(), habits.js).
+  // `returns` is therefore tallied separately from the three primary buckets, using the
+  // same modern-aware isReturnDay() check the Insights "Returns" metric below already
+  // uses, so it reflects live-derived returns, not just the legacy status:"returned" bucket.
+  // Legacy status:"returned" records (written before engagement version and return context
+  // were split into separate fields, see habits.js) carry no recoverable info on whether the
+  // original completion was Regular or Smaller — isReturnDay() still counts them toward
+  // `returns` so that real historical activity isn't erased, but they're deliberately never
+  // guessed into `done` or `counted`.
+  let done=0, counted=0, miss=0, returns=0, anyLogged=false, engaged=0, possible=0;
 
   days.forEach(date=>{
     const key = dateKey(date);
@@ -70,17 +77,19 @@ function renderPracticeGrid(){
       const entry = getLogEntry(h.id, key);
       const status = entry?.status || "";
       if(status){
+        anyLogged = true;
         if(status==="done") done++;
         if(status==="counted") counted++;
         if(status==="miss") miss++;
-        if(status==="returned") returned++;
-        if(isReturnDay(entry,h,key)) returnsCount++;
+        if(isReturnDay(entry,h,key)) returns++;
         if(["done","counted","returned"].includes(status)) engaged++;
       }
       // A weekly-rhythm habit doesn't have a daily opportunity to log — counting it as
       // "possible" on all 7 days would inflate the denominator (e.g. a 3x/week habit
       // reading as 3/7 instead of 3/3). Its weekly-target contribution is added once,
-      // after this per-day loop, instead.
+      // after this per-day loop, instead. (Feeds the separate Insights "Engagement" tile
+      // below the fold, not this card — this card no longer shows a possible/opportunity
+      // count of its own.)
       if(applies && h.scheduleType!=="weekly") possible++;
     });
   });
@@ -92,28 +101,29 @@ function renderPracticeGrid(){
   const engagementPct = possible ? Math.min(100,Math.round((engaged/possible)*100)) : 0;
   document.getElementById("metricEngagement").textContent = possible ? `${engagementPct}%` : "—";
   document.getElementById("metricEngagementNote").textContent = possible ? `${engaged} / ${possible} possible` : "Nothing logged yet";
-  document.getElementById("metricReturns").textContent = String(returnsCount);
+  document.getElementById("metricReturns").textContent = String(returns);
 
-  const total = done+counted+miss+returned;
-  const seg = (n)=> total ? Math.round((n/total)*100) : 0;
+  // Bar-segment widths are a purely visual proportion of the three primary buckets — never
+  // shown as a number, so there's no percentage to misread as a score.
+  const primaryTotal = done+counted+miss;
+  const seg = (n)=> primaryTotal ? Math.round((n/primaryTotal)*100) : 0;
   const overview = document.getElementById("practiceOverview");
-  if(!total){
+  if(!anyLogged){
     overview.innerHTML = `<div class="overview-empty">No check-ins logged this week yet.</div>`;
   } else {
+    const returnsLine = returns ? `<div class="overview-returns">↩ ${returns} return${returns===1?"":"s"}</div>` : "";
     overview.innerHTML = `
       <div class="overview-bar-track">
         ${done?`<span class="overview-bar-seg done" style="width:${seg(done)}%"></span>`:""}
         ${counted?`<span class="overview-bar-seg counted" style="width:${seg(counted)}%"></span>`:""}
         ${miss?`<span class="overview-bar-seg miss" style="width:${seg(miss)}%"></span>`:""}
-        ${returned?`<span class="overview-bar-seg returned" style="width:${seg(returned)}%"></span>`:""}
       </div>
       <div class="overview-legend">
-        <span class="overview-legend-row"><span class="overview-dot done"></span>Regular<span class="grow"></span>${done} (${seg(done)}%)</span>
-        <span class="overview-legend-row"><span class="overview-dot counted"></span>Smaller<span class="grow"></span>${counted} (${seg(counted)}%)</span>
-        <span class="overview-legend-row"><span class="overview-dot miss"></span>Not today<span class="grow"></span>${miss} (${seg(miss)}%)</span>
-        <span class="overview-legend-row"><span class="overview-dot returned"></span>Returned<span class="grow"></span>${returned} (${seg(returned)}%)</span>
+        <span class="overview-legend-row"><span class="overview-dot done"></span>Regular<span class="grow"></span>${done}</span>
+        <span class="overview-legend-row"><span class="overview-dot counted"></span>Smaller<span class="grow"></span>${counted}</span>
+        <span class="overview-legend-row"><span class="overview-dot miss"></span>Not today<span class="grow"></span>${miss}</span>
       </div>
-      <div class="overview-total">${total} / ${possible} possible</div>
+      ${returnsLine}
     `;
   }
 }

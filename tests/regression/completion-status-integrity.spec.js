@@ -6,31 +6,11 @@
 // See homePrimaryTier(), versionRowsForHabit(), and noVersionsConfiguredRow() in
 // src/js/habits.js. "Smaller Version" must only ever represent a version the user actually
 // chose from a real, non-empty menu of options — never an inferred default.
-import { test, expect, boot, seedState, readState } from './helpers.js';
+import {
+  test, expect, boot, seedState, readState,
+  bareHabit, whitespaceOnlyHabit, fullOnlyHabit, fullSmallHabit, weeklyBareHabit,
+} from './helpers.js';
 
-const bareHabit = {
-  id: 'h-bare', name: 'Night Face Wash', icon: 'leaf', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: '', small: '', small2: '',
-  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
-// Whitespace-only values must trim to "nothing configured" exactly like empty strings —
-// the bug's root fields (homePrimaryTier's bareMin/smaller/full) already trim, but the
-// fallback status they defaulted to was wrong regardless of how "empty" was spelled.
-const whitespaceOnlyHabit = {
-  id: 'h-whitespace', name: 'Evening Reset', icon: 'leaf', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: '   ', small: '  \t ', small2: ' ',
-  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
-const fullOnlyHabit = {
-  id: 'h-full-only', name: 'Wash Face', icon: 'leaf', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: 'Wash face for 60 seconds', small: '', small2: '',
-  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
-const fullSmallHabit = {
-  id: 'h-full-small', name: 'Wash Face Plus', icon: 'leaf', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: 'Wash face for 60 seconds', small: 'Use a cleansing wipe', small2: '',
-  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
 // Two habits so one day's logs can independently hold small (h-a) and small2 (h-b) completions.
 const threeVersionHabitA = {
   id: 'h-three-a', name: 'Morning Face Wash', icon: 'leaf', color: 'sage', goalType: 'practice',
@@ -41,11 +21,6 @@ const threeVersionHabitB = {
   id: 'h-three-b', name: 'Evening Face Wash', icon: 'leaf', color: 'sage', goalType: 'practice',
   timeBlock: 'evening', full: 'Wash face normally', small: 'Use a cleansing wipe', small2: 'Rinse face',
   scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
-};
-const weeklyBareHabit = {
-  id: 'h-weekly-bare', name: 'Call a Friend', icon: 'phone', color: 'sage', goalType: 'practice',
-  timeBlock: 'evening', full: '', small: '', small2: '',
-  scheduleType: 'weekly', weekdays: [], weeklyTarget: 2, paused: false,
 };
 
 const EVENING = '2026-09-16T20:00:00';
@@ -118,8 +93,8 @@ test.describe('completion status integrity: "Smaller Version" requires a real, c
       state: seedState({habits: [bareHabit], logs: {[TODAY]: {'h-bare': 'done'}}}),
     });
     const overview = page.locator('#practiceOverview');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('0 (0%)');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('1 (100%)');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('0');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('1');
   });
 
   test('10. Trends: both "small" and "small2" versions aggregate into the same "Smaller" row', async ({page}) => {
@@ -131,8 +106,8 @@ test.describe('completion status integrity: "Smaller Version" requires a real, c
       }),
     });
     const overview = page.locator('#practiceOverview');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('2 (100%)');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('0 (0%)');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('2');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('0');
   });
 
   test('9. weekly progress still counts a no-Goal-Plan habit\'s Done correctly', async ({page}) => {
