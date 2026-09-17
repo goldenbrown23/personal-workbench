@@ -337,6 +337,19 @@
     .tone-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.tone-choice{width:42px;height:42px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line)}.tone-choice.selected{box-shadow:0 0 0 3px var(--accent)}
     .emoji svg,.avatar svg,.home-now-icon svg,.visual-preview svg,.icon-choice svg{width:23px;height:23px}.person-detail-hero .avatar svg{width:27px;height:27px}
     .visual-tone-sage{background:#e8f1e7!important;color:#41694a}.visual-tone-lavender{background:#eee9f7!important;color:#65558a}.visual-tone-rose,.visual-tone-blush{background:#f7e9ec!important;color:#8b5963}.visual-tone-blue,.visual-tone-sky{background:#e7f0f4!important;color:#486f7d}.visual-tone-peach{background:#fbeee2!important;color:#96613c}.visual-tone-sand{background:#f5eddd!important;color:#80683e}.visual-tone-gray{background:#ecefeb!important;color:#606a62}
+    /* Profile photos render on top of the icon+color avatar as a circle inside the same
+       square container, so every existing avatar size/position rule above still applies —
+       only the photo itself needs object-fit:cover and its own fade-in once IndexedDB
+       resolves (avoids a broken-image flash before the object URL is ready). */
+    .has-photo{position:relative;overflow:hidden}
+    .avatar-photo-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity .15s ease}
+    .avatar-photo-img.loaded{opacity:1}
+    .visual-photo-preview-row{display:flex;align-items:center;gap:14px;margin:4px 0 10px}
+    .visual-photo-preview{width:64px;height:64px;border-radius:50%;background:#f3e6d8;display:grid;place-items:center;flex:0 0 auto;overflow:hidden;position:relative}
+    .visual-photo-preview img{width:100%;height:100%;object-fit:cover;border-radius:50%;display:none}
+    .visual-photo-preview img.loaded{display:block}
+    .visual-photo-actions{display:flex;flex-direction:column;gap:8px;flex:1;min-width:0}
+    .visual-photo-actions .btn{min-height:42px}
 
     .tag-field{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:2px}
     .selected-pills{display:flex;flex-wrap:wrap;gap:6px}

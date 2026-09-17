@@ -43,7 +43,41 @@ function safeToneMigrated(tone){return TONE_MIGRATIONS[tone]||tone}
 function iconSVG(name){const nodes=WORKBENCH_ICONS[name];if(!nodes)return "";const attrs=a=>Object.entries(a).map(([k,v])=>' '+k+'="'+escapeAttr(v)+'"').join("");return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+nodes.map(([tag,a])=>"<"+tag+attrs(a)+"></"+tag+">").join("")+"</svg>"}
 function safeTone(tone){const migrated=safeToneMigrated(tone);return Object.hasOwn(VISUAL_TONES,migrated)?migrated:"sage"}
 function safeIcon(icon,fallback){return icon&&WORKBENCH_ICONS[icon]?icon:fallback}
-function visualHTML(item,className,fallback="leaf"){const tone=safeTone(item?.color);const icon=safeIcon(item?.icon,fallback);return '<span class="'+className+' visual-tone-'+tone+'">'+iconSVG(icon)+'</span>'}
+// The icon+color span is always rendered (it's the fallback), and a photo <img> is layered
+// on top of it via data-avatar-photo — hydrateAvatarPhotos() fills that in asynchronously
+// once IndexedDB resolves, so there's never a broken-image flash or a render that blocks on
+// IndexedDB. Habits never set photoId, so this is a no-op change for the habit-visual path.
+function visualHTML(item,className,fallback="leaf"){
+  const tone=safeTone(item?.color);const icon=safeIcon(item?.icon,fallback);
+  const base='<span class="'+className+' visual-tone-'+tone+(item?.photoId?' has-photo':'')+'"'+(item?.photoId?' data-avatar-photo="'+escapeAttr(item.photoId)+'"':'')+'>'+iconSVG(icon);
+  return item?.photoId ? base+'<img class="avatar-photo-img" alt="" /></span>' : base+'</span>';
+}
+const _avatarPhotoURLs=new Map();
+async function loadAvatarPhotoURL(photoId){
+  if(_avatarPhotoURLs.has(photoId)) return _avatarPhotoURLs.get(photoId);
+  const blob=await getPhoto(photoId);
+  if(!blob) return null;
+  const url=URL.createObjectURL(blob);
+  _avatarPhotoURLs.set(photoId,url);
+  return url;
+}
+function invalidateAvatarPhoto(photoId){
+  if(!photoId) return;
+  const url=_avatarPhotoURLs.get(photoId);
+  if(url) URL.revokeObjectURL(url);
+  _avatarPhotoURLs.delete(photoId);
+}
+function hydrateAvatarPhotos(){
+  document.querySelectorAll("[data-avatar-photo]:not([data-photo-hydrated])").forEach(el=>{
+    el.setAttribute("data-photo-hydrated","1");
+    const id=el.getAttribute("data-avatar-photo");
+    loadAvatarPhotoURL(id).then(url=>{
+      if(!url) return; // missing/corrupt photo — the icon+color fallback underneath stays visible
+      const img=el.querySelector("img.avatar-photo-img");
+      if(img){ img.src=url; img.classList.add("loaded"); }
+    });
+  });
+}
 
 const RELATIONSHIP_TAGS=[
   {id:"family",label:"Family",tone:"peach",icon:"home"},
@@ -134,6 +168,7 @@ function normalizePerson(p){
   const merged={interactions:[],notes:[],...source};
   merged.icon=safeIcon(merged.icon,"person");
   merged.color=safeTone(merged.color);
+  merged.photoId=(typeof merged.photoId==="string"&&merged.photoId)?merged.photoId:null;
   if(!RELATIONSHIP_TAGS.some(t=>t.id===merged.relation)){
     const legacyText=merged.relation;
     merged.relation=normalizeRelation(merged.relation);
@@ -207,20 +242,135 @@ if(stateLoadWasCorrupted) showSaved("Your saved data couldn't be read, so a fres
 document.getElementById("undoBtn").addEventListener("click",()=>{if(!undoSnapshot)return;state=undoSnapshot;undoSnapshot=null;saveState();document.getElementById("saveToast").classList.remove("show");});
 
 let visualTarget=null,pendingIcon=null,pendingTone="sage";
+// Photo state is staged here across the visual picker AND survives back up to the person
+// modal (which is where Save actually lives) — nothing touches IndexedDB or state.people
+// until the person modal's own Save is clicked, so opening the picker and hitting Cancel
+// (at either layer) never writes an orphaned blob. See circle.js's savePersonBtn handler.
+// pendingPhotoURL is what the picker currently displays, which may be a URL borrowed from
+// the shared hydrateAvatarPhotos() cache (an already-committed photo) or one this picker
+// created itself for a freshly-picked file (ownedPhotoURL). Only ownedPhotoURL is ever
+// revoked here — revoking a borrowed cached URL would break every other place on screen
+// still showing that same photo (see the has-photo avatar spans elsewhere in the DOM).
+let pendingMode="icon",pendingPhotoBlob=null,pendingPhotoRemoved=false,pendingPhotoURL=null,ownedPhotoURL=null;
 const visualPickerModal=document.getElementById("visualPickerModal");
-function visualFields(target){return target==="habit"?{icon:"habitIcon",color:"habitColor",preview:"habitVisualPreview"}:{icon:"personIcon",color:"personColor",preview:"personVisualPreview"}}
-function updateVisualPreview(target){const f=visualFields(target),icon=safeIcon(document.getElementById(f.icon).value,target==="habit"?"leaf":"person"),tone=safeTone(document.getElementById(f.color).value),preview=document.getElementById(f.preview);preview.className=`visual-preview visual-tone-${tone}`;preview.innerHTML=iconSVG(icon)}
+function visualFields(target){return target==="habit"?{icon:"habitIcon",color:"habitColor",preview:"habitVisualPreview"}:{icon:"personIcon",color:"personColor",preview:"personVisualPreview",photo:"personPhotoId"}}
+function updateVisualPreview(target){
+  const f=visualFields(target),icon=safeIcon(document.getElementById(f.icon).value,target==="habit"?"leaf":"person"),tone=safeTone(document.getElementById(f.color).value),preview=document.getElementById(f.preview);
+  preview.className=`visual-preview visual-tone-${tone}`;
+  const existingImg=preview.querySelector("img.avatar-photo-img");if(existingImg)existingImg.remove();
+  preview.innerHTML=iconSVG(icon);
+  const photoId=f.photo?document.getElementById(f.photo).value:"";
+  if(photoId){
+    preview.classList.add("has-photo");
+    const img=document.createElement("img");img.className="avatar-photo-img";img.alt="";
+    preview.appendChild(img);
+    loadAvatarPhotoURL(photoId).then(url=>{if(url){img.src=url;img.classList.add("loaded")}});
+  }
+}
 function renderVisualPicker(){
   document.getElementById("visualIconGrid").innerHTML=ICON_GROUPS.map(group=>`<div class="icon-group"><div class="icon-group-label">${escapeHTML(group.label)}</div><div class="icon-group-grid">${group.icons.map(name=>`<button class="icon-choice ${pendingIcon===name?"selected":""}" type="button" data-icon-choice="${name}" aria-label="${escapeAttr(ICON_LABELS[name])} icon" aria-pressed="${pendingIcon===name}" title="${escapeAttr(ICON_LABELS[name])}">${iconSVG(name)}</button>`).join("")}</div></div>`).join("");
   document.getElementById("visualToneRow").innerHTML=Object.entries(VISUAL_TONES).map(([tone,label])=>`<button class="tone-choice visual-tone-${tone} ${pendingTone===tone?"selected":""}" type="button" data-tone-choice="${tone}" aria-label="${label} color" aria-pressed="${pendingTone===tone}" title="${label}"></button>`).join("");
   document.querySelectorAll("[data-icon-choice]").forEach(button=>button.addEventListener("click",()=>{pendingIcon=button.dataset.iconChoice;renderVisualPicker()}));
   document.querySelectorAll("[data-tone-choice]").forEach(button=>button.addEventListener("click",()=>{pendingTone=button.dataset.toneChoice;renderVisualPicker()}));
 }
-function openVisualPicker(target){const f=visualFields(target);visualTarget=target;pendingIcon=safeIcon(document.getElementById(f.icon).value,target==="habit"?"leaf":"person");pendingTone=safeTone(document.getElementById(f.color).value);document.getElementById("visualPickerTitle").textContent=target==="habit"?"Habit visual":"Person visual";renderVisualPicker();visualPickerModal.classList.add("show")}
-function closeVisualPicker(){visualPickerModal.classList.remove("show");visualTarget=null}
-function applyVisualChoice(){if(!visualTarget)return;const f=visualFields(visualTarget);document.getElementById(f.icon).value=pendingIcon||"";document.getElementById(f.color).value=pendingTone;updateVisualPreview(visualTarget);closeVisualPicker()}
+function renderVisualPhotoPreview(){
+  const img=document.getElementById("visualPhotoPreviewImg");
+  const hasPhoto=Boolean(pendingPhotoURL)&&!pendingPhotoRemoved;
+  document.getElementById("removePhotoBtn").hidden=!hasPhoto;
+  if(hasPhoto){img.src=pendingPhotoURL;img.classList.add("loaded")}
+  else{img.removeAttribute("src");img.classList.remove("loaded")}
+}
+function setVisualMode(mode){
+  pendingMode=mode;
+  document.getElementById("visualModePhoto").classList.toggle("active",mode==="photo");
+  document.getElementById("visualModePhoto").setAttribute("aria-pressed",mode==="photo");
+  document.getElementById("visualModeIcon").classList.toggle("active",mode==="icon");
+  document.getElementById("visualModeIcon").setAttribute("aria-pressed",mode==="icon");
+  document.getElementById("visualPhotoSection").hidden=mode!=="photo";
+  // The icon+color editor stays visible even in Photo mode — it's the fallback that keeps
+  // working the moment a photo is removed, so it must stay editable without switching tabs
+  // (switching to Icon mode is reserved for actually making icon+color the active choice).
+}
+function openVisualPicker(target){
+  const f=visualFields(target);visualTarget=target;
+  pendingIcon=safeIcon(document.getElementById(f.icon).value,target==="habit"?"leaf":"person");
+  pendingTone=safeTone(document.getElementById(f.color).value);
+  document.getElementById("visualPickerTitle").textContent=target==="habit"?"Habit visual":"Person visual";
+  pendingPhotoBlob=null;pendingPhotoRemoved=false;
+  if(ownedPhotoURL){URL.revokeObjectURL(ownedPhotoURL);ownedPhotoURL=null}
+  pendingPhotoURL=null;
+  const supportsPhoto=Boolean(f.photo);
+  document.getElementById("visualModeRow").hidden=!supportsPhoto;
+  document.getElementById("visualPhotoError").hidden=true;
+  if(supportsPhoto){
+    const photoId=document.getElementById(f.photo).value;
+    if(photoId){
+      const openedFor=visualTarget;
+      loadAvatarPhotoURL(photoId).then(url=>{
+        // Guard against the picker having been closed/reopened, or the photo already
+        // removed, before this async IndexedDB read resolved.
+        if(visualTarget!==openedFor||pendingPhotoRemoved||ownedPhotoURL) return;
+        pendingPhotoURL=url;renderVisualPhotoPreview();
+      });
+      setVisualMode("photo");
+    } else setVisualMode("icon");
+  } else setVisualMode("icon");
+  renderVisualPicker();
+  visualPickerModal.classList.add("show");
+}
+function closeVisualPicker(){
+  visualPickerModal.classList.remove("show");visualTarget=null;
+  if(ownedPhotoURL){URL.revokeObjectURL(ownedPhotoURL);ownedPhotoURL=null}
+  pendingPhotoURL=null;pendingPhotoBlob=null;pendingPhotoRemoved=false;
+}
+function applyVisualChoice(){
+  if(!visualTarget)return;
+  const f=visualFields(visualTarget);
+  if(f.photo && pendingMode==="photo" && pendingPhotoURL){
+    // Staged only — nothing is written to IndexedDB until the person modal's own Save,
+    // so applying here just carries the pending blob/URL forward for that Save handler.
+    document.getElementById(f.icon).value=pendingIcon||document.getElementById(f.icon).value;
+    document.getElementById(f.color).value=pendingTone;
+    const preview=document.getElementById(f.preview);
+    preview.className="visual-preview has-photo";
+    preview.innerHTML='<img class="avatar-photo-img loaded" alt="" src="'+escapeAttr(pendingPhotoURL||"")+'" />';
+    visualPickerModal.classList.remove("show");visualTarget=null;
+    return;
+  }
+  if(f.photo && pendingMode==="icon"){
+    if(document.getElementById(f.photo).value) pendingPhotoRemoved=true;
+    document.getElementById(f.photo).value="";
+  }
+  document.getElementById(f.icon).value=pendingIcon||"";document.getElementById(f.color).value=pendingTone;
+  updateVisualPreview(visualTarget);
+  visualPickerModal.classList.remove("show");visualTarget=null;
+  if(ownedPhotoURL){URL.revokeObjectURL(ownedPhotoURL);ownedPhotoURL=null}
+  pendingPhotoURL=null;
+}
 document.getElementById("chooseHabitVisual").addEventListener("click",()=>openVisualPicker("habit"));document.getElementById("choosePersonVisual").addEventListener("click",()=>openVisualPicker("person"));
 document.getElementById("closeVisualPicker").addEventListener("click",closeVisualPicker);document.getElementById("cancelVisualPicker").addEventListener("click",closeVisualPicker);document.getElementById("applyVisualPicker").addEventListener("click",applyVisualChoice);visualPickerModal.addEventListener("click",e=>{if(e.target===visualPickerModal)closeVisualPicker()});
+document.getElementById("visualModePhoto").addEventListener("click",()=>setVisualMode("photo"));
+document.getElementById("visualModeIcon").addEventListener("click",()=>setVisualMode("icon"));
+document.getElementById("choosePhotoBtn").addEventListener("click",()=>document.getElementById("personPhotoInput").click());
+document.getElementById("personPhotoInput").addEventListener("change",async e=>{
+  const file=e.target.files?.[0];e.target.value="";if(!file)return;
+  const errorEl=document.getElementById("visualPhotoError");errorEl.hidden=true;
+  try{
+    const blob=await resizePhotoFile(file);
+    if(ownedPhotoURL)URL.revokeObjectURL(ownedPhotoURL);
+    pendingPhotoBlob=blob;pendingPhotoRemoved=false;
+    ownedPhotoURL=pendingPhotoURL=URL.createObjectURL(blob);
+    renderVisualPhotoPreview();
+  }catch(_err){errorEl.textContent="That photo couldn't be used — try a different image.";errorEl.hidden=false}
+});
+document.getElementById("removePhotoBtn").addEventListener("click",()=>{
+  // If this URL was borrowed from the shared avatar-photo cache (an existing committed
+  // photo, not a freshly-picked file), it must NOT be revoked — other on-screen avatars
+  // for the same photoId still depend on it until Save actually deletes the photo.
+  if(ownedPhotoURL){URL.revokeObjectURL(ownedPhotoURL);ownedPhotoURL=null}
+  pendingPhotoURL=null;pendingPhotoBlob=null;pendingPhotoRemoved=true;
+  renderVisualPhotoPreview();
+});
 
 function dateKey(d=new Date()){
   const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,"0"), day=String(d.getDate()).padStart(2,"0");

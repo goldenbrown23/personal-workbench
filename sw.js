@@ -3,13 +3,13 @@
 // updates when sw.js's OWN bytes change; it does not re-check importScripts()
 // targets, so deriving this from version.js silently breaks update detection there.
 const CACHE_PREFIX = "personal-workbench-";
-const CACHE_NAME = "personal-workbench-v0.45.6";
+const CACHE_NAME = "personal-workbench-v0.46.0";
 const APP_SHELL = [
   "./", "./index.html", "./manifest.webmanifest", "./assets/icon.svg", "./assets/icon-192.png", "./assets/icon-512.png",
   "./assets/home-morning.png", "./assets/home-afternoon.png", "./assets/home-evening.png", "./assets/home-late-night.png",
   "./assets/habits-hero.png", "./assets/my-circle-hero.png", "./assets/trends-hero.png",
   "./src/styles/styles.css", "./src/styles/tailwind.generated.css",
-  "./src/js/version.js", "./src/js/state.js", "./src/js/update.js", "./src/js/habits.js", "./src/js/practice.js", "./src/js/circle.js", "./src/js/home.js", "./src/js/settings.js", "./src/js/app.js"
+  "./src/js/version.js", "./src/js/state.js", "./src/js/photos.js", "./src/js/update.js", "./src/js/habits.js", "./src/js/practice.js", "./src/js/circle.js", "./src/js/home.js", "./src/js/settings.js", "./src/js/app.js"
 ];
 
 self.addEventListener("install", event => {

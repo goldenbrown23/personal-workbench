@@ -173,7 +173,7 @@ function renderCirclePeople(){
   const list=document.getElementById("circlePeopleList");
   list.innerHTML=state.people.map(circlePeopleRowHTML).join("");
 }
-document.getElementById("circlePeopleSeeAll").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show")});
+document.getElementById("circlePeopleSeeAll").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show");hydrateAvatarPhotos()});
 
 // Full rhythm-based check-in queue — one layer deeper than the landing page, reached only
 // through the nudge card's ••• menu. Reuses the same row markup the queue used to render
@@ -184,7 +184,7 @@ function renderCircleQueue(){
   const list=document.getElementById("circleQueueList");
   list.innerHTML=circleDueList.length?circleDueList.map(circleCheckinRowHTML).join(""):`<div class="circle-empty-row">No one needs a check-in right now.</div>`;
 }
-function openCircleQueue(){renderCircleQueue();circleQueueModal.classList.add("show");}
+function openCircleQueue(){renderCircleQueue();circleQueueModal.classList.add("show");hydrateAvatarPhotos();}
 function closeCircleQueue(){circleQueueModal.classList.remove("show");}
 document.getElementById("closeCircleQueue").addEventListener("click",closeCircleQueue);
 circleQueueModal.addEventListener("click",e=>{if(e.target===circleQueueModal)closeCircleQueue()});
@@ -310,6 +310,7 @@ function openPersonDetail(id){
   document.getElementById("personDetailTitle").textContent=p.name;
   document.getElementById("personDetailBody").innerHTML=`<div class="person-detail-hero">${visualHTML(p,"avatar","person")}<div><div class="person-name">${escapeHTML(p.name)}</div><div class="person-chips">${relationPillHTML(p.relation,"person-chip relation")}<span class="person-chip ${t.tone}">${escapeHTML(t.label)}</span></div></div></div><div class="detail-facts"><div class="detail-fact"><span>💬</span><span class="detail-fact-copy"><span class="detail-fact-label">Last contact</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(last))}</span>${latest?.method?`<span class="detail-fact-sub">${escapeHTML(latest.method)}</span>`:""}</span></div><div class="detail-fact"><span>👥</span><span class="detail-fact-copy"><span class="detail-fact-label">Last seen in person</span><span class="detail-fact-value">${escapeHTML(relativeContactLabel(inPerson))}</span></span></div><div class="detail-fact"><span>📅</span><span class="detail-fact-copy"><span class="detail-fact-label">Usual rhythm</span><span class="detail-fact-value">${escapeHTML(frequencyLabel(p.frequency))}</span>${next?`<span class="detail-fact-sub">Around ${escapeHTML(fmtDate(next))}</span>`:""}</span></div></div><div class="contact-calendar" id="personContactCalendar">${contactCalendarHTML(p)}</div><div class="notes-section"><div class="notes-head"><div class="notes-title">Interaction history</div></div>${interactionHistoryHTML(p)}</div><div class="notes-section"><div class="notes-head"><div class="notes-title">Notes to remember</div><button class="tiny-btn" onclick="openPersonNote('${jsEscape(p.id)}',true)">＋ Add</button></div>${notesHTML}</div>`;
   personDetailModal.classList.add("show");
+  hydrateAvatarPhotos();
 }
 function closePersonDetail(){personDetailModal.classList.remove("show");detailPersonId=null;detailCalendarMonth=null}
 document.getElementById("closePersonDetail").addEventListener("click",closePersonDetail);personDetailModal.addEventListener("click",e=>{if(e.target===personDetailModal)closePersonDetail()});document.getElementById("logFromDetailBtn").addEventListener("click",()=>{const id=detailPersonId;closePersonDetail();if(id)openContactModal(id)});document.getElementById("editFromDetailBtn").addEventListener("click",()=>{const id=detailPersonId;closePersonDetail();if(id)openPersonModal(id)});document.getElementById("noteFromDetailBtn").addEventListener("click",()=>{const id=detailPersonId;if(id)openPersonNote(id,true)});
@@ -326,23 +327,48 @@ function openPersonModal(id=null){
   editingPersonId=id; const p=id?state.people.find(x=>x.id===id):null;
   document.getElementById("savePersonBtn").disabled=false;
   document.getElementById("personModalTitle").textContent=p?"Edit person":"Add person";
-  document.getElementById("personIcon").value=safeIcon(p?.icon,"person");document.getElementById("personColor").value=safeTone(p?.color||"rose");updateVisualPreview("person"); document.getElementById("personName").value=p?.name||"";
+  document.getElementById("personIcon").value=safeIcon(p?.icon,"person");document.getElementById("personColor").value=safeTone(p?.color||"rose");document.getElementById("personPhotoId").value=p?.photoId||"";updateVisualPreview("person"); document.getElementById("personName").value=p?.name||"";
   document.getElementById("personRelation").value=p?.relation||"";
   document.getElementById("personFrequency").value=String(p?.frequency??14);
   renderSelectedPill("relation");renderSelectedPill("frequency");
   document.getElementById("deletePersonBtn").style.display=p?"inline-block":"none"; personModal.classList.add("show");
 }
-function closePersonModal(){ personModal.classList.remove("show"); editingPersonId=null; }
+function closePersonModal(){
+  personModal.classList.remove("show"); editingPersonId=null;
+  // Discard any staged-but-unsaved photo pick from the visual picker (see state.js) — it
+  // never reached IndexedDB, so there's nothing to clean up beyond the in-memory object URL
+  // this modal owns (a cache-borrowed URL for an already-committed photo is left alone).
+  if(ownedPhotoURL){URL.revokeObjectURL(ownedPhotoURL);ownedPhotoURL=null}
+  pendingPhotoURL=null;pendingPhotoBlob=null;pendingPhotoRemoved=false;
+}
 document.getElementById("addPersonBtn").addEventListener("click",()=>openPersonModal());
 document.getElementById("closePersonModal").addEventListener("click",closePersonModal); document.getElementById("cancelPersonBtn").addEventListener("click",closePersonModal);
-document.getElementById("savePersonBtn").addEventListener("click",()=>{
+document.getElementById("savePersonBtn").addEventListener("click",async()=>{
   const btn=document.getElementById("savePersonBtn");
   // Same double-submit guard as saveHabitBtn — a disabled button never dispatches click,
   // so a rapid double-tap can't push two people before the modal closes.
   if(btn.disabled) return;
   const name=document.getElementById("personName").value.trim(); if(!name){document.getElementById("personName").focus();return;}
   btn.disabled=true;
-  const payload={name,icon:safeIcon(document.getElementById("personIcon").value,"person"),color:safeTone(document.getElementById("personColor").value),relation:document.getElementById("personRelation").value.trim(),frequency:Number(document.getElementById("personFrequency").value)}; if(editingPersonId) Object.assign(state.people.find(x=>x.id===editingPersonId),payload); else state.people.push({id:"p-"+Date.now(),...payload,lastContact:null,interactions:[],notes:[]}); closePersonModal(); saveState(); });
+  const previousPhotoId=document.getElementById("personPhotoId").value||null;
+  let photoId=previousPhotoId;
+  // The visual picker only stages a resized blob in memory (pendingPhotoBlob, set in
+  // state.js) — the actual IndexedDB write happens here, at the moment the person is
+  // actually saved, so cancelling either modal never leaves an orphaned blob behind.
+  if(pendingPhotoBlob){
+    photoId=editingPersonId?`ph-${editingPersonId}`:`ph-p-${Date.now()}`;
+    await savePhoto(photoId,pendingPhotoBlob);
+    invalidateAvatarPhoto(photoId); // same id can be reused on replace — drop any cached object URL for the old bytes
+    if(previousPhotoId&&previousPhotoId!==photoId) await deletePhoto(previousPhotoId);
+  } else if(pendingPhotoRemoved){
+    if(previousPhotoId){ await deletePhoto(previousPhotoId); invalidateAvatarPhoto(previousPhotoId); }
+    photoId=null;
+  }
+  pendingPhotoBlob=null;pendingPhotoRemoved=false;
+  const payload={name,icon:safeIcon(document.getElementById("personIcon").value,"person"),color:safeTone(document.getElementById("personColor").value),photoId,relation:document.getElementById("personRelation").value.trim(),frequency:Number(document.getElementById("personFrequency").value)};
+  if(editingPersonId) Object.assign(state.people.find(x=>x.id===editingPersonId),payload); else state.people.push({id:"p-"+Date.now(),...payload,lastContact:null,interactions:[],notes:[]});
+  closePersonModal(); saveState();
+});
 
 let tagPickerTarget=null;
 const tagPickerModal=document.getElementById("tagPickerModal");
@@ -384,7 +410,7 @@ document.getElementById("chooseFrequencyBtn").addEventListener("click",()=>openT
 document.getElementById("closeTagPicker").addEventListener("click",closeTagPicker);
 document.getElementById("cancelTagPicker").addEventListener("click",closeTagPicker);
 tagPickerModal.addEventListener("click",e=>{if(e.target===tagPickerModal)closeTagPicker()});
-document.getElementById("deletePersonBtn").addEventListener("click",()=>{if(editingPersonId&&confirm("Remove this person from Main Circle?")){state.people=state.people.filter(p=>p.id!==editingPersonId);closePersonModal();saveState();}}); personModal.addEventListener("click",e=>{if(e.target===personModal)closePersonModal()});
+document.getElementById("deletePersonBtn").addEventListener("click",()=>{if(editingPersonId&&confirm("Remove this person from Main Circle?")){const removed=state.people.find(p=>p.id===editingPersonId);state.people=state.people.filter(p=>p.id!==editingPersonId);if(removed?.photoId)deletePhoto(removed.photoId);closePersonModal();saveState();}}); personModal.addEventListener("click",e=>{if(e.target===personModal)closePersonModal()});
 let contactPersonId=null,contactSelectedDate=dateKey(),contactDateIsCustom=false; const contactModal=document.getElementById("contactModal");
 function renderContactDatePicker(){
   setupDatePicker({
@@ -607,4 +633,4 @@ document.getElementById("deleteInteractionBtn").addEventListener("click",()=>{
 });
 const managePeopleModal=document.getElementById("managePeopleModal");
 function renderManagePeople(){const list=document.getElementById("managePeopleList");list.innerHTML="";state.people.forEach(p=>{const row=document.createElement("div");row.className="manage-item";row.innerHTML=`${visualHTML(p,"avatar","person")}<div class="grow"><strong>${escapeHTML(p.name)}</strong>${p.relation?relationPillHTML(p.relation,"relationship-label small"):`<small>${escapeHTML(frequencyLabel(p.frequency))}</small>`}</div><button class="tiny-btn" data-person="${escapeAttr(p.id)}">Edit</button>`;list.appendChild(row)});if(!state.people.length)list.innerHTML=`<div class="empty-card">No people added yet.</div>`;list.querySelectorAll("[data-person]").forEach(b=>b.addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal(b.dataset.person)}));}
-document.getElementById("managePeopleBtn").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show")});document.getElementById("closeManagePeople").addEventListener("click",()=>managePeopleModal.classList.remove("show"));document.getElementById("managePersonAdd").addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal()});managePeopleModal.addEventListener("click",e=>{if(e.target===managePeopleModal)managePeopleModal.classList.remove("show")});
+document.getElementById("managePeopleBtn").addEventListener("click",()=>{renderManagePeople();managePeopleModal.classList.add("show");hydrateAvatarPhotos()});document.getElementById("closeManagePeople").addEventListener("click",()=>managePeopleModal.classList.remove("show"));document.getElementById("managePersonAdd").addEventListener("click",()=>{managePeopleModal.classList.remove("show");openPersonModal()});managePeopleModal.addEventListener("click",e=>{if(e.target===managePeopleModal)managePeopleModal.classList.remove("show")});

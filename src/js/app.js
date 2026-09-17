@@ -3,7 +3,7 @@
 // mutation (tap a row to edit, delete a past log) without ever leaving the view, so it must
 // also re-render here when it's the one currently on screen, or an edit/delete made from
 // inside it goes stale until the user navigates away and back.
-function renderAll(){ renderHome(); renderToday(); renderWeek(); renderManage(); renderCircle(); renderManagePeople(); renderSettings(); renderPractice(); renderMoreModules(); if(document.getElementById("habitLogView")?.classList.contains("active")) renderHabitLog(); }
+function renderAll(){ renderHome(); renderToday(); renderWeek(); renderManage(); renderCircle(); renderManagePeople(); renderSettings(); renderPractice(); renderMoreModules(); if(document.getElementById("habitLogView")?.classList.contains("active")) renderHabitLog(); hydrateAvatarPhotos(); }
 
 // The tab strip's own DOM order drives both the tap-transition direction and swipe
 // navigation (Home → Habits → My Circle → Trends → More) — reading it live instead of
@@ -147,6 +147,10 @@ function switchView(viewId){
   if(viewId==="habitLogView") renderHabitLog();
   if(viewId==="circleMomentsView") renderCircleMoments();
   if(viewId==="notesView") renderNotesView();
+  // Each branch above rebuilds a view's markup outside the main renderAll() pass, so any
+  // freshly-created avatar spans need their own hydrate call — otherwise a photo only ever
+  // loads for whichever render happened to run last through renderAll().
+  hydrateAvatarPhotos();
   if(viewId==="aboutView"&&!state.settings.guideOpened){state.settings.guideOpened=true;saveState();}
 }
 document.querySelectorAll(".tab").forEach(btn=>btn.addEventListener("click",()=>switchView(btn.dataset.view)));

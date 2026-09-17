@@ -699,8 +699,8 @@
   <div class="modal">
     <div class="modal-head"><h3 id="personModalTitle">Add person</h3><button class="icon-btn" id="closePersonModal">✕</button></div>
     <div class="form-row"><label for="personName">Name</label><input id="personName" placeholder="Who matters?" /></div>
-    <input id="personIcon" type="hidden" value="person" /><input id="personColor" type="hidden" value="rose" />
-    <div class="visual-field"><div class="visual-preview visual-tone-rose" id="personVisualPreview"></div><div class="visual-field-copy"><div class="visual-field-title">Visual</div><span class="visual-field-note">Choose an icon and color to recognize this quickly.</span></div><button class="visual-change" id="choosePersonVisual" type="button">Customize</button></div>
+    <input id="personIcon" type="hidden" value="person" /><input id="personColor" type="hidden" value="rose" /><input id="personPhotoId" type="hidden" value="" />
+    <div class="visual-field"><div class="visual-preview visual-tone-rose" id="personVisualPreview"></div><div class="visual-field-copy"><div class="visual-field-title">Visual</div><span class="visual-field-note">Choose a photo, icon, and color to recognize them quickly.</span></div><button class="visual-change" id="choosePersonVisual" type="button">Customize</button></div>
     <div class="form-row">
       <label id="relationFieldLabel">Relationship <span style="font-weight:500">(optional)</span></label>
       <input id="personRelation" type="hidden" />
@@ -818,9 +818,26 @@
 <div id="visualPickerModal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="visualPickerTitle">
   <div class="modal">
     <div class="modal-head"><h3 id="visualPickerTitle">Choose a visual</h3><button class="icon-btn" id="closeVisualPicker" aria-label="Close visual picker">✕</button></div>
-    <div class="settings-help">Choose an icon and color to recognize this quickly.</div>
-    <label id="visualIconGridLabel">Icon</label><div class="icon-grid" id="visualIconGrid" role="group" aria-labelledby="visualIconGridLabel"></div>
-    <div class="form-row"><label id="visualToneRowLabel">Color</label><div class="tone-row" id="visualToneRow" role="group" aria-labelledby="visualToneRowLabel"></div></div>
+    <div class="settings-help">Choose a photo, icon, and color to recognize them quickly.</div>
+    <div class="segmented" id="visualModeRow" role="group" aria-label="Visual type" hidden>
+      <button type="button" class="segmented-btn" id="visualModePhoto" data-visual-mode="photo" aria-pressed="false">Photo</button>
+      <button type="button" class="segmented-btn" id="visualModeIcon" data-visual-mode="icon" aria-pressed="true">Icon</button>
+    </div>
+    <div class="visual-photo-section" id="visualPhotoSection" hidden>
+      <div class="visual-photo-preview-row">
+        <span class="visual-photo-preview" id="visualPhotoPreview"><img id="visualPhotoPreviewImg" alt="" /></span>
+        <div class="visual-photo-actions">
+          <button type="button" class="btn" id="choosePhotoBtn">Choose photo</button>
+          <button type="button" class="btn danger" id="removePhotoBtn" hidden>Remove photo</button>
+        </div>
+      </div>
+      <input type="file" id="personPhotoInput" accept="image/*" hidden />
+      <div class="settings-help" id="visualPhotoError" hidden></div>
+    </div>
+    <div id="visualIconSection">
+      <label id="visualIconGridLabel">Icon</label><div class="icon-grid" id="visualIconGrid" role="group" aria-labelledby="visualIconGridLabel"></div>
+      <div class="form-row"><label id="visualToneRowLabel">Color</label><div class="tone-row" id="visualToneRow" role="group" aria-labelledby="visualToneRowLabel"></div></div>
+    </div>
     <div class="modal-actions"><button class="btn" id="cancelVisualPicker">Cancel</button><button class="btn primary" id="applyVisualPicker">Apply</button></div>
   </div>
 </div>
@@ -860,6 +877,7 @@
 </div>
 
 <script src="src/js/version.js"></script>
+<script src="src/js/photos.js"></script>
 <script src="src/js/state.js"></script>
 <script src="src/js/update.js"></script>
 <script src="src/js/habits.js"></script>

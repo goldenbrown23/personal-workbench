@@ -23,9 +23,20 @@ document.getElementById("compactMode").addEventListener("change",e=>{state.setti
 document.getElementById("hapticsEnabled").addEventListener("change",e=>{state.settings.hapticsEnabled=e.target.checked;saveState();showSaved(e.target.checked?"Gentle vibration on":"Gentle vibration off")});
 document.getElementById("backupReminderEnabled").addEventListener("change",e=>{state.settings.backupReminderEnabled=e.target.checked;saveState();showSaved(e.target.checked?"Backup reminder on":"Backup reminder off")});
 function backupIsDue(){if(state.settings?.backupReminderEnabled===false)return false;const now=Date.now(),remind=Date.parse(state.settings?.backupRemindAfter||"");if(Number.isFinite(remind)&&remind>now)return false;const anchor=Date.parse(state.settings?.lastBackupAt||state.settings?.firstUsedAt||new Date().toISOString());return now-anchor>=7*86400000}
-function exportBackup(){
+async function exportBackup(){
   state.settings.lastBackupAt=new Date().toISOString();state.settings.backupRemindAfter=null;localStorage.setItem(STORAGE_KEY,JSON.stringify(state));renderAll();
-  const backup={app:"Personal Workbench",exportedAt:state.settings.lastBackupAt,version:6,data:state};
+  // Photo bytes live in IndexedDB, not in `state`/localStorage (see photos.js), so a plain
+  // JSON.stringify(state) backup would silently lose them. Embed each referenced photo as a
+  // base64 data URL under data.photos, keyed by photoId — state.people keeps only the id
+  // reference, exactly like the runtime does, so old backups (with no photos object) still
+  // import unchanged.
+  const photoIds=[...new Set(state.people.map(p=>p.photoId).filter(Boolean))];
+  const photos={};
+  for(const id of photoIds){
+    const blob=await getPhoto(id);
+    if(blob) photos[id]=await blobToDataURL(blob);
+  }
+  const backup={app:"Personal Workbench",exportedAt:state.settings.lastBackupAt,version:6,data:state,photos};
   const url=URL.createObjectURL(new Blob([JSON.stringify(backup,null,2)],{type:"application/json"}));
   const a=document.createElement("a");a.href=url;a.download=`personal-workbench-${dateKey()}.json`;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);showSaved("Backup exported");
 }
@@ -33,7 +44,30 @@ document.getElementById("exportDataBtn").addEventListener("click",exportBackup);
 document.getElementById("importDataBtn").addEventListener("click",()=>document.getElementById("importDataFile").click());
 document.getElementById("importDataFile").addEventListener("change",async e=>{
   const file=e.target.files?.[0];if(!file)return;
-  try{const parsed=JSON.parse(await file.text());const incoming=parsed.data||parsed;if(!Array.isArray(incoming.habits)||!incoming.logs||typeof incoming.logs!=="object"||Array.isArray(incoming.logs)||!Array.isArray(incoming.people))throw new Error();const before=structuredClone(state);state={habits:incoming.habits.map(normalizeHabit),logs:incoming.logs,people:incoming.people.map(normalizePerson),dayNotes:(incoming.dayNotes&&typeof incoming.dayNotes==="object")?incoming.dayNotes:{},settings:{...defaultState.settings,...(incoming.settings||{}),lastBackupAt:new Date().toISOString(),backupRemindAfter:null}};applySettings();saveState();showSaved("Backup imported",before)}catch{showSaved("That file is not a valid Workbench backup")}
+  try{
+    const parsed=JSON.parse(await file.text());const incoming=parsed.data||parsed;
+    if(!Array.isArray(incoming.habits)||!incoming.logs||typeof incoming.logs!=="object"||Array.isArray(incoming.logs)||!Array.isArray(incoming.people))throw new Error();
+    const before=structuredClone(state);
+    const people=incoming.people.map(normalizePerson);
+    // Old backups (pre-photo feature) simply have no `photos` object — `photos?.[id]` below
+    // is undefined for every person, normalizePerson already defaulted photoId to null, and
+    // the rest of this import proceeds exactly as it always has. Any base64 entry that fails
+    // to decode is skipped, so a corrupt/partial photo falls back to icon+color rather than
+    // failing the whole import.
+    const photos=parsed.photos&&typeof parsed.photos==="object"?parsed.photos:{};
+    for(const p of people){
+      if(!p.photoId) continue;
+      const dataURL=photos[p.photoId];
+      if(!dataURL){ p.photoId=null; continue; }
+      try{
+        const blob=dataURLToBlob(dataURL);
+        if(!blob) throw new Error();
+        await savePhoto(p.photoId,blob);
+      }catch(_e){ p.photoId=null; }
+    }
+    state={habits:incoming.habits.map(normalizeHabit),logs:incoming.logs,people,dayNotes:(incoming.dayNotes&&typeof incoming.dayNotes==="object")?incoming.dayNotes:{},settings:{...defaultState.settings,...(incoming.settings||{}),lastBackupAt:new Date().toISOString(),backupRemindAfter:null}};
+    applySettings();saveState();showSaved("Backup imported",before);
+  }catch{showSaved("That file is not a valid Workbench backup")}
   e.target.value="";
 });
 const clearDataModal=document.getElementById("clearDataModal");
@@ -45,4 +79,4 @@ document.getElementById("cancelClearData").addEventListener("click",closeClearDa
 clearDataModal.addEventListener("click",e=>{if(e.target===clearDataModal)closeClearData()});
 document.getElementById("clearHabitHistoryBtn").addEventListener("click",()=>{if(confirm("Clear habit history? This removes check-ins, day notes, and streak data, but keeps your habits and goal plans.")){const before=structuredClone(state);state.logs={};state.dayNotes={};closeClearData();saveState();showSaved("Habit history cleared",before)}});
 document.getElementById("clearContactHistoryBtn").addEventListener("click",()=>{if(confirm("Clear Circle contact history? This removes last-contact dates and contact logs, but keeps people, notes, and profile details.")){const before=structuredClone(state);state.people=state.people.map(p=>({...p,lastContact:null,interactions:[]}));closeClearData();saveState();showSaved("Circle contact history cleared",before)}});
-document.getElementById("resetDataBtn").addEventListener("click",()=>{if(confirm("Reset the entire Workbench? This removes habits, history, people, notes, and settings from this browser.")){state={habits:[],logs:{},people:[],dayNotes:{},settings:{...defaultState.settings,firstUsedAt:new Date().toISOString(),lastBackupAt:null,backupRemindAfter:null}};[METHOD_KEY,"personal_workbench_habit_filter",GENTLE_KEY].forEach(key=>localStorage.removeItem(key));applySettings();closeClearData();saveState();switchView("homeView");showSaved("Workbench reset")}});
+document.getElementById("resetDataBtn").addEventListener("click",()=>{if(confirm("Reset the entire Workbench? This removes habits, history, people, notes, and settings from this browser.")){state={habits:[],logs:{},people:[],dayNotes:{},settings:{...defaultState.settings,firstUsedAt:new Date().toISOString(),lastBackupAt:null,backupRemindAfter:null}};[METHOD_KEY,"personal_workbench_habit_filter",GENTLE_KEY].forEach(key=>localStorage.removeItem(key));clearAllPhotos();applySettings();closeClearData();saveState();switchView("homeView");showSaved("Workbench reset")}});
