@@ -303,13 +303,18 @@ function laterTodayHabits(excludeId){
 }
 // The smallest configured version is what the Now card presents and what "I did it" must
 // log — never a hardcoded status. Full only counts as "done" when it's the ONLY configured
-// version (nothing smaller exists to present instead).
+// version (nothing smaller exists to present instead). When NOTHING is configured (full,
+// small, and small2 all empty), there is no smaller version to distinguish from — the one
+// generic check-in the user performs IS the complete action, so this must log "done", not
+// "counted" (a past bug had this branch defaulting to "counted", silently recording every
+// bare-habit "✓ Done" tap as a smaller-version completion — see hasSmallerVersion()/
+// versionRowsForHabit() below, the single source of truth this mirrors).
 function homePrimaryTier(h){
   const bareMin=(h.small2||"").trim(),smaller=(h.small||"").trim(),full=(h.full||"").trim();
   if(bareMin) return {text:bareMin,status:"counted"};
   if(smaller) return {text:smaller,status:"counted"};
   if(full) return {text:full,status:"done"};
-  return {text:"A tiny check-in counts.",status:"counted"};
+  return {text:"A tiny check-in counts.",status:"done"};
 }
 // Debounce guard for the shared logging action: setStatus() is fully synchronous, but iOS
 // occasionally dispatches a duplicate/"ghost" tap as a separate event shortly after the
@@ -531,7 +536,7 @@ function defaultPendingStatusForCurrentDate(){
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
   const existing=getStatus(loggingHabitId,key);
   const rows=versionRowsForHabit(h);
-  const fallback=rows.length?rows[0].status:"counted";
+  const fallback=rows.length?rows[0].status:noVersionsConfiguredRow().status;
   return (existing==="done"||existing==="counted")?existing:fallback;
 }
 // A note already on this day's entry stays visibly expanded (per-day, not per-session) so
@@ -605,7 +610,7 @@ function renderStatusChoices(){
   const existingStatus=getStatus(loggingHabitId,key);
   const active=loggingPendingStatus;
   let rows=versionRowsForHabit(h);
-  if(!rows.length) rows=[{status:"counted",label:"Check-in",text:"A tiny check-in counts."}];
+  if(!rows.length) rows=[noVersionsConfiguredRow()];
   document.getElementById("statusVersionList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${active===r.status?"active":""}" onclick="handleLogStatusClick('${jsEscape(r.status)}')"><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></button>`).join("");
   document.getElementById("statusNotTodayBtn").classList.toggle("active",loggingMode==="single"&&existingStatus==="miss");
   updateStatusLogBtn();
@@ -780,6 +785,18 @@ function versionRowsForHabit(h){
   if(small2) rows.push({status:"counted",label:reduce?"Another smaller win":"Minimum version",text:small2});
   return rows;
 }
+// A habit only "has a smaller version" when small/small2 contain real, trimmed, non-empty
+// text — never inferred from the Goal Plan section existing, an empty string, or any other
+// schema-level default. Used wherever code needs that yes/no answer directly; versionRowsForHabit
+// above remains the source of truth for the actual list + labels.
+function hasSmallerVersion(h){ return Boolean((h?.small||"").trim())||Boolean((h?.small2||"").trim()); }
+// The single fallback row when a habit has NO full/small/small2 configured at all — there is
+// no smaller version to distinguish from, so the one generic check-in the user performs IS
+// the complete action and must log "done", never "counted". Centralized here so every
+// consumer (statusModal, Habit Sheet) agrees, after a bug where each one hardcoded its own
+// copy of this row with "counted" instead — silently recording a bare habit's only possible
+// completion as a smaller-version selection the user never made.
+function noVersionsConfiguredRow(){ return {status:"done",label:"Check-in",text:"A tiny check-in counts."}; }
 // Compact bottom sheet for the Habits tab's row tap / re-tap: full + easier versions as
 // equally-valid choices (never a failure ladder), Complete, and three quick actions that
 // reuse the existing full statusModal (move time) and habit editor (edit) rather than
@@ -792,7 +809,7 @@ function openHabitSheet(id){
   const h=state.habits.find(x=>x.id===id);if(!h)return;
   habitSheetHabitId=id;
   const current=getStatus(id);
-  const rows=versionRowsForHabit(h).length?versionRowsForHabit(h):[{status:"counted",label:"Check-in",text:"A tiny check-in counts."}];
+  const rows=versionRowsForHabit(h).length?versionRowsForHabit(h):[noVersionsConfiguredRow()];
   habitSheetSelectedStatus=current||rows[0].status;
   document.getElementById("habitSheetIcon").innerHTML=visualHTML(h,"checklist-icon");
   document.getElementById("habitSheetTitle").textContent=h.name;
@@ -802,7 +819,7 @@ function openHabitSheet(id){
 }
 function renderHabitSheetList(){
   const h=state.habits.find(x=>x.id===habitSheetHabitId);if(!h)return;
-  const rows=versionRowsForHabit(h).length?versionRowsForHabit(h):[{status:"counted",label:"Check-in",text:"A tiny check-in counts."}];
+  const rows=versionRowsForHabit(h).length?versionRowsForHabit(h):[noVersionsConfiguredRow()];
   document.getElementById("habitSheetList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${habitSheetSelectedStatus===r.status?"active":""}" onclick="setHabitSheetSelection('${jsEscape(r.status)}')"><span><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></span><span class="habit-sheet-check" aria-hidden="true">✓</span></button>`).join("");
 }
 function setHabitSheetSelection(status){ habitSheetSelectedStatus=status; renderHabitSheetList(); }

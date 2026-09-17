@@ -162,7 +162,10 @@ test.describe('habit logging', () => {
     await page.locator('#statusLogBtn').click();
 
     const logs = (await readState(page)).logs;
-    expect(logs['2026-09-11']['h-bare'].status).toBe('counted');
+    // bareHabit has no full/small/small2 configured, so its only version-list row is the
+    // no-versions-configured fallback, which logs "done" — see noVersionsConfiguredRow()
+    // in habits.js (a habit with nothing configured has no smaller version to record).
+    expect(logs['2026-09-11']['h-bare'].status).toBe('done');
     expect(logs['2026-09-13']).toBeUndefined();
   });
 });
