@@ -216,7 +216,10 @@ function renderGentleModeRow(){
   btn.textContent=gentle?"On":"Off";
   btn.classList.toggle("active",gentle);
 }
-function quickCompleteHabit(id){const current=getStatus(id);if(current){openHabitSheet(id);return}setStatus(id,gentleDayOn()?"counted":"done")}
+// "counted" requires an actual configured smaller version (see hasSmallerVersion) — Gentle
+// Day alone is never sufficient evidence, or a bare habit's quick tap would falsely log a
+// smaller-version completion that was never offered or chosen.
+function quickCompleteHabit(id){const current=getStatus(id);if(current){openHabitSheet(id);return}const h=state.habits.find(x=>x.id===id);setStatus(id,gentleDayOn()&&hasSmallerVersion(h)?"counted":"done")}
 function habitStatusIcon(status){return ({done:"✓",counted:"○",miss:"—",returned:"↩"})[status]||""}
 function statusLabel(status){return ({done:"✓ Done",counted:"○ Counted",miss:"— Not today",returned:"↩ Returned"})[status]||""}
 

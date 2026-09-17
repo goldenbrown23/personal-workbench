@@ -108,8 +108,8 @@ function renderPracticeGrid(){
         ${returned?`<span class="overview-bar-seg returned" style="width:${seg(returned)}%"></span>`:""}
       </div>
       <div class="overview-legend">
-        <span class="overview-legend-row"><span class="overview-dot done"></span>Done<span class="grow"></span>${done} (${seg(done)}%)</span>
-        <span class="overview-legend-row"><span class="overview-dot counted"></span>Counted<span class="grow"></span>${counted} (${seg(counted)}%)</span>
+        <span class="overview-legend-row"><span class="overview-dot done"></span>Regular<span class="grow"></span>${done} (${seg(done)}%)</span>
+        <span class="overview-legend-row"><span class="overview-dot counted"></span>Smaller<span class="grow"></span>${counted} (${seg(counted)}%)</span>
         <span class="overview-legend-row"><span class="overview-dot miss"></span>Not today<span class="grow"></span>${miss} (${seg(miss)}%)</span>
         <span class="overview-legend-row"><span class="overview-dot returned"></span>Returned<span class="grow"></span>${returned} (${seg(returned)}%)</span>
       </div>

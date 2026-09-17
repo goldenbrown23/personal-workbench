@@ -31,6 +31,17 @@ const fullSmallHabit = {
   timeBlock: 'evening', full: 'Wash face for 60 seconds', small: 'Use a cleansing wipe', small2: '',
   scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
 };
+// Two habits so one day's logs can independently hold small (h-a) and small2 (h-b) completions.
+const threeVersionHabitA = {
+  id: 'h-three-a', name: 'Morning Face Wash', icon: 'leaf', color: 'sage', goalType: 'practice',
+  timeBlock: 'morning', full: 'Wash face normally', small: 'Use a cleansing wipe', small2: 'Rinse face',
+  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
+};
+const threeVersionHabitB = {
+  id: 'h-three-b', name: 'Evening Face Wash', icon: 'leaf', color: 'sage', goalType: 'practice',
+  timeBlock: 'evening', full: 'Wash face normally', small: 'Use a cleansing wipe', small2: 'Rinse face',
+  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false,
+};
 const weeklyBareHabit = {
   id: 'h-weekly-bare', name: 'Call a Friend', icon: 'phone', color: 'sage', goalType: 'practice',
   timeBlock: 'evening', full: '', small: '', small2: '',
@@ -101,14 +112,27 @@ test.describe('completion status integrity: "Smaller Version" requires a real, c
     await expect(row).not.toContainText('Smaller version');
   });
 
-  test('8. Trends: a normal Done from a no-Goal-Plan habit is not counted in the "Counted" (Smaller Version) tally', async ({page}) => {
+  test('8. Trends: a normal Done from a no-Goal-Plan habit is not counted in the "Smaller" (Smaller Version) tally', async ({page}) => {
     await boot(page, {
       view: 'practiceView', at: EVENING,
       state: seedState({habits: [bareHabit], logs: {[TODAY]: {'h-bare': 'done'}}}),
     });
     const overview = page.locator('#practiceOverview');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Counted'})).toContainText('0 (0%)');
-    await expect(overview.locator('.overview-legend-row', {hasText: 'Done'})).toContainText('1 (100%)');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('0 (0%)');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('1 (100%)');
+  });
+
+  test('10. Trends: both "small" and "small2" versions aggregate into the same "Smaller" row', async ({page}) => {
+    await boot(page, {
+      view: 'practiceView', at: EVENING,
+      state: seedState({
+        habits: [threeVersionHabitA, threeVersionHabitB],
+        logs: {[TODAY]: {'h-three-a': 'counted', 'h-three-b': 'counted'}},
+      }),
+    });
+    const overview = page.locator('#practiceOverview');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Smaller'})).toContainText('2 (100%)');
+    await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('0 (0%)');
   });
 
   test('9. weekly progress still counts a no-Goal-Plan habit\'s Done correctly', async ({page}) => {
