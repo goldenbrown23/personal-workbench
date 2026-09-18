@@ -1,8 +1,13 @@
+// tier disambiguates WHICH engagement-version row was completed ("full"/"smaller"/
+// "minimum" — see versionRowsForHabit) since status alone collapses small and small2 to
+// the same "counted" value. It's additive and optional: a plain-string legacy entry, or
+// any entry written before this field existed, normalizes to tier:null rather than a
+// guessed value — never fabricate which version predates this distinction.
 function getLogEntry(habitId, key=dateKey()){
   const raw=state.logs?.[key]?.[habitId];
   if(!raw) return null;
-  if(typeof raw==="string") return {status:raw,timeBlock:null,note:"",createdAt:null,updatedAt:null};
-  return {status:"",timeBlock:null,note:"",createdAt:null,updatedAt:null,...raw};
+  if(typeof raw==="string") return {status:raw,timeBlock:null,note:"",tier:null,createdAt:null,updatedAt:null};
+  return {status:"",timeBlock:null,note:"",tier:null,createdAt:null,updatedAt:null,...raw};
 }
 function getStatus(habitId, key=dateKey()){ return getLogEntry(habitId,key)?.status || ""; }
 // Engagement version (done/counted/miss) and return context are separate dimensions:
@@ -10,7 +15,12 @@ function getStatus(habitId, key=dateKey()){ return getLogEntry(habitId,key)?.sta
 // no longer overwrites which version was actually logged. isReturn is a flag alongside
 // the real status. Legacy records that collapsed both into status:"returned" are left
 // exactly as they were written — see isReturnDay() below for the compatibility shim.
-function setStatus(habitId, status){
+// tier is optional here — callers that only know a coarse status (quickCompleteHabit,
+// which can tell "some smaller version exists" but not which one) omit it and keep
+// writing the plain-string shape exactly as before. Callers that resolved one exact
+// version (Home's primary "Done" via homePrimaryTier, the Easier-version rows) pass it
+// through so that known choice isn't silently dropped.
+function setStatus(habitId, status, tier=null){
   const before=structuredClone(state);
   const key=dateKey();
   const h=state.habits.find(x=>x.id===habitId);
@@ -21,7 +31,10 @@ function setStatus(habitId, status){
     const isReturn=!hadEntry&&["done","counted"].includes(status)&&h&&wasExpectedOpportunityMissed(h);
     if(isReturn){
       const existing=getLogEntry(habitId,key),now=new Date().toISOString();
-      state.logs[key][habitId]={status,isReturn:true,timeBlock:existing?.timeBlock||null,note:existing?.note||"",createdAt:existing?.createdAt||now,updatedAt:now};
+      state.logs[key][habitId]={status,isReturn:true,timeBlock:existing?.timeBlock||null,note:existing?.note||"",tier:tier||null,createdAt:existing?.createdAt||now,updatedAt:now};
+    }else if(tier){
+      const existing=getLogEntry(habitId,key),now=new Date().toISOString();
+      state.logs[key][habitId]={status,tier,timeBlock:existing?.timeBlock||null,note:existing?.note||"",createdAt:existing?.createdAt||now,updatedAt:now};
     }else{
       state.logs[key][habitId]=status;
     }
@@ -29,7 +42,7 @@ function setStatus(habitId, status){
   saveState();
   showSaved("Habit updated",before);
 }
-function saveHabitLogEntry(habitId,{date,timeBlock,status,note}){
+function saveHabitLogEntry(habitId,{date,timeBlock,status,note,tier}){
   const before=structuredClone(state);
   const targetDate=parseLocalDate(date)||new Date();
   const key=dateKey(targetDate);
@@ -38,11 +51,11 @@ function saveHabitLogEntry(habitId,{date,timeBlock,status,note}){
   const isReturn=!existing?.status&&["done","counted"].includes(status)&&h&&wasExpectedOpportunityMissed(h,targetDate);
   state.logs[key] ||= {};
   const now=new Date().toISOString();
-  state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
+  state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),tier:tier||null,createdAt:existing?.createdAt||now,updatedAt:now};
   saveState();
   showSaved(key===dateKey()?"Habit updated":"Added. Your timeline is more accurate now.",before);
 }
-function saveHabitLogEntriesBatch(habitId,dates,{timeBlock,status,note}){
+function saveHabitLogEntriesBatch(habitId,dates,{timeBlock,status,note,tier}){
   const before=structuredClone(state);
   const now=new Date().toISOString();
   const sorted=[...dates].sort();
@@ -53,7 +66,7 @@ function saveHabitLogEntriesBatch(habitId,dates,{timeBlock,status,note}){
     const existing=getLogEntry(habitId,key);
     const isReturn=!existing?.status&&["done","counted"].includes(status)&&h&&wasExpectedOpportunityMissed(h,targetDate);
     state.logs[key] ||= {};
-    state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),createdAt:existing?.createdAt||now,updatedAt:now};
+    state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),tier:tier||null,createdAt:existing?.createdAt||now,updatedAt:now};
     if(existing?.status) updated++; else created++;
   });
   saveState();
@@ -314,20 +327,22 @@ function laterTodayHabits(excludeId){
 // versionRowsForHabit() below, the single source of truth this mirrors).
 function homePrimaryTier(h){
   const bareMin=(h.small2||"").trim(),smaller=(h.small||"").trim(),full=(h.full||"").trim();
-  if(bareMin) return {text:bareMin,status:"counted"};
-  if(smaller) return {text:smaller,status:"counted"};
-  if(full) return {text:full,status:"done"};
-  return {text:"A tiny check-in counts.",status:"done"};
+  if(bareMin) return {text:bareMin,status:"counted",tier:"minimum"};
+  if(smaller) return {text:smaller,status:"counted",tier:"smaller"};
+  if(full) return {text:full,status:"done",tier:"full"};
+  // No versions configured at all — same "the one check-in IS the full version" logic as
+  // noVersionsConfiguredRow() in versionRowsForHabit, kept consistent with it.
+  return {text:"A tiny check-in counts.",status:"done",tier:"full"};
 }
 // Debounce guard for the shared logging action: setStatus() is fully synchronous, but iOS
 // occasionally dispatches a duplicate/"ghost" tap as a separate event shortly after the
 // real one, which this timestamp check absorbs without affecting normal taps.
 let lastHomeActionAt=0;
-function homeLogStatus(habitId,status){
+function homeLogStatus(habitId,status,tier=null){
   const now=Date.now();
   if(now-lastHomeActionAt<600) return;
   lastHomeActionAt=now;
-  setStatus(habitId,status);
+  setStatus(habitId,status,tier);
 }
 // ---- Habits tab: a scannable checklist by time of day, not a second "what's next"
 // engine — Home's Start Here already owns "what's most useful right now" (habits.js's
@@ -423,12 +438,13 @@ function checklistRowHTML(h,contextLabel=null){
   // aria-label below — it used to collapse to the same ✓ as a full version.
   const glyph=habitStatusIcon(status);
   const label=status?`${escapeAttr(h.name)}, ${statusLabel(status)}. Tap to change.`:`Mark ${escapeAttr(h.name)} done`;
-  const hasEasier=Boolean((h.full||"").trim())&&Boolean((h.small||"").trim()||(h.small2||"").trim());
-  const easierPill=hasEasier?`<span class="checklist-easier-pill">Easier</span>`:"";
+  // Whether a habit has an alternate/easier version is implementation detail that only
+  // matters once you're actually completing it (see versionRowsForHabit, offered from the
+  // habit-sheet/status-modal completion flows this row's buttons open) — no badge here.
   // Secondary metadata only — omitted entirely for an uncategorized habit rather than
   // ever rendering an "Uncategorized" badge (see habitCategoryPillHTML in state.js).
   const categoryPill=habitCategoryPillHTML(h);
-  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openHabitSheet('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name-row"><span class="checklist-name">${escapeHTML(h.name)}</span>${easierPill}</span><span class="checklist-sub">${escapeHTML(subtext)}</span>${categoryPill}</span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button><button type="button" class="checklist-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
+  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openHabitSheet('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name-row"><span class="checklist-name">${escapeHTML(h.name)}</span></span><span class="checklist-sub">${escapeHTML(subtext)}</span>${categoryPill}</span></button><button type="button" class="checklist-status ${status||""}" aria-label="${label}" onclick="quickCompleteHabit('${jsEscape(h.id)}')">${glyph}</button><button type="button" class="checklist-overflow" aria-label="More options for ${escapeAttr(h.name)}" onclick="openStatusModal('${jsEscape(h.id)}')">•••</button></div>`;
 }
 // Search is retrieval, not prioritization: it runs over every habit regardless of
 // paused/schedule/daypart/completion state, and never touches habitsSelectedBlock — the
@@ -527,20 +543,36 @@ function renderHabitsPaused(){
 }
 
 let loggingHabitId=null,loggingSelectedDate=dateKey(),loggingDateIsCustom=false;
-let loggingMode="single",loggingMultiDates=new Set(),loggingMultiMonth=new Date(),loggingRangeArmed=false,loggingRangeAnchor=null,loggingPendingStatus=null;
+// loggingVersionTouched distinguishes an explicit tap on a version row from the mere
+// display-only default guess defaultPendingSelectionForCurrentDate() pre-highlights on
+// open — see its comment. Without this, committing without touching anything for a day
+// whose entry has a status but no tier (legacy data, several rows sharing that status)
+// would silently write the guessed row's tier as if the user had confirmed it.
+let loggingMode="single",loggingMultiDates=new Set(),loggingMultiMonth=new Date(),loggingRangeArmed=false,loggingRangeAnchor=null,loggingPendingStatus=null,loggingPendingTier=null,loggingVersionTouched=false;
 let loggingLastRenderedKey=null;
 const statusModal=document.getElementById("statusModal");
 // Only "done"/"counted" are real engagement versions a user can pick from statusVersionList —
 // a day already logged "miss"/"returned" falls back to the habit's default version so
 // reopening the sheet invites a real choice, while the separate Not-today highlight (see
 // renderStatusChoices) still reflects the actual stored status for that day.
-function defaultPendingStatusForCurrentDate(){
+// Resolves to one specific ROW (not just a status), since status alone can't tell Smaller
+// and Tiny apart. A day already logged with a tier picks that exact row back up; a day
+// logged before tier existed (or with no tier-bearing status) falls back to the first row
+// matching its status — a display-only best guess for what's pre-selected on reopen, never
+// a rewrite of what's actually stored until the user re-commits.
+function defaultPendingSelectionForCurrentDate(){
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
-  const existing=getStatus(loggingHabitId,key);
+  const existing=getLogEntry(loggingHabitId,key);
   const rows=versionRowsForHabit(h);
-  const fallback=rows.length?rows[0].status:noVersionsConfiguredRow().status;
-  return (existing==="done"||existing==="counted")?existing:fallback;
+  const list=rows.length?rows:[noVersionsConfiguredRow()];
+  if(existing?.status==="done"||existing?.status==="counted"){
+    const byTier=existing.tier&&list.find(r=>r.tier===existing.tier);
+    if(byTier) return byTier;
+    const byStatus=list.find(r=>r.status===existing.status);
+    if(byStatus) return byStatus;
+  }
+  return list[0];
 }
 // A note already on this day's entry stays visibly expanded (per-day, not per-session) so
 // backdated/edited entries never hide existing content behind a collapsed disclosure.
@@ -559,7 +591,8 @@ function openStatusModal(id,presetDate=null){
   loggingMultiMonth=parseLocalDate(loggingSelectedDate)||new Date();
   loggingRangeArmed=false;loggingRangeAnchor=null;
   loggingLastRenderedKey=null;
-  loggingPendingStatus=defaultPendingStatusForCurrentDate();
+  {const sel=defaultPendingSelectionForCurrentDate();loggingPendingStatus=sel.status;loggingPendingTier=sel.tier;}
+  loggingVersionTouched=false;
   document.getElementById("statusDateDetails").open=false;
   syncNoteExpansionForCurrentEntry();
   renderStatusSharedFields();
@@ -611,10 +644,13 @@ function renderStatusChoices(){
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
   const existingStatus=getStatus(loggingHabitId,key);
-  const active=loggingPendingStatus;
   let rows=versionRowsForHabit(h);
   if(!rows.length) rows=[noVersionsConfiguredRow()];
-  document.getElementById("statusVersionList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${active===r.status?"active":""}" onclick="handleLogStatusClick('${jsEscape(r.status)}')"><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></button>`).join("");
+  // Compared by tier, never by status alone — small/small2 both carry status "counted",
+  // so comparing by status would render both rows "active" simultaneously the moment either
+  // one (or a legacy "counted" entry with no tier) was selected. Exactly one row's tier can
+  // ever match loggingPendingTier, which is what makes this genuinely single-select.
+  document.getElementById("statusVersionList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${loggingPendingTier===r.tier?"active":""}" role="radio" aria-checked="${loggingPendingTier===r.tier}" onclick="handleLogStatusClick('${jsEscape(r.status)}','${jsEscape(r.tier)}')"><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></button>`).join("");
   document.getElementById("statusNotTodayBtn").classList.toggle("active",loggingMode==="single"&&existingStatus==="miss");
   updateStatusLogBtn();
 }
@@ -640,7 +676,8 @@ function renderStatusDatePicker(){
     getState:()=>({date:loggingSelectedDate,isCustom:loggingDateIsCustom}),
     setState:(d,isCustom)=>{
       loggingSelectedDate=d;loggingDateIsCustom=isCustom;
-      loggingPendingStatus=defaultPendingStatusForCurrentDate();
+      {const sel=defaultPendingSelectionForCurrentDate();loggingPendingStatus=sel.status;loggingPendingTier=sel.tier;}
+      loggingVersionTouched=false;
       syncNoteExpansionForCurrentEntry();
       renderStatusModalForDate();
     }
@@ -710,17 +747,23 @@ function renderMultiSummary(){
   btn.disabled=n===0||!loggingPendingStatus;
 }
 // Selecting a version (or Not-today) never saves by itself — it only updates what's
-// pending. commitSingleStatusLog() below is the one place a single-date log actually writes.
-function handleLogStatusClick(status){
+// pending, and selecting one row always replaces whatever was pending before (never adds
+// to it) — Full/Smaller/Tiny are mutually exclusive ways of completing ONE habit instance,
+// not independent choices. commitSingleStatusLog() below is the one place a single-date
+// log actually writes.
+function handleLogStatusClick(status,tier){
   if(!loggingHabitId) return;
   loggingPendingStatus=status;
+  loggingPendingTier=tier||null;
+  loggingVersionTouched=true;
   renderStatusChoices();
   if(loggingMode==="multi") renderMultiSummary();
 }
 // The one commit path for single-date logging — used by both the primary Log button
 // (with the selected version) and Not-today (which has always logged immediately on tap,
-// since declining a day isn't a choice that needs a separate confirm step).
-function commitSingleStatusLog(status){
+// since declining a day isn't a choice that needs a separate confirm step). tier is only
+// ever meaningful alongside a real version status; Not-today passes none.
+function commitSingleStatusLog(status,tier=null){
   if(!loggingHabitId||!status) return;
   const h=state.habits.find(x=>x.id===loggingHabitId);
   const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
@@ -728,7 +771,7 @@ function commitSingleStatusLog(status){
   const doCommit=()=>{
     const timeBlock=document.getElementById("statusTimeBlock").value;
     const note=document.getElementById("statusNote").value;
-    saveHabitLogEntry(loggingHabitId,{date:loggingSelectedDate,timeBlock,status,note});
+    saveHabitLogEntry(loggingHabitId,{date:loggingSelectedDate,timeBlock,status,note,tier});
     closeStatusModal();
   };
   if(existing?.status&&existing.status!==status){
@@ -741,7 +784,16 @@ function commitSingleStatusLog(status){
 }
 function closeStatusModal(){statusModal.classList.remove("show");loggingHabitId=null}
 document.getElementById("closeStatusModal").addEventListener("click",closeStatusModal);statusModal.addEventListener("click",e=>{if(e.target===statusModal)closeStatusModal()});
-document.getElementById("statusLogBtn").addEventListener("click",()=>commitSingleStatusLog(loggingPendingStatus));
+document.getElementById("statusLogBtn").addEventListener("click",()=>{
+  // Only an explicit tap on a version row counts as a real choice. If the user never
+  // touched the list (e.g. they only edited the note or time block), fall back to
+  // whatever this day's entry already had — never the display-only preselect guess,
+  // which for legacy status-only entries can land on either of two same-status rows.
+  const key=dateKey(parseLocalDate(loggingSelectedDate)||new Date());
+  const existing=getLogEntry(loggingHabitId,key);
+  const tier=loggingVersionTouched?loggingPendingTier:(existing?existing.tier??null:loggingPendingTier);
+  commitSingleStatusLog(loggingPendingStatus,tier);
+});
 document.getElementById("statusNotTodayBtn").addEventListener("click",()=>commitSingleStatusLog("miss"));
 document.getElementById("clearStatusBtn").addEventListener("click",()=>{if(loggingHabitId)clearHabitLogEntry(loggingHabitId,loggingSelectedDate);closeStatusModal()});
 document.getElementById("statusGoMultiBtn").addEventListener("click",()=>setLoggingMode("multi"));
@@ -763,7 +815,7 @@ document.getElementById("multiLogBtn").addEventListener("click",()=>{
   const doCommit=()=>{
     const timeBlock=document.getElementById("statusTimeBlock").value;
     const note=document.getElementById("statusNote").value;
-    saveHabitLogEntriesBatch(loggingHabitId,dates,{timeBlock,status:loggingPendingStatus,note});
+    saveHabitLogEntriesBatch(loggingHabitId,dates,{timeBlock,status:loggingPendingStatus,tier:loggingPendingTier,note});
     closeStatusModal();
   };
   if(existingCount){
@@ -777,15 +829,21 @@ document.getElementById("multiLogBtn").addEventListener("click",()=>{
 });
 
 // Only the versions a habit actually has configured — never a placeholder for an
-// empty field. small/small2 both log as "counted" (the data model doesn't distinguish
-// two tiers of smaller-than-full), so picking either just records which text was shown.
+// empty field. small/small2 both log status "counted" (the data model doesn't distinguish
+// two ENGAGEMENT tiers of smaller-than-full — see weeklyProgress()/completion counting,
+// unaffected by any of this), but each row also carries a distinct `tier` ("full"/
+// "smaller"/"minimum" — internal name kept for backward compatibility with any future
+// data, though the user-facing label is "Tiny version") so a completion can unambiguously
+// record WHICH version was picked even when two rows share the same status. Selection UI
+// (statusModal, Habit Sheet) must track/compare by tier, never by status alone, or two
+// same-status rows render simultaneously "active."
 function versionRowsForHabit(h){
   const reduce=isReduceGoal(h);
   const full=(h.full||"").trim(),small=(h.small||"").trim(),small2=(h.small2||"").trim();
   const rows=[];
-  if(full) rows.push({status:"done",label:reduce?"Your plan":"Full version",text:full});
-  if(small) rows.push({status:"counted",label:reduce?"Smaller win":"Smaller version",text:small});
-  if(small2) rows.push({status:"counted",label:reduce?"Another smaller win":"Minimum version",text:small2});
+  if(full) rows.push({status:"done",tier:"full",label:reduce?"Your plan":"Full version",text:full});
+  if(small) rows.push({status:"counted",tier:"smaller",label:reduce?"Smaller win":"Smaller version",text:small});
+  if(small2) rows.push({status:"counted",tier:"minimum",label:reduce?"Another smaller win":"Tiny version",text:small2});
   return rows;
 }
 // A habit only "has a smaller version" when small/small2 contain real, trimmed, non-empty
@@ -799,21 +857,31 @@ function hasSmallerVersion(h){ return Boolean((h?.small||"").trim())||Boolean((h
 // consumer (statusModal, Habit Sheet) agrees, after a bug where each one hardcoded its own
 // copy of this row with "counted" instead — silently recording a bare habit's only possible
 // completion as a smaller-version selection the user never made.
-function noVersionsConfiguredRow(){ return {status:"done",label:"Check-in",text:"A tiny check-in counts."}; }
+function noVersionsConfiguredRow(){ return {status:"done",tier:"full",label:"Check-in",text:"A tiny check-in counts."}; }
 // Compact bottom sheet for the Habits tab's row tap / re-tap: full + easier versions as
 // equally-valid choices (never a failure ladder), Complete, and three quick actions that
 // reuse the existing full statusModal (move time) and habit editor (edit) rather than
 // inventing new state — "Do later" is intentionally a no-op dismiss, since there is no
 // snooze concept in the data model and leaving the habit unlogged already means it stays
 // on the checklist.
-let habitSheetHabitId=null,habitSheetSelectedStatus=null;
+// habitSheetVersionTouched mirrors loggingVersionTouched (statusModal) — see its comment.
+let habitSheetHabitId=null,habitSheetSelectedStatus=null,habitSheetSelectedTier=null,habitSheetVersionTouched=false;
 const habitSheetModal=document.getElementById("habitSheetModal");
 function openHabitSheet(id){
   const h=state.habits.find(x=>x.id===id);if(!h)return;
   habitSheetHabitId=id;
-  const current=getStatus(id);
+  const entry=getLogEntry(id);
   const rows=versionRowsForHabit(h).length?versionRowsForHabit(h):[noVersionsConfiguredRow()];
-  habitSheetSelectedStatus=current||rows[0].status;
+  // Same row-resolution as statusModal's defaultPendingSelectionForCurrentDate: prefer the
+  // exact tier already logged, fall back to the first row matching just the status for a
+  // pre-tier legacy entry, else the first row — compared/tracked by tier from here on so
+  // Smaller and Tiny (both status "counted") never render simultaneously "active."
+  const byTier=entry?.tier&&rows.find(r=>r.tier===entry.tier);
+  const byStatus=!byTier&&entry?.status&&rows.find(r=>r.status===entry.status);
+  const selected=byTier||byStatus||rows[0];
+  habitSheetSelectedStatus=selected.status;
+  habitSheetSelectedTier=selected.tier;
+  habitSheetVersionTouched=false;
   document.getElementById("habitSheetIcon").innerHTML=visualHTML(h,"checklist-icon");
   document.getElementById("habitSheetTitle").textContent=h.name;
   document.getElementById("habitSheetSub").textContent=h.scheduleType==="weekly"?weeklyProgressLabel(h):rows[0].text;
@@ -823,19 +891,23 @@ function openHabitSheet(id){
 function renderHabitSheetList(){
   const h=state.habits.find(x=>x.id===habitSheetHabitId);if(!h)return;
   const rows=versionRowsForHabit(h).length?versionRowsForHabit(h):[noVersionsConfiguredRow()];
-  document.getElementById("habitSheetList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${habitSheetSelectedStatus===r.status?"active":""}" onclick="setHabitSheetSelection('${jsEscape(r.status)}')"><span><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></span><span class="habit-sheet-check" aria-hidden="true">✓</span></button>`).join("");
+  document.getElementById("habitSheetList").innerHTML=rows.map(r=>`<button type="button" class="version-option ${habitSheetSelectedTier===r.tier?"active":""}" role="radio" aria-checked="${habitSheetSelectedTier===r.tier}" onclick="setHabitSheetSelection('${jsEscape(r.status)}','${jsEscape(r.tier)}')"><span><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></span><span class="habit-sheet-check" aria-hidden="true">✓</span></button>`).join("");
 }
-function setHabitSheetSelection(status){ habitSheetSelectedStatus=status; renderHabitSheetList(); }
-function closeHabitSheet(){ habitSheetModal.classList.remove("show"); habitSheetHabitId=null; habitSheetSelectedStatus=null; }
+function setHabitSheetSelection(status,tier){ habitSheetSelectedStatus=status; habitSheetSelectedTier=tier||null; habitSheetVersionTouched=true; renderHabitSheetList(); }
+function closeHabitSheet(){ habitSheetModal.classList.remove("show"); habitSheetHabitId=null; habitSheetSelectedStatus=null; habitSheetSelectedTier=null; habitSheetVersionTouched=false; }
 document.getElementById("closeHabitSheet").addEventListener("click",closeHabitSheet);
 habitSheetModal.addEventListener("click",e=>{if(e.target===habitSheetModal)closeHabitSheet()});
 document.getElementById("habitSheetCompleteBtn").addEventListener("click",()=>{
   if(!habitSheetHabitId||!habitSheetSelectedStatus) return;
   const h=state.habits.find(x=>x.id===habitSheetHabitId);
   const existing=getLogEntry(habitSheetHabitId);
+  // Only an explicit tap on a version row counts as a real choice — see
+  // loggingVersionTouched's comment for why the pre-highlighted default must not be
+  // silently written just because Complete was tapped without touching the list.
+  const tier=habitSheetVersionTouched?habitSheetSelectedTier:(existing?existing.tier??null:habitSheetSelectedTier);
   // A direct set (not the quick-tap checkbox's toggle-off), so confirming the same
   // status the habit is already logged with is a no-op, never an accidental un-log.
-  saveHabitLogEntry(habitSheetHabitId,{date:dateKey(),timeBlock:existing?.timeBlock||timeBlockOf(h),status:habitSheetSelectedStatus,note:existing?.note||""});
+  saveHabitLogEntry(habitSheetHabitId,{date:dateKey(),timeBlock:existing?.timeBlock||timeBlockOf(h),status:habitSheetSelectedStatus,tier,note:existing?.note||""});
   closeHabitSheet();
 });
 document.getElementById("habitSheetLaterBtn").addEventListener("click",closeHabitSheet);
@@ -860,7 +932,7 @@ function openEasierVersion(habitId){
   document.getElementById("easierVersionList").innerHTML=rows.map((r,i)=>`<button type="button" class="version-option" data-version-index="${i}"><span class="version-option-label">${escapeHTML(r.label)}</span><span class="version-option-text">${escapeHTML(r.text)}</span></button>`).join("");
   document.querySelectorAll("#easierVersionList [data-version-index]").forEach(btn=>btn.addEventListener("click",()=>{
     const row=rows[Number(btn.dataset.versionIndex)];
-    if(row) homeLogStatus(easierVersionHabitId,row.status);
+    if(row) homeLogStatus(easierVersionHabitId,row.status,row.tier);
     closeEasierVersion();
   }));
   easierVersionModal.classList.add("show");
@@ -926,9 +998,14 @@ const REVIEW_DAY_VISIBLE_CAP=5;
 const HABIT_LOG_DAYS_STEP=20;
 let habitLogDaysShown=HABIT_LOG_DAYS_STEP;
 function reviewDateLabel(date){const today=dateKey(),key=dateKey(date),yesterday=dateKey(addDays(new Date(),-1));if(key===today)return "Today";if(key===yesterday)return "Yesterday";return fmtLong(date)}
+// Falls back to the generic per-status label when an entry predates the tier field (or was
+// logged through a path that doesn't capture it) — never fabricated, so an old "counted"
+// entry still reads as the pre-existing generic "Smaller version" rather than a guessed
+// Smaller/Tiny split it has no data to support.
+const TIER_LABELS={full:"Full version",smaller:"Smaller version",minimum:"Tiny version"};
 function reviewHabitEvent(h,entry,key){
   const labels={done:"Full version",counted:"Smaller version",miss:"Not today",returned:"Returned"};
-  const isReturn=isReturnDay(entry,h,key),baseLabel=labels[entry.status]||entry.status;
+  const isReturn=isReturnDay(entry,h,key),baseLabel=(entry.tier&&TIER_LABELS[entry.tier])||labels[entry.status]||entry.status;
   // A new-style return keeps its real version label ("Full version · Return") instead of
   // collapsing to a generic "Returned" that hides which version was actually logged.
   const label=isReturn&&entry.status!=="returned"?`${baseLabel} · Return`:baseLabel;

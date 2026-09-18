@@ -95,12 +95,15 @@ test.describe('habit logging', () => {
     await page.locator('#homeNow .do-next-btn.primary').click();
 
     // The smallest configured version is what the primary button logs, so this is
-    // "counted", not "done" — see homePrimaryTier() in habits.js.
-    await expect.poll(async () => (await readState(page)).logs['2026-09-13']?.['h-stretch'])
+    // "counted", not "done" — see homePrimaryTier() in habits.js. That exact version
+    // (Smaller, since twoVersionHabit has no Tiny configured) is known and preserved.
+    await expect.poll(async () => (await readState(page)).logs['2026-09-13']?.['h-stretch']?.status)
       .toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs['2026-09-13']?.['h-stretch']?.tier)
+      .toBe('smaller');
 
     await page.reload();
-    expect((await readState(page)).logs['2026-09-13']['h-stretch']).toBe('counted');
+    expect((await readState(page)).logs['2026-09-13']['h-stretch'].status).toBe('counted');
   });
 
   test('a smaller version is visually distinct from a full one', async ({page}) => {
@@ -128,8 +131,12 @@ test.describe('habit logging', () => {
     await expect(options.first()).toContainText('Full 15-minute stretch');
 
     await options.nth(1).click();
-    await expect.poll(async () => (await readState(page)).logs['2026-09-13']?.['h-stretch'])
+    // The Easier-version row explicitly names "Two stretches, one minute" (the Smaller
+    // version) — that exact choice must survive into the log, not just its status.
+    await expect.poll(async () => (await readState(page)).logs['2026-09-13']?.['h-stretch']?.status)
       .toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs['2026-09-13']?.['h-stretch']?.tier)
+      .toBe('smaller');
   });
 
   test('a habit with no easier version keeps a single full-width action', async ({page}) => {

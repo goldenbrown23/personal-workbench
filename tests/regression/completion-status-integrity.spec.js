@@ -33,21 +33,26 @@ test.describe('completion status integrity: "Smaller Version" requires a real, c
     // No configured versions at all means no version choice to offer.
     await expect(page.locator('#homeNow .do-next-btn.secondary')).toHaveCount(0);
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']).toBe('done');
+    // A no-Goal-Plan habit's single check-in unambiguously IS the full version (see
+    // noVersionsConfiguredRow/homePrimaryTier), so the exact tier is known and preserved.
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']?.status).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']?.tier).toBe('full');
   });
 
   test('2. empty-string smaller version does not count as configured (full-only habit logs as full/normal)', async ({page}) => {
     await boot(page, {state: seedState({habits: [fullOnlyHabit]}), at: EVENING});
     await expect(page.locator('#homeNow .do-next-btn.secondary')).toHaveCount(0);
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-only']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-only']?.status).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-only']?.tier).toBe('full');
   });
 
   test('3. whitespace-only Goal Plan values do not count as configured', async ({page}) => {
     await boot(page, {state: seedState({habits: [whitespaceOnlyHabit]}), at: EVENING});
     await expect(page.locator('#homeNow .do-next-btn.secondary')).toHaveCount(0);
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-whitespace']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-whitespace']?.status).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-whitespace']?.tier).toBe('full');
   });
 
   test('4. Full + Smaller configured: choosing Full via the version picker logs a normal/full completion', async ({page}) => {
@@ -57,7 +62,8 @@ test.describe('completion status integrity: "Smaller Version" requires a real, c
     await expect(options).toHaveCount(2);
     await expect(options.first()).toContainText('Wash face for 60 seconds');
     await options.first().click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.status).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.tier).toBe('full');
   });
 
   test('5. Full + Smaller configured: explicitly choosing Smaller logs a Smaller Version completion', async ({page}) => {
@@ -66,15 +72,16 @@ test.describe('completion status integrity: "Smaller Version" requires a real, c
     const options = page.locator('#easierVersionList .version-option');
     await expect(options.nth(1)).toContainText('Use a cleansing wipe');
     await options.nth(1).click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']).toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.status).toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.tier).toBe('smaller');
   });
 
   test('6. reload after completion: a no-Goal-Plan habit keeps its normal-completion status', async ({page}) => {
     await boot(page, {state: seedState({habits: [bareHabit]}), at: EVENING});
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']?.status).toBe('done');
     await page.reload();
-    expect((await readState(page)).logs[TODAY]['h-bare']).toBe('done');
+    expect((await readState(page)).logs[TODAY]['h-bare'].status).toBe('done');
   });
 
   test('7. Habit Log history shows "Full version," never "Smaller version," for a no-Goal-Plan habit logged as Done', async ({page}) => {
@@ -113,7 +120,7 @@ test.describe('completion status integrity: "Smaller Version" requires a real, c
   test('9. weekly progress still counts a no-Goal-Plan habit\'s Done correctly', async ({page}) => {
     await boot(page, {state: seedState({habits: [weeklyBareHabit]}), at: EVENING});
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-weekly-bare']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-weekly-bare']?.status).toBe('done');
     const progress = await page.evaluate(() => weeklyProgress(state.habits[0]));
     expect(progress).toBe(1);
   });

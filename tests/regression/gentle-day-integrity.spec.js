@@ -36,7 +36,8 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await expect(page.locator('#homeNow')).toContainText('Night Face Wash');
     await expect(page.locator('#homeNow .do-next-btn.secondary')).toHaveCount(0);
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']?.status).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']?.tier).toBe('full');
   });
 
   test('3. full-only habit + Gentle Day + Done logs "done"', async ({page}) => {
@@ -45,7 +46,7 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await page.reload();
     await expect(page.locator('#homeNow .do-next-btn.secondary')).toHaveCount(0);
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-only']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-only']?.status).toBe('done');
   });
 
   test('4. Full + Small + Gentle Day: choosing Full via the version picker still logs "done"', async ({page}) => {
@@ -56,7 +57,8 @@ test.describe('Gentle Day must not falsify completion type', () => {
     const options = page.locator('#easierVersionList .version-option');
     await expect(options.first()).toContainText('Wash face for 60 seconds');
     await options.first().click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.status).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.tier).toBe('full');
   });
 
   test('5. Full + Small + Gentle Day: explicitly choosing Small logs "counted"', async ({page}) => {
@@ -67,7 +69,8 @@ test.describe('Gentle Day must not falsify completion type', () => {
     const options = page.locator('#easierVersionList .version-option');
     await expect(options.nth(1)).toContainText('Use a cleansing wipe');
     await options.nth(1).click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']).toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.status).toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.tier).toBe('smaller');
   });
 
   test('6. Full + Small + Small2 + Gentle Day: explicitly choosing Small2 logs "counted"', async ({page}) => {
@@ -78,7 +81,8 @@ test.describe('Gentle Day must not falsify completion type', () => {
     const options = page.locator('#easierVersionList .version-option');
     await expect(options.nth(2)).toContainText('Rinse face');
     await options.nth(2).click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-three']).toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-three']?.status).toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-three']?.tier).toBe('minimum');
   });
 
   test('7. whitespace-only smaller fields + Gentle Day are treated as no smaller version: Done logs "done"', async ({page}) => {
@@ -87,7 +91,7 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await page.reload();
     await expect(page.locator('#homeNow .do-next-btn.secondary')).toHaveCount(0);
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-whitespace']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-whitespace']?.status).toBe('done');
   });
 
   test('8. reload after a Gentle Day completion keeps the correct stored status', async ({page}) => {
@@ -95,9 +99,9 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await turnGentleDayOn(page);
     await page.reload();
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']?.status).toBe('done');
     await page.reload();
-    expect((await readState(page)).logs[TODAY]['h-bare']).toBe('done');
+    expect((await readState(page)).logs[TODAY]['h-bare'].status).toBe('done');
   });
 
   test('9. Habit Log history shows "Full version" for a bare habit completed on a Gentle Day', async ({page}) => {
@@ -141,7 +145,7 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await turnGentleDayOn(page);
     await page.reload();
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-weekly-bare']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-weekly-bare']?.status).toBe('done');
     const progress = await page.evaluate(() => weeklyProgress(state.habits[0]));
     expect(progress).toBe(1);
   });
@@ -149,7 +153,7 @@ test.describe('Gentle Day must not falsify completion type', () => {
   test('14. Gentle Day OFF: bare habit Done still logs "done" (baseline unchanged)', async ({page}) => {
     await boot(page, {state: seedState({habits: [bareHabit]}), at: EVENING});
     await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']).toBe('done');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-bare']?.status).toBe('done');
   });
 
   test('14. Gentle Day OFF: explicitly choosing Small via the picker still logs "counted" (baseline unchanged)', async ({page}) => {
@@ -157,7 +161,8 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await page.locator('#homeNow .do-next-btn.secondary').click();
     const options = page.locator('#easierVersionList .version-option');
     await options.nth(1).click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']).toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.status).toBe('counted');
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-full-small']?.tier).toBe('smaller');
   });
 
   test('15. Habits tab quick tap on a bare habit during Gentle Day does not silently become "counted"', async ({page}) => {

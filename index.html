@@ -287,13 +287,13 @@
       </details>
 
       <details class="settings-disclosure">
-        <summary><span><strong>🌿 Habits</strong><small>Track full wins, small wins, and bare-minimum wins</small></span><span aria-hidden="true">⌄</span></summary>
+        <summary><span><strong>🌿 Habits</strong><small>Track full wins, small wins, and tiny wins</small></span><span aria-hidden="true">⌄</span></summary>
         <div class="settings-disclosure-body">
           <ul class="guide-list">
             <li><span class="guide-bullet">🕐</span>Habits can be grouped by morning, afternoon, or evening</li>
             <li><span class="guide-bullet">✓</span>Full version — you did your normal version</li>
             <li><span class="guide-bullet">○</span>Small version — a smaller valid version, counts just the same</li>
-            <li><span class="guide-bullet">·</span>Bare-minimum version — the smallest thing that still counts</li>
+            <li><span class="guide-bullet">·</span>Tiny version — the smallest thing that still counts</li>
             <li><span class="guide-bullet">—</span>“Not today” or Skip is neutral data, not a failure</li>
             <li><span class="guide-bullet">↩</span>Returned — coming back after a missed day. That’s the whole goal</li>
           </ul>
@@ -344,7 +344,7 @@
         <div class="settings-title">🫧 Overwhelmed?</div>
         <div class="settings-help">Do not organize everything right now. Pick one tiny return.</div>
         <ul class="guide-list">
-          <li><span class="guide-bullet">·</span>Count a bare-minimum habit</li>
+          <li><span class="guide-bullet">·</span>Count a tiny-version habit</li>
           <li><span class="guide-bullet">📝</span>Dump one thought in a person’s notes</li>
           <li><span class="guide-bullet">💬</span>Text one person</li>
           <li><span class="guide-bullet">🌿</span>Turn on Gentle Day</li>
@@ -569,7 +569,7 @@
       <summary><span class="goal-plan-title">Goal plan</span><span class="goal-plan-summary-note">Define what counts</span></summary><div class="goal-plan-help" id="goalPlanHelp">Define the versions once so you do not have to renegotiate what counts each day.</div>
       <div class="form-row"><label for="habitFull" id="habitFullLabel">Full version <span style="font-weight:500">(optional)</span></label><input id="habitFull" placeholder="e.g. Wash face for 60 seconds" /></div>
       <div class="form-row"><label for="habitSmall" id="habitSmallLabel">Smaller valid version</label><input id="habitSmall" placeholder="e.g. A quick 30-second wash" /></div>
-      <div class="form-row"><label for="habitSmall2">Another smaller option <span style="font-weight:500">(optional)</span></label><input id="habitSmall2" placeholder="e.g. Rinse and moisturize" /></div>
+      <div class="form-row"><label for="habitSmall2">Tiny version <span style="font-weight:500">(optional)</span></label><input id="habitSmall2" placeholder="e.g. Rinse and moisturize" /></div>
     </details>
     <div class="form-row">
       <label for="habitScheduleType">How often?</label>
@@ -620,7 +620,7 @@
     <div class="modal-head"><h3 id="statusModalTitle">Log habit</h3><button class="icon-btn" id="closeStatusModal" aria-label="Close habit log">✕</button></div>
     <div class="status-weekly-context" id="statusWeeklyContext" style="display:none"></div>
     <div class="status-ask">What did you do?</div>
-    <div class="version-option-list" id="statusVersionList"></div>
+    <div class="version-option-list" id="statusVersionList" role="radiogroup" aria-label="Completion version"></div>
     <details class="goal-plan" id="statusDateDetails">
       <summary><span class="goal-plan-title">When</span><span class="goal-plan-summary-note" id="statusDateSummary">Today</span></summary>
       <div id="statusSingleDateWrap">
@@ -673,7 +673,7 @@
       </span>
       <button class="icon-btn" id="closeHabitSheet" aria-label="Close">✕</button>
     </div>
-    <div class="version-option-list habit-sheet-list" id="habitSheetList"></div>
+    <div class="version-option-list habit-sheet-list" id="habitSheetList" role="radiogroup" aria-label="Completion version"></div>
     <button class="btn primary habit-sheet-complete" id="habitSheetCompleteBtn">Complete</button>
     <div class="habit-sheet-quick-actions">
       <button type="button" id="habitSheetLaterBtn"><span class="habit-sheet-quick-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 7v5l3 3"></path></svg></span>Do later</button>
