@@ -610,22 +610,31 @@
 .circle-people-copy{flex:1;min-width:0;display:flex;flex-direction:column}
 .circle-people-copy strong{font-size:15px;font-weight:800;color:var(--text)}
 .circle-people-copy small{font-size:12px;color:var(--muted);margin-top:2px}
-.circle-people-row{display:flex;gap:14px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 2px 6px}
+/* Each person is a small, bounded portrait card — quieter and less elevated than the
+   circle-hero-card surfaces below it (no shadow, a smaller 18px radius vs. their 22px —
+   see design-system.md's "nested surfaces don't compete with their parent" rule), so the
+   carousel stays a lightweight awareness row rather than a second row of action cards.
+   Snap is "proximity" (not "mandatory") — a gentle landing point, not a rigid lock, so a
+   short flick still scrolls freely. */
+.circle-people-row{display:flex;gap:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding:2px 2px 8px;scroll-snap-type:x proximity}
 .circle-people-row::-webkit-scrollbar{display:none}
-.circle-people-item{flex:0 0 auto;width:92px;display:flex;flex-direction:column;align-items:center;gap:7px;border:0;background:transparent;text-align:center;color:var(--text);padding:2px}
-.circle-people-item .circle-people-avatar{width:54px;height:54px}
-.circle-people-item .circle-people-avatar svg{width:26px;height:26px}
-.circle-people-item .circle-people-copy{display:flex;flex-direction:column;align-items:center;gap:1px;width:100%}
-.circle-people-name{font-size:12.5px;font-weight:740;line-height:1.2;overflow-wrap:anywhere}
-.circle-people-relation{font-size:10.5px;font-weight:600;color:var(--muted);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.circle-people-meta{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:2px;color:var(--muted);font-size:10.5px;font-weight:700}
-.circle-people-meta-item{display:flex;align-items:center;gap:2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.circle-people-meta-item svg{width:11px;height:11px;flex:0 0 auto}
+.circle-people-item{flex:0 0 auto;width:152px;height:190px;display:flex;flex-direction:column;align-items:flex-start;gap:0;border:1px solid var(--line);background:var(--card);border-radius:18px;text-align:left;color:var(--text);padding:14px;scroll-snap-align:start}
+.circle-people-item .circle-people-avatar{width:60px;height:60px;margin-bottom:10px;flex:0 0 auto}
+.circle-people-item .circle-people-avatar svg{width:28px;height:28px}
+.circle-people-item .circle-people-copy{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%}
+.circle-people-name{font-size:14px;font-weight:800;line-height:1.25;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.circle-people-relation{font-size:11.5px;font-weight:650;color:var(--muted);line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+/* margin-top:auto is what keeps card height consistent regardless of how much recency
+   data a person has — it pins the meta row to the card's bottom padding edge when
+   present, and simply leaves that space empty (not a placeholder) when absent. */
+.circle-people-meta{display:flex;align-items:center;gap:4px;margin-top:auto;padding-top:8px;color:var(--muted);font-size:11px;font-weight:700;max-width:100%}
+.circle-people-meta-item{display:flex;align-items:center;gap:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.circle-people-meta-item svg{width:12px;height:12px;flex:0 0 auto}
+.circle-people-meta-sep{opacity:.6;flex:0 0 auto}
 /* Last-talked is the card's real point ("how long has it been") — a touch bolder and
    darker than the muted relation/secondary text so it's scannable without shouting.
-   Last-in-person stays plain secondary text on its own line, deliberately lighter than
-   talked, rather than sharing a line with a "·" separator that wraps awkwardly at the
-   rail's ~92px item width. */
+   Last-in-person stays plain "seen <time>" text on the same line, deliberately lighter
+   than talked, with no second icon to decode. */
 .circle-people-meta-value{color:var(--text);font-weight:800}
 .circle-people-meta-secondary{font-weight:600;opacity:.85}
 .circle-people-add-icon{width:54px;height:54px;border-radius:999px;display:grid;place-items:center;background:var(--gray);color:var(--grayText)}

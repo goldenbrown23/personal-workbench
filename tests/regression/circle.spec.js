@@ -3,6 +3,7 @@
 // rail — including the legacy interaction format (countsAsSeen===undefined, method
 // lowercase-matched) that pre-dates the countsAsSeen field. See circle.js's inPersonInteractions
 // filter and the circle-people-item template.
+import path from 'path';
 import { test, expect, boot, seedState, readState } from './helpers.js';
 
 const AT = '2026-09-16T10:00:00';
@@ -62,12 +63,15 @@ test('a legacy interaction with no countsAsSeen field is still detected as in-pe
   expect(title).not.toMatch(/no in-person/i);
 });
 
-// My People card hierarchy/recency refinement: last-talked is the primary (bolder) value
-// with the message icon; last-in-person is plain "in person <time>" text, no icon to
-// decode; either is simply omitted — never a "—" placeholder or a dangling "·" — when
-// nothing's been logged yet.
-test.describe('My People: contact-recency hierarchy', () => {
-  test('last-talked renders as the primary value and last-in-person as plain "in person <time>" text', async ({page}) => {
+// My People card redesign: each person is a small, bounded portrait card (avatar, name,
+// relationship, then contact recency pinned toward the bottom) rather than a free-floating
+// avatar with metadata underneath. Last-talked is the primary (bolder) value with the
+// message icon; last-in-person is plain "seen <time>" text sharing the same line, no
+// second icon to decode. Either segment is simply omitted — never a "—" placeholder or a
+// dangling "·" — when nothing's been logged yet, and the card's fixed height keeps every
+// person's card the same size regardless of how much recency data they have.
+test.describe('My People: person-card redesign', () => {
+  test('last-talked renders as the primary value and last-in-person as "seen <time>" on the same line', async ({page}) => {
     const interactions = [
       {id: 'i-1', date: '2026-09-10', method: 'In person', note: '', countsAsSeen: true, createdAt: 't1', updatedAt: 't1'},
       {id: 'i-2', date: '2026-09-14', method: 'Text', note: '', countsAsSeen: false, createdAt: 't2', updatedAt: 't2'},
@@ -80,11 +84,11 @@ test.describe('My People: contact-recency hierarchy', () => {
     const primary = item.locator('.circle-people-meta-primary .circle-people-meta-value');
     await expect(primary).toHaveText('2d');
     const secondary = item.locator('.circle-people-meta-secondary');
-    await expect(secondary).toHaveText('in person 6d');
+    await expect(secondary).toHaveText('seen 6d');
     // No second icon for the in-person segment — it's plain human-readable text, not
     // another icon to decode.
     await expect(secondary.locator('svg')).toHaveCount(0);
-    // Relationship info is untouched by the metadata refinement.
+    // Relationship info is untouched by the card redesign.
     await expect(item.locator('.circle-people-relation')).toContainText('Friend');
   });
 
@@ -112,26 +116,81 @@ test.describe('My People: contact-recency hierarchy', () => {
     await expect(item).not.toContainText('—');
   });
 
-  test('My People row stays readable at 390, 402, and 430px without awkward wrapping', async ({page}) => {
+  test('a person with no recency data has the same card height as one with a full meta row', async ({page}) => {
     const interactions = [
       {id: 'i-1', date: '2026-08-16', method: 'In person', note: '', countsAsSeen: true, createdAt: 't1', updatedAt: 't1'},
       {id: 'i-2', date: '2026-09-14', method: 'Text', note: '', countsAsSeen: false, createdAt: 't2', updatedAt: 't2'},
     ];
     await boot(page, {view: 'circleView', at: AT, state: seedState({
-      people: [person({name: 'Alexandria', relation: 'close-friend', lastContact: '2026-09-14', interactions})],
+      people: [
+        person({id: 'p-1', name: 'Alexandria Park', relation: 'close-friend', lastContact: '2026-09-14', interactions}),
+        person({id: 'p-2', name: 'Sam', relation: 'friend'}),
+      ],
     })});
+
+    const fullCard = page.locator('.circle-people-item', {hasText: 'Alexandria'});
+    const bareCard = page.locator('.circle-people-item', {hasText: 'Sam'});
+    const fullBox = await fullCard.boundingBox();
+    const bareBox = await bareCard.boundingBox();
+    expect(bareBox.height).toBeCloseTo(fullBox.height, 0);
+  });
+
+  test('long names wrap up to two lines without breaking the card layout', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT, state: seedState({
+      people: [person({name: 'Alexandria Park-Whitmore', relation: 'friend'})],
+    })});
+    const item = page.locator('.circle-people-item', {hasText: 'Alexandria'});
+    await expect(item).toBeVisible();
+    const nameBox = await item.locator('.circle-people-name').boundingBox();
+    // Roughly two lines of 14px/1.25 text, not one runaway line or an unbounded wrap.
+    expect(nameBox.height).toBeLessThan(50);
+  });
+
+  test('photo and icon-fallback cards keep the same card and avatar dimensions', async ({page}) => {
+    const TEST_PHOTO = path.join(process.cwd(), 'tests', 'regression', 'fixtures', 'test-photo.png');
+    await boot(page, {view: 'circleView', at: AT, state: seedState({
+      people: [person({id: 'p-1', name: 'Sam'})],
+    })});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Riley');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+    await page.locator('#cropConfirmBtn').click();
+    await page.locator('#applyVisualPicker').click();
+    await page.locator('#savePersonBtn').click();
+    await expect(page.locator('#personModal')).not.toHaveClass(/show/);
+
+    const iconCard = page.locator('.circle-people-item', {hasText: 'Sam'});
+    const photoCard = page.locator('.circle-people-item', {hasText: 'Riley'});
+    const iconBox = await iconCard.boundingBox();
+    const photoBox = await photoCard.boundingBox();
+    expect(photoBox.width).toBeCloseTo(iconBox.width, 0);
+    expect(photoBox.height).toBeCloseTo(iconBox.height, 0);
+    const iconAvatarBox = await iconCard.locator('.circle-people-avatar').boundingBox();
+    const photoAvatarBox = await photoCard.locator('.circle-people-avatar').boundingBox();
+    expect(photoAvatarBox.width).toBeCloseTo(iconAvatarBox.width, 0);
+    expect(photoAvatarBox.height).toBeCloseTo(iconAvatarBox.height, 0);
+  });
+
+  test('the carousel scrolls horizontally without the page itself overflowing, at 390/402/430px', async ({page}) => {
+    const people = Array.from({length: 8}, (_, i) => person({
+      id: `p-${i}`, name: `Person ${i}`, relation: 'friend',
+    }));
+    await boot(page, {view: 'circleView', at: AT, state: seedState({people})});
 
     for (const width of [390, 402, 430]) {
       await page.setViewportSize({width, height: 900});
-      const item = page.locator('.circle-people-item', {hasText: 'Alexandria'});
-      await expect(item).toBeVisible();
-      const rowBox = await page.locator('.circle-people-row').boundingBox();
-      const itemBox = await item.boundingBox();
-      // The card itself must not balloon to fit the longer "in person <time>" text — the
-      // row keeps its usual fixed-width, horizontally-scrolling item shape.
-      expect(itemBox.width).toBeLessThanOrEqual(100);
-      // No horizontal overflow of the row's own container out past the viewport.
-      expect(rowBox.x + rowBox.width).toBeLessThanOrEqual(width + 1);
+      // No page-level horizontal overflow — only the row itself scrolls.
+      const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+      expect(scrollWidth).toBeLessThanOrEqual(width + 1);
+
+      const row = page.locator('.circle-people-row');
+      const before = await row.evaluate(el => el.scrollLeft);
+      await row.evaluate(el => { el.scrollLeft += 200; });
+      const after = await row.evaluate(el => el.scrollLeft);
+      expect(after).toBeGreaterThan(before);
     }
   });
 });
