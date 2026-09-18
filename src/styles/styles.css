@@ -337,11 +337,14 @@
     .tone-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px}.tone-choice{width:42px;height:42px;border-radius:50%;border:2px solid var(--card);box-shadow:0 0 0 1px var(--line)}.tone-choice.selected{box-shadow:0 0 0 3px var(--accent)}
     .emoji svg,.avatar svg,.home-now-icon svg,.visual-preview svg,.icon-choice svg{width:23px;height:23px}.person-detail-hero .avatar svg{width:27px;height:27px}
     .visual-tone-sage{background:#e8f1e7!important;color:#41694a}.visual-tone-lavender{background:#eee9f7!important;color:#65558a}.visual-tone-rose,.visual-tone-blush{background:#f7e9ec!important;color:#8b5963}.visual-tone-blue,.visual-tone-sky{background:#e7f0f4!important;color:#486f7d}.visual-tone-peach{background:#fbeee2!important;color:#96613c}.visual-tone-sand{background:#f5eddd!important;color:#80683e}.visual-tone-gray{background:#ecefeb!important;color:#606a62}
-    /* Profile photos render on top of the icon+color avatar as a circle inside the same
-       square container, so every existing avatar size/position rule above still applies —
-       only the photo itself needs object-fit:cover and its own fade-in once IndexedDB
-       resolves (avoids a broken-image flash before the object URL is ready). */
+    /* Profile photos render on top of the icon+color avatar, reusing every existing avatar
+       size/position rule above — only the shape and the photo's own fade-in differ. A photo
+       gets the full circular footprint (no visible rounded-square matting around it, unlike
+       the icon+color fallback) so it reads at the same visual weight as an icon avatar
+       beside it; .avatar.has-photo's specificity (two classes) intentionally beats the
+       plain .avatar rule's rounded-square radius regardless of source order. */
     .has-photo{position:relative;overflow:hidden}
+    .avatar.has-photo{border-radius:50%}
     .avatar-photo-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:50%;opacity:0;transition:opacity .15s ease}
     .avatar-photo-img.loaded{opacity:1}
     .visual-photo-preview-row{display:flex;align-items:center;gap:14px;margin:4px 0 10px}.visual-photo-preview-row[hidden]{display:none}
@@ -615,10 +618,16 @@
 .circle-people-item .circle-people-copy{display:flex;flex-direction:column;align-items:center;gap:1px;width:100%}
 .circle-people-name{font-size:12.5px;font-weight:740;line-height:1.2;overflow-wrap:anywhere}
 .circle-people-relation{font-size:10.5px;font-weight:600;color:var(--muted);line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
-.circle-people-meta{display:flex;align-items:center;justify-content:center;gap:4px;margin-top:1px;color:var(--muted);font-size:10.5px;font-weight:700}
-.circle-people-meta-item{display:flex;align-items:center;gap:2px}
+.circle-people-meta{display:flex;flex-direction:column;align-items:center;gap:1px;margin-top:2px;color:var(--muted);font-size:10.5px;font-weight:700}
+.circle-people-meta-item{display:flex;align-items:center;gap:2px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .circle-people-meta-item svg{width:11px;height:11px;flex:0 0 auto}
-.circle-people-meta-sep{opacity:.6}
+/* Last-talked is the card's real point ("how long has it been") — a touch bolder and
+   darker than the muted relation/secondary text so it's scannable without shouting.
+   Last-in-person stays plain secondary text on its own line, deliberately lighter than
+   talked, rather than sharing a line with a "·" separator that wraps awkwardly at the
+   rail's ~92px item width. */
+.circle-people-meta-value{color:var(--text);font-weight:800}
+.circle-people-meta-secondary{font-weight:600;opacity:.85}
 .circle-people-add-icon{width:54px;height:54px;border-radius:999px;display:grid;place-items:center;background:var(--gray);color:var(--grayText)}
 .circle-people-add-icon svg{width:22px;height:22px}
 .person-detail-hero{display:flex;align-items:center;gap:12px;margin-bottom:14px}.person-detail-hero .avatar{width:52px;height:52px;border-radius:16px;font-size:25px}.detail-facts{background:#fbf7ef;border:1px solid var(--line);border-radius:16px;overflow:hidden}.detail-fact{display:flex;align-items:flex-start;gap:11px;padding:13px 12px}.detail-fact+.detail-fact{border-top:1px solid var(--line)}.detail-fact-copy{flex:1;display:flex;flex-direction:column}.detail-fact-label{font-size:11px;color:var(--muted);font-weight:720}.detail-fact-value{font-size:14px;font-weight:760;margin-top:3px}.detail-fact-sub{font-size:11px;font-weight:600;color:var(--muted);margin-top:2px}.detail-note{margin-top:12px;background:#f5ece2;color:var(--purpleText);border-radius:14px;padding:12px;font-size:13px;line-height:1.4}

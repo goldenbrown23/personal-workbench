@@ -369,7 +369,7 @@ document.getElementById("personPhotoInput").addEventListener("change",e=>{
 // so the crop can never show blank space). cropLeft/cropTop are the image's top-left corner
 // in frame-local px. Every drag/pinch/wheel handler ends by clamping both before rendering.
 const CROP_FRAME_SIZE=220;
-const CROP_MAX_ZOOM=4;
+const CROP_MAX_ZOOM=5; // multiplier over the min-cover scale — generous enough for a tight headshot crop
 let cropSourceURL=null,cropNaturalW=0,cropNaturalH=0,cropBaseScale=1,cropZoom=1,cropLeft=0,cropTop=0;
 const cropPointers=new Map(); // pointerId -> last known {x,y} in frame-local px
 const cropImageEl=document.getElementById("cropImage");

@@ -146,26 +146,36 @@ function renderCircleMoments(){
 }
 // My People: everyone intentionally added, as a quiet horizontally-scrolling row — face,
 // name, relationship (plain muted text, never a colored pill here — that treatment is
-// reserved for the person's own profile), and last-talked/last-in-person as compact
-// icon + relative time so "who/what/when" reads at a glance without becoming a CRM row.
+// reserved for the person's own profile), then contact recency as the card's real point:
+// "how long has it been". Last-talked is the primary value (icon + slightly bolder text);
+// last-in-person is plain, secondary "in person 1mo" text rather than a second icon to
+// decode. Either segment is simply omitted (not "—") when nothing's been logged yet, so a
+// brand-new person's card just stops at relationship instead of showing noise.
 // Add Person lives only in the hero's addPersonBtn now — a second entry point in this
 // limited-width rail would just cost space that should go to actual people.
 function circlePeopleRowHTML(p){
   const relation=relationTag(p.relation);
   const talked=latestContactDate(p), seen=latestSeenDate(p);
-  const talkedLabel=compactRelativeLabel(talked), seenLabel=compactRelativeLabel(seen);
-  const talkedTitle=talked?`Last talked ${relativeContactLabel(talked).toLowerCase()}`:"No conversations logged yet";
-  const seenTitle=seen?`Last in person ${relativeContactLabel(seen).toLowerCase()}`:"No in-person visits logged yet";
+  const metaParts=[];
+  if(talked){
+    const talkedTitle=`Last talked ${relativeContactLabel(talked).toLowerCase()}`;
+    metaParts.push(`<span class="circle-people-meta-item circle-people-meta-primary" title="${escapeAttr(talkedTitle)}"><span aria-hidden="true">${iconSVG("message")}</span><span class="circle-people-meta-value" aria-label="${escapeAttr(talkedTitle)}">${escapeHTML(compactRelativeLabel(talked))}</span></span>`);
+  }
+  if(seen){
+    const seenTitle=`Last in person ${relativeContactLabel(seen).toLowerCase()}`;
+    metaParts.push(`<span class="circle-people-meta-item circle-people-meta-secondary" title="${escapeAttr(seenTitle)}" aria-label="${escapeAttr(seenTitle)}">in person ${escapeHTML(compactRelativeLabel(seen))}</span>`);
+  }
+  // Stacked as two short lines rather than joined with a "·" separator — at the rail's
+  // ~92px item width, "in person 1mo" alongside "💬 3d" on one line either truncates or
+  // wraps mid-phrase; stacking keeps each value intact and reads as a clean two-line
+  // hierarchy (primary talked value, secondary in-person context) instead.
+  const metaHTML=metaParts.length?`<span class="circle-people-meta">${metaParts.join("")}</span>`:"";
   return `<button type="button" class="circle-people-item" onclick="openPersonDetail('${jsEscape(p.id)}')">
     ${visualHTML(p,"avatar circle-people-avatar","person")}
     <span class="circle-people-copy">
       <span class="circle-people-name">${escapeHTML(p.name)}</span>
       ${relation?`<span class="circle-people-relation">${escapeHTML(relation.label)}</span>`:""}
-      <span class="circle-people-meta">
-        <span class="circle-people-meta-item" title="${escapeAttr(talkedTitle)}"><span aria-hidden="true">${iconSVG("message")}</span><span aria-label="${escapeAttr(talkedTitle)}">${escapeHTML(talkedLabel)}</span></span>
-        <span class="circle-people-meta-sep" aria-hidden="true">·</span>
-        <span class="circle-people-meta-item" title="${escapeAttr(seenTitle)}"><span aria-hidden="true">${iconSVG("people")}</span><span aria-label="${escapeAttr(seenTitle)}">${escapeHTML(seenLabel)}</span></span>
-      </span>
+      ${metaHTML}
     </span>
   </button>`;
 }

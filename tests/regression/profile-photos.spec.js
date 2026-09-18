@@ -13,6 +13,9 @@ const TEST_PHOTO = path.join(process.cwd(), 'tests', 'regression', 'fixtures', '
 // minimum fill scale, so any translate/zoom test against it would trivially clamp to a
 // no-op regardless of whether the drag/pinch math is correct.
 const WIDE_TEST_PHOTO = path.join(process.cwd(), 'tests', 'regression', 'fixtures', 'test-photo-wide.png');
+// Mirrors CROP_MAX_ZOOM in src/js/state.js — a multiplier over the min-cover scale, generous
+// enough for a tight headshot crop.
+const CROP_MAX_ZOOM = 5;
 const AT = '2026-09-17T10:00:00';
 
 const iconOnlyPerson = {
@@ -209,8 +212,32 @@ test.describe('My Circle: photo cropping', () => {
     // Scrolling to zoom IN a lot must clamp at a bounded maximum, not grow unbounded.
     await page.mouse.wheel(0, -100000);
     crop = await readCrop(page);
-    expect(crop.zoom).toBeLessThanOrEqual(4);
+    expect(crop.zoom).toBeLessThanOrEqual(CROP_MAX_ZOOM);
     assertNoBlankSpace(crop);
+  });
+
+  test('maximum zoom reaches approximately 5x the minimum fill scale for a tight headshot crop', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Priya');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(WIDE_TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+
+    const frame = page.locator('#cropFrame');
+    await frame.hover();
+    await page.mouse.wheel(0, -100000);
+    const crop = await readCrop(page);
+    // Reaches (not just approaches) the maximum — a tight headshot crop needs the full range.
+    expect(crop.zoom).toBeCloseTo(CROP_MAX_ZOOM, 1);
+    // At max zoom the frame is still fully covered — no empty crop space even this tight.
+    assertNoBlankSpace(crop);
+
+    // The tight crop must still confirm into a usable, loaded avatar.
+    await page.locator('#cropConfirmBtn').click();
+    await expect(page.locator('#cropStage')).toBeHidden();
+    await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
   });
 
   test('pinching zooms the photo, clamped and blank-space-safe', async ({page}) => {
@@ -384,6 +411,27 @@ test.describe('My Circle: optional profile photos', () => {
     const avatar = page.locator('#circlePeopleList .circle-people-avatar');
     await expect(avatar).toBeVisible();
     await expect(avatar).not.toHaveClass(/has-photo/);
+  });
+
+  test('a photo avatar occupies the full circular footprint (no visible rounded-square matting), while the icon fallback keeps its rounded-square shape', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT, state: seedState({people: [iconOnlyPerson]})});
+    const iconAvatar = page.locator('#circlePeopleList .circle-people-avatar').first();
+    const iconRadius = await iconAvatar.evaluate(el => getComputedStyle(el).borderRadius);
+    // Icon fallback keeps the existing rounded-square design — not a circle.
+    expect(iconRadius).not.toBe('50%');
+
+    await addPersonWithPhoto(page, 'Blair');
+    const photoAvatars = page.locator('#circlePeopleList .circle-people-avatar.has-photo');
+    await expect(photoAvatars).toHaveCount(1);
+    const photoAvatar = photoAvatars.first();
+    const photoBox = await photoAvatar.boundingBox();
+    const photoRadius = await photoAvatar.evaluate(el => getComputedStyle(el).borderRadius);
+    // Photo avatar is a full circle at the same box size as the icon avatar beside it —
+    // same visual footprint/weight, just a different (circular) silhouette.
+    expect(photoRadius).toBe('50%');
+    const iconBox = await iconAvatar.boundingBox();
+    expect(photoBox.width).toBeCloseTo(iconBox.width, 0);
+    expect(photoBox.height).toBeCloseTo(iconBox.height, 0);
   });
 
   test('12. a photoId pointing at a missing/corrupt IndexedDB entry falls back to icon gracefully', async ({page}) => {
