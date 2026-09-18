@@ -834,9 +834,9 @@
       <input type="file" id="personPhotoInput" accept="image/*" hidden />
       <div class="settings-help" id="visualPhotoError" hidden></div>
       <div class="crop-stage" id="cropStage" hidden>
-        <div class="settings-help">Drag to reposition, use the slider to zoom.</div>
+        <div class="settings-help crop-hint">Drag or pinch to adjust</div>
         <div class="crop-frame" id="cropFrame"><img id="cropImage" alt="" draggable="false" /></div>
-        <input type="range" id="cropZoom" min="1" max="3" step="0.01" value="1" aria-label="Zoom" />
+        <button type="button" class="crop-reset-btn" id="cropResetBtn">Reset</button>
         <div class="modal-actions"><button type="button" class="btn" id="cropCancelBtn">Cancel</button><button type="button" class="btn primary" id="cropConfirmBtn">Use photo</button></div>
       </div>
     </div>

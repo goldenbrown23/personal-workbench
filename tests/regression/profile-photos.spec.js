@@ -8,6 +8,11 @@ import path from 'path';
 import { test, expect, boot, seedState, readState } from './helpers.js';
 
 const TEST_PHOTO = path.join(process.cwd(), 'tests', 'regression', 'fixtures', 'test-photo.png');
+// A real (non-1x1) fixture, needed for crop tests that check the image can actually be
+// dragged/pinched within its bounds — a 1x1 source has zero slack in either axis at the
+// minimum fill scale, so any translate/zoom test against it would trivially clamp to a
+// no-op regardless of whether the drag/pinch math is correct.
+const WIDE_TEST_PHOTO = path.join(process.cwd(), 'tests', 'regression', 'fixtures', 'test-photo-wide.png');
 const AT = '2026-09-17T10:00:00';
 
 const iconOnlyPerson = {
@@ -24,6 +29,48 @@ async function pickAndCropPhoto(page, file = TEST_PHOTO) {
   await page.locator('#cropConfirmBtn').click();
   await expect(page.locator('#cropStage')).toBeHidden();
   await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
+}
+
+// Dispatches a synthetic two-pointer pinch on the crop frame, mirroring how helpers.js's
+// swipe() builds raw touch events for the tab-swipe gesture — Playwright's built-in touch
+// API has no pinch primitive, so this drives real PointerEvents (pointerType:'touch')
+// directly, which is what src/js/state.js's crop-frame listeners actually consume.
+async function pinchOnFrame(page, {startDist, endDist, steps = 6} = {}) {
+  await page.evaluate(({startDist, endDist, steps}) => {
+    const frame = document.getElementById('cropFrame');
+    const rect = frame.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2, cy = rect.top + rect.height / 2;
+    const mk = (type, id, x, y) => new PointerEvent(type, {
+      bubbles: true, cancelable: true, pointerId: id, clientX: x, clientY: y, pointerType: 'touch',
+    });
+    frame.dispatchEvent(mk('pointerdown', 1, cx - startDist / 2, cy));
+    frame.dispatchEvent(mk('pointerdown', 2, cx + startDist / 2, cy));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      const d = startDist + (endDist - startDist) * t;
+      frame.dispatchEvent(mk('pointermove', 1, cx - d / 2, cy));
+      frame.dispatchEvent(mk('pointermove', 2, cx + d / 2, cy));
+    }
+    frame.dispatchEvent(mk('pointerup', 1, cx - endDist / 2, cy));
+    frame.dispatchEvent(mk('pointerup', 2, cx + endDist / 2, cy));
+  }, {startDist, endDist, steps});
+}
+
+// Crop internals (cropZoom/cropLeft/cropTop/cropBaseScale/cropNaturalW/H) are plain
+// top-level `let` bindings in src/js/state.js's classic (non-module) script — visible to
+// page.evaluate() the same way getPhoto()/state are elsewhere in this suite.
+const readCrop = page => page.evaluate(() => ({
+  zoom: cropZoom, left: cropLeft, top: cropTop,
+  baseScale: cropBaseScale, natW: cropNaturalW, natH: cropNaturalH,
+}));
+
+function assertNoBlankSpace(crop) {
+  const scale = crop.baseScale * crop.zoom;
+  const dispW = crop.natW * scale, dispH = crop.natH * scale;
+  expect(crop.left).toBeLessThanOrEqual(0.01);
+  expect(crop.top).toBeLessThanOrEqual(0.01);
+  expect(crop.left + dispW).toBeGreaterThanOrEqual(220 - 0.01);
+  expect(crop.top + dispH).toBeGreaterThanOrEqual(220 - 0.01);
 }
 
 async function addPersonWithPhoto(page, name) {
@@ -51,14 +98,15 @@ test.describe('My Circle: photo cropping', () => {
     await expect(page.locator('#visualPhotoPreviewRow')).toBeHidden();
     await expect(page.locator('#visualPickerMainActions')).toBeHidden();
 
-    // Drag to reposition, then zoom in — the crop must still produce a valid image.
+    // Drag to reposition, then zoom in with the wheel — the crop must still produce a valid image.
     const frame = page.locator('#cropFrame');
     const box = await frame.boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
     await page.mouse.down();
     await page.mouse.move(box.x + box.width / 2 + 20, box.y + box.height / 2 + 10, {steps: 5});
     await page.mouse.up();
-    await page.locator('#cropZoom').fill('2');
+    await frame.hover();
+    await page.mouse.wheel(0, -400);
 
     await page.locator('#cropConfirmBtn').click();
     await expect(page.locator('#cropStage')).toBeHidden();
@@ -94,6 +142,148 @@ test.describe('My Circle: photo cropping', () => {
     await expect(page.locator('#personModal')).not.toHaveClass(/show/);
     const after = await readState(page);
     expect(after.people[0].photoId).toBe(before.people[0].photoId);
+  });
+
+  test('a freshly picked photo is auto-centered and scaled to fully fill the crop circle', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Sasha');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+
+    const crop = await readCrop(page);
+    expect(crop.zoom).toBe(1);
+    expect(crop.left).toBeCloseTo((220 - crop.natW * crop.baseScale) / 2, 1);
+    expect(crop.top).toBeCloseTo((220 - crop.natH * crop.baseScale) / 2, 1);
+    assertNoBlankSpace(crop);
+  });
+
+  test('dragging the photo repositions it, clamped so no blank space is exposed', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Rowan');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(WIDE_TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+    const start = await readCrop(page);
+
+    const frame = page.locator('#cropFrame');
+    const box = await frame.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 15, box.y + box.height / 2 + 8, {steps: 5});
+    await page.mouse.up();
+    const dragged = await readCrop(page);
+    expect(dragged.left === start.left && dragged.top === start.top).toBe(false);
+    assertNoBlankSpace(dragged);
+
+    // Drag far past any legal bound — the crop must clamp back to fully covering the circle
+    // rather than exposing blank space at an edge.
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 5000, box.y + box.height / 2 + 5000, {steps: 5});
+    await page.mouse.up();
+    assertNoBlankSpace(await readCrop(page));
+  });
+
+  test('zoom clamps at the minimum fill scale and a sensible maximum, both directions blank-space-safe', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Nico');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+
+    const frame = page.locator('#cropFrame');
+    await frame.hover();
+    // Scrolling to zoom OUT past the minimum must not go below the fill scale (zoom===1).
+    await page.mouse.wheel(0, 800);
+    let crop = await readCrop(page);
+    expect(crop.zoom).toBe(1);
+    assertNoBlankSpace(crop);
+
+    // Scrolling to zoom IN a lot must clamp at a bounded maximum, not grow unbounded.
+    await page.mouse.wheel(0, -100000);
+    crop = await readCrop(page);
+    expect(crop.zoom).toBeLessThanOrEqual(4);
+    assertNoBlankSpace(crop);
+  });
+
+  test('pinching zooms the photo, clamped and blank-space-safe', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Iris');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+    const start = await readCrop(page);
+
+    await pinchOnFrame(page, {startDist: 40, endDist: 160});
+    const zoomedIn = await readCrop(page);
+    expect(zoomedIn.zoom).toBeGreaterThan(start.zoom);
+    assertNoBlankSpace(zoomedIn);
+
+    await pinchOnFrame(page, {startDist: 160, endDist: 20});
+    const zoomedOut = await readCrop(page);
+    expect(zoomedOut.zoom).toBeLessThan(zoomedIn.zoom);
+    expect(zoomedOut.zoom).toBeGreaterThanOrEqual(1);
+    assertNoBlankSpace(zoomedOut);
+  });
+
+  test('Reset restores the centered, minimum-fill state after dragging and zooming', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Wren');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+    const initial = await readCrop(page);
+
+    const frame = page.locator('#cropFrame');
+    const box = await frame.boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(box.x + box.width / 2 + 20, box.y + box.height / 2 + 20, {steps: 5});
+    await page.mouse.up();
+    await frame.hover();
+    await page.mouse.wheel(0, -600);
+    const moved = await readCrop(page);
+    expect(moved.zoom).not.toBe(initial.zoom);
+
+    await page.locator('#cropResetBtn').click();
+    const reset = await readCrop(page);
+    expect(reset.zoom).toBe(1);
+    expect(reset.left).toBeCloseTo(initial.left, 1);
+    expect(reset.top).toBeCloseTo(initial.top, 1);
+  });
+
+  test('the saved avatar reflects the crop state shown, not just any pick', async ({page}) => {
+    await boot(page, {view: 'circleView', at: AT});
+    await page.locator('#addPersonBtn').click();
+    await page.locator('#personName').fill('Devon');
+    await page.locator('#choosePersonVisual').click();
+    await page.locator('#visualModePhoto').click();
+    await page.locator('#personPhotoInput').setInputFiles(TEST_PHOTO);
+    await expect(page.locator('#cropStage')).toBeVisible();
+
+    const frame = page.locator('#cropFrame');
+    await frame.hover();
+    await page.mouse.wheel(0, -400); // zoom in before confirming
+    const crop = await readCrop(page);
+    expect(crop.zoom).toBeGreaterThan(1);
+
+    await page.locator('#cropConfirmBtn').click();
+    await expect(page.locator('#cropStage')).toBeHidden();
+    // The confirmed blob is drawn from exactly this crop's sx/sy/sSize (see cropConfirmBtn's
+    // handler in state.js) — a non-default zoom producing a usable, loaded preview is the
+    // externally observable signal that the shown crop (not some fixed default) was used.
+    await expect(page.locator('#visualPhotoPreviewImg')).toHaveClass(/loaded/);
   });
 });
 

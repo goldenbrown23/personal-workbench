@@ -359,13 +359,19 @@ document.getElementById("personPhotoInput").addEventListener("change",e=>{
   openCropStage(file);
 });
 
-// --- Crop stage: lets the user reposition/zoom a freshly-picked photo into the circular
-// avatar frame before it's compressed and staged. Runs entirely on the real file (via an
-// <img>, not a giant canvas) — only the final confirmed crop is drawn to a canvas, at a
-// fixed small output size, so the source resolution never matters for storage cost.
+// --- Crop stage: lets the user directly drag/pinch a freshly-picked photo into the
+// circular avatar frame before it's compressed and staged. Runs entirely on the real file
+// (via an <img>, not a giant canvas) — only the final confirmed crop is drawn to a canvas,
+// at a fixed small output size, so the source resolution never matters for storage cost.
+//
+// cropZoom is a multiplier on top of cropBaseScale (the "cover" scale computed on load, so
+// 1 always means "smallest scale that still fully covers the circle" — never below that,
+// so the crop can never show blank space). cropLeft/cropTop are the image's top-left corner
+// in frame-local px. Every drag/pinch/wheel handler ends by clamping both before rendering.
 const CROP_FRAME_SIZE=220;
+const CROP_MAX_ZOOM=4;
 let cropSourceURL=null,cropNaturalW=0,cropNaturalH=0,cropBaseScale=1,cropZoom=1,cropLeft=0,cropTop=0;
-let cropDrag=null;
+const cropPointers=new Map(); // pointerId -> last known {x,y} in frame-local px
 const cropImageEl=document.getElementById("cropImage");
 function cropClamp(){
   const scale=cropBaseScale*cropZoom;
@@ -380,6 +386,22 @@ function cropRender(){
   cropImageEl.style.left=cropLeft+"px";
   cropImageEl.style.top=cropTop+"px";
 }
+function cropCenterAndMinZoom(){
+  cropZoom=1;
+  cropLeft=(CROP_FRAME_SIZE-cropNaturalW*cropBaseScale)/2;
+  cropTop=(CROP_FRAME_SIZE-cropNaturalH*cropBaseScale)/2;
+}
+// Rescales around (anchorX,anchorY) in frame-local px — the point under a finger/cursor
+// stays visually fixed instead of the image jumping to re-center on every zoom step.
+function cropZoomAround(anchorX,anchorY,newZoom){
+  const scaleOld=cropBaseScale*cropZoom;
+  const clamped=Math.min(CROP_MAX_ZOOM,Math.max(1,newZoom));
+  const scaleNew=cropBaseScale*clamped;
+  const imgX=(anchorX-cropLeft)/scaleOld, imgY=(anchorY-cropTop)/scaleOld;
+  cropLeft=anchorX-imgX*scaleNew;
+  cropTop=anchorY-imgY*scaleNew;
+  cropZoom=clamped;
+}
 function openCropStage(file){
   const errorEl=document.getElementById("visualPhotoError");errorEl.hidden=true;
   if(cropSourceURL)URL.revokeObjectURL(cropSourceURL);
@@ -388,11 +410,8 @@ function openCropStage(file){
   img.onload=()=>{
     cropNaturalW=img.naturalWidth;cropNaturalH=img.naturalHeight;
     cropBaseScale=Math.max(CROP_FRAME_SIZE/cropNaturalW,CROP_FRAME_SIZE/cropNaturalH);
-    cropZoom=1;
-    cropLeft=(CROP_FRAME_SIZE-cropNaturalW*cropBaseScale)/2;
-    cropTop=(CROP_FRAME_SIZE-cropNaturalH*cropBaseScale)/2;
+    cropCenterAndMinZoom();
     cropImageEl.src=cropSourceURL;
-    document.getElementById("cropZoom").value="1";
     cropRender();
     document.getElementById("visualPhotoPreviewRow").hidden=true;
     document.getElementById("visualPickerMainActions").hidden=true;
@@ -409,23 +428,56 @@ function closeCropStage(){
   document.getElementById("visualPhotoPreviewRow").hidden=false;
   document.getElementById("visualPickerMainActions").hidden=false;
   if(cropSourceURL){URL.revokeObjectURL(cropSourceURL);cropSourceURL=null}
+  cropPointers.clear();
 }
 const cropFrameEl=document.getElementById("cropFrame");
+function cropFramePoint(e){
+  const rect=cropFrameEl.getBoundingClientRect();
+  return {x:e.clientX-rect.left,y:e.clientY-rect.top};
+}
 cropFrameEl.addEventListener("pointerdown",e=>{
-  cropDrag={id:e.pointerId,startX:e.clientX,startY:e.clientY,startLeft:cropLeft,startTop:cropTop};
-  cropFrameEl.setPointerCapture(e.pointerId);
+  try{cropFrameEl.setPointerCapture(e.pointerId)}catch(_err){} // iOS PWA/Safari can throw here for a pointer it doesn't consider active; capture is a nicety, not required for the drag/pinch math below
+  cropPointers.set(e.pointerId,cropFramePoint(e));
 });
 cropFrameEl.addEventListener("pointermove",e=>{
-  if(!cropDrag||e.pointerId!==cropDrag.id)return;
-  cropLeft=cropDrag.startLeft+(e.clientX-cropDrag.startX);
-  cropTop=cropDrag.startTop+(e.clientY-cropDrag.startY);
+  const old=cropPointers.get(e.pointerId);
+  if(!old)return; // not a pointer we started tracking (e.g. hover with no button down)
+  const next=cropFramePoint(e);
+  if(cropPointers.size===1){
+    // One finger/cursor down: plain reposition.
+    cropLeft+=next.x-old.x;
+    cropTop+=next.y-old.y;
+  }else if(cropPointers.size===2){
+    // Two fingers: the other pointer's last-known position is the pinch partner. Compare
+    // the midpoint/distance before-and-after this single pointer's move so zoom tracks the
+    // pinch gesture and pan tracks the midpoint drifting, without the image jumping.
+    let otherId=null;
+    for(const id of cropPointers.keys()) if(id!==e.pointerId) otherId=id;
+    const other=cropPointers.get(otherId);
+    const distOld=Math.hypot(old.x-other.x,old.y-other.y);
+    const distNew=Math.hypot(next.x-other.x,next.y-other.y);
+    const midOld={x:(old.x+other.x)/2,y:(old.y+other.y)/2};
+    const midNew={x:(next.x+other.x)/2,y:(next.y+other.y)/2};
+    if(distOld>0){
+      cropZoomAround(midOld.x,midOld.y,cropZoom*(distNew/distOld));
+    }
+    cropLeft+=midNew.x-midOld.x;
+    cropTop+=midNew.y-midOld.y;
+  }
+  cropPointers.set(e.pointerId,next);
   cropClamp();cropRender();
 });
-function endCropDrag(e){ if(cropDrag&&e.pointerId===cropDrag.id) cropDrag=null; }
-cropFrameEl.addEventListener("pointerup",endCropDrag);
-cropFrameEl.addEventListener("pointercancel",endCropDrag);
-document.getElementById("cropZoom").addEventListener("input",e=>{
-  cropZoom=Number(e.target.value)||1;
+function endCropPointer(e){ cropPointers.delete(e.pointerId); }
+cropFrameEl.addEventListener("pointerup",endCropPointer);
+cropFrameEl.addEventListener("pointercancel",endCropPointer);
+cropFrameEl.addEventListener("wheel",e=>{
+  e.preventDefault();
+  const pt=cropFramePoint(e);
+  cropZoomAround(pt.x,pt.y,cropZoom*(1-e.deltaY*0.0025));
+  cropClamp();cropRender();
+},{passive:false});
+document.getElementById("cropResetBtn").addEventListener("click",()=>{
+  cropCenterAndMinZoom();
   cropClamp();cropRender();
 });
 document.getElementById("cropCancelBtn").addEventListener("click",closeCropStage);
