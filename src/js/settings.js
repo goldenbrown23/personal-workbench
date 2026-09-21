@@ -2,6 +2,7 @@ function applySettings(){document.body.classList.toggle("compact",Boolean(state.
 function renderSettings(){
   document.getElementById("settingsDate").textContent=fmtLong(new Date());
   document.getElementById("startScreen").value=state.settings?.startScreen||"last";
+  document.getElementById("habitDayReset").value=String(getHabitDayResetHour());
   document.getElementById("compactMode").checked=Boolean(state.settings?.compactMode);
   document.getElementById("hapticsEnabled").checked=state.settings?.hapticsEnabled!==false;
   document.getElementById("backupReminderEnabled").checked=state.settings?.backupReminderEnabled!==false;
@@ -19,6 +20,7 @@ function renderSettings(){
   renderVersionInfo();
 }
 document.getElementById("startScreen").addEventListener("change",e=>{state.settings.startScreen=e.target.value;saveState();showSaved("Start screen saved")});
+document.getElementById("habitDayReset").addEventListener("change",e=>{state.settings.habitDayResetHour=Number(e.target.value);saveState();renderAll();showSaved("Habit day updated")});
 document.getElementById("compactMode").addEventListener("change",e=>{state.settings.compactMode=e.target.checked;applySettings();saveState();showSaved(e.target.checked?"Compact view on":"Comfortable view on")});
 document.getElementById("hapticsEnabled").addEventListener("change",e=>{state.settings.hapticsEnabled=e.target.checked;saveState();showSaved(e.target.checked?"Gentle vibration on":"Gentle vibration off")});
 document.getElementById("backupReminderEnabled").addEventListener("change",e=>{state.settings.backupReminderEnabled=e.target.checked;saveState();showSaved(e.target.checked?"Backup reminder on":"Backup reminder off")});

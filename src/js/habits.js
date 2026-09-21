@@ -3,13 +3,13 @@
 // the same "counted" value. It's additive and optional: a plain-string legacy entry, or
 // any entry written before this field existed, normalizes to tier:null rather than a
 // guessed value — never fabricate which version predates this distinction.
-function getLogEntry(habitId, key=dateKey()){
+function getLogEntry(habitId, key=habitTodayKey()){
   const raw=state.logs?.[key]?.[habitId];
   if(!raw) return null;
   if(typeof raw==="string") return {status:raw,timeBlock:null,note:"",tier:null,createdAt:null,updatedAt:null};
   return {status:"",timeBlock:null,note:"",tier:null,createdAt:null,updatedAt:null,...raw};
 }
-function getStatus(habitId, key=dateKey()){ return getLogEntry(habitId,key)?.status || ""; }
+function getStatus(habitId, key=habitTodayKey()){ return getLogEntry(habitId,key)?.status || ""; }
 // Engagement version (done/counted/miss) and return context are separate dimensions:
 // a return is derived automatically from history, never a status the user picks, and it
 // no longer overwrites which version was actually logged. isReturn is a flag alongside
@@ -22,7 +22,7 @@ function getStatus(habitId, key=dateKey()){ return getLogEntry(habitId,key)?.sta
 // through so that known choice isn't silently dropped.
 function setStatus(habitId, status, tier=null){
   const before=structuredClone(state);
-  const key=dateKey();
+  const key=habitTodayKey();
   const h=state.habits.find(x=>x.id===habitId);
   state.logs[key] ||= {};
   const hadEntry=Boolean(getStatus(habitId,key));
@@ -53,7 +53,7 @@ function saveHabitLogEntry(habitId,{date,timeBlock,status,note,tier}){
   const now=new Date().toISOString();
   state.logs[key][habitId]={status,isReturn,timeBlock:timeBlock||null,note:(note||"").trim(),tier:tier||null,createdAt:existing?.createdAt||now,updatedAt:now};
   saveState();
-  showSaved(key===dateKey()?"Habit updated":"Added. Your timeline is more accurate now.",before);
+  showSaved(key===habitTodayKey()?"Habit updated":"Added. Your timeline is more accurate now.",before);
 }
 function saveHabitLogEntriesBatch(habitId,dates,{timeBlock,status,note,tier}){
   const before=structuredClone(state);
@@ -167,7 +167,7 @@ function missedOpportunityAnchor(h,beforeDate){
   }
   return null; // flexible — no cadence to infer a miss from
 }
-function wasExpectedOpportunityMissed(h, fromDate=new Date()){
+function wasExpectedOpportunityMissed(h, fromDate=activeHabitDate()){
   return missedOpportunityAnchor(h,fromDate)!==null;
 }
 function lastMissDistance(h, returnDate){
@@ -194,12 +194,12 @@ function startOfWeek(d=new Date()){const x=new Date(d.getFullYear(),d.getMonth()
 // target" for arbitrary weeks, not just the current one — weeklyProgress(h) is just this
 // applied to today's week, kept as the shorthand every existing caller already uses.
 function weeklyProgressForWeek(h,weekStart){let count=0;for(let i=0;i<7;i++){const s=getStatus(h.id,dateKey(addDays(weekStart,i)));if(["done","counted","returned"].includes(s))count++}return count}
-function weeklyProgress(h){return weeklyProgressForWeek(h,startOfWeek())}
+function weeklyProgress(h){return weeklyProgressForWeek(h,startOfWeek(activeHabitDate()))}
 // "days" is the only schedule type that's ever NOT available on a given day — daily,
 // weekly-target ("3x this week"), and flexible habits are all fair game any day. This used
 // to default to false for weekly/flexible, which silently removed them from every
 // execution surface (Now, Later, Home's pick) with no other way in the UI to log them at all.
-function habitAppliesToday(h){const type=h.scheduleType||"daily";if(type==="days")return (h.weekdays||[]).map(Number).includes(new Date().getDay());return true;}
+function habitAppliesToday(h){const type=h.scheduleType||"daily";if(type==="days")return (h.weekdays||[]).map(Number).includes(activeHabitDate().getDay());return true;}
 // Beyond "is today a valid day," a weekly-target habit that already met its count for the
 // week (e.g. 3/3) shouldn't keep nagging for a 4th — it drops out of Now/Later once satisfied.
 function habitStillNeedsAttentionToday(h){
@@ -216,12 +216,12 @@ function scheduleLabel(h){
 }
 function isReduceGoal(h){return h?.goalType==="reduce"}
 function statusOptions(h){return isReduceGoal(h)?[["done","✓ Within plan"],["counted","○ Reduced"],["miss","— Over plan"],["returned","↩ Back to plan"]]:[["done","✓ Full version"],["counted","○ Smaller version"],["miss","— Not today"],["returned","↩ Returned"]]}
-function gentleDayOn(){try{const value=JSON.parse(localStorage.getItem(GENTLE_KEY)||"{}");return value.date===dateKey()&&value.on===true}catch{return false}}
+function gentleDayOn(){try{const value=JSON.parse(localStorage.getItem(GENTLE_KEY)||"{}");return value.date===habitTodayKey()&&value.on===true}catch{return false}}
 // Lives inside the Manage habits modal now (see renderGentleModeRow) rather than the
 // Habits header — the header icon was replaced by Search, but the underlying "quick taps
 // log smaller today" behavior and its Home hero copy (see home.js renderHomeHero) are
 // unchanged.
-function setGentleDay(on){localStorage.setItem(GENTLE_KEY,JSON.stringify({date:dateKey(),on}));renderGentleModeRow();showSaved(on?"Gentle day on":"Standard day on")}
+function setGentleDay(on){localStorage.setItem(GENTLE_KEY,JSON.stringify({date:habitTodayKey(),on}));renderGentleModeRow();showSaved(on?"Gentle day on":"Standard day on")}
 function renderGentleModeRow(){
   const btn=document.getElementById("gentleModeBtn");
   if(!btn) return;
@@ -530,7 +530,7 @@ function renderHabitsDone(){
   details.style.display=done.length?"block":"none";
   document.getElementById("habitsDoneList").innerHTML=done.map(h=>{
     const entry=getLogEntry(h.id);
-    const label=statusLabel(entry.status)+(isReturnDay(entry,h,dateKey())&&entry.status!=="returned"?" · Return":"");
+    const label=statusLabel(entry.status)+(isReturnDay(entry,h,habitTodayKey())&&entry.status!=="returned"?" · Return":"");
     return laterRowHTML(h,label);
   }).join("");
 }
@@ -542,7 +542,7 @@ function renderHabitsPaused(){
   document.getElementById("habitsPausedList").innerHTML=paused.map(h=>`<button type="button" class="later-row" onclick="openHabitModal('${jsEscape(h.id)}')">${visualHTML(h,"later-row-icon")}<span class="later-row-copy"><span class="later-row-name">${escapeHTML(h.name)}</span><span class="later-row-time">Paused</span></span></button>`).join("");
 }
 
-let loggingHabitId=null,loggingSelectedDate=dateKey(),loggingDateIsCustom=false;
+let loggingHabitId=null,loggingSelectedDate=habitTodayKey(),loggingDateIsCustom=false;
 // loggingVersionTouched distinguishes an explicit tap on a version row from the mere
 // display-only default guess defaultPendingSelectionForCurrentDate() pre-highlights on
 // open — see its comment. Without this, committing without touching anything for a day
@@ -584,7 +584,7 @@ function syncNoteExpansionForCurrentEntry(){
 }
 function openStatusModal(id,presetDate=null){
   loggingHabitId=id;
-  loggingSelectedDate=presetDate||dateKey();
+  loggingSelectedDate=presetDate||habitTodayKey();
   loggingDateIsCustom=false;
   loggingMode="single";
   loggingMultiDates=new Set();
@@ -907,7 +907,7 @@ document.getElementById("habitSheetCompleteBtn").addEventListener("click",()=>{
   const tier=habitSheetVersionTouched?habitSheetSelectedTier:(existing?existing.tier??null:habitSheetSelectedTier);
   // A direct set (not the quick-tap checkbox's toggle-off), so confirming the same
   // status the habit is already logged with is a no-op, never an accidental un-log.
-  saveHabitLogEntry(habitSheetHabitId,{date:dateKey(),timeBlock:existing?.timeBlock||timeBlockOf(h),status:habitSheetSelectedStatus,tier,note:existing?.note||""});
+  saveHabitLogEntry(habitSheetHabitId,{date:habitTodayKey(),timeBlock:existing?.timeBlock||timeBlockOf(h),status:habitSheetSelectedStatus,tier,note:existing?.note||""});
   closeHabitSheet();
 });
 document.getElementById("habitSheetLaterBtn").addEventListener("click",closeHabitSheet);

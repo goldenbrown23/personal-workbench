@@ -201,7 +201,7 @@ const defaultState = {
   logs: {},
   people: [],
   dayNotes: {},
-  settings: {startScreen:"last",compactMode:false,hapticsEnabled:true,backupReminderEnabled:true,guideOpened:false,firstUsedAt:new Date().toISOString(),lastBackupAt:null,backupRemindAfter:null,pinnedModules:[]}
+  settings: {startScreen:"last",compactMode:false,hapticsEnabled:true,backupReminderEnabled:true,guideOpened:false,firstUsedAt:new Date().toISOString(),lastBackupAt:null,backupRemindAfter:null,pinnedModules:[],habitDayResetHour:4}
 };
 
 let stateLoadWasCorrupted=false;
@@ -511,6 +511,28 @@ function dateKey(d=new Date()){
   return `${y}-${m}-${day}`;
 }
 function addDays(d,n){ const x=new Date(d); x.setDate(x.getDate()+n); return x; }
+// The "habit day" — a personal day boundary distinct from the calendar day, so someone
+// awake at 1-3am doesn't get pressured into a new day's habits just because midnight
+// passed (see CLAUDE.md's ADHD-first / no-guilt-mechanics principles). Defaults to 4am for
+// every existing user with no saved preference — never a migration, since the fallback
+// here IS the default. Settings UI is settingsHabitDayReset in index.html/settings.js.
+function getHabitDayResetHour(){
+  const h=Number(state.settings?.habitDayResetHour);
+  return Number.isFinite(h)&&h>=0&&h<24?h:4;
+}
+// Everything that means "today" for habit logging/filtering/weekly-progress purposes
+// (never backfill/history, which stays real-calendar-date — see dateKey()) goes through
+// this so the reset-hour rule lives in exactly one place. Before the reset hour, the
+// active habit date rolls back to the previous calendar day.
+function activeHabitDate(d=new Date()){
+  const x=new Date(d);
+  if(x.getHours()<getHabitDayResetHour()) x.setDate(x.getDate()-1);
+  return x;
+}
+function activeHabitDateKey(d=new Date()){ return dateKey(activeHabitDate(d)); }
+// Shorthand for the extremely common no-arg "what's today's habit-day key" call site —
+// exactly like dateKey()'s own no-arg default, just habit-day-aware.
+function habitTodayKey(){ return activeHabitDateKey(); }
 function fmtLong(d){ return new Intl.DateTimeFormat(undefined,{weekday:"long",month:"long",day:"numeric"}).format(d); }
 function dailyCopy(key,choices,d=new Date()){const seed=Number(dateKey(d).replaceAll("-",""))+[...key].reduce((sum,char)=>sum+char.charCodeAt(0),0);return choices[seed%choices.length]}
 function fmtShort(d){ return new Intl.DateTimeFormat(undefined,{weekday:"short"}).format(d); }
