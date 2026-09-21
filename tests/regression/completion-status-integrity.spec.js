@@ -117,10 +117,17 @@ test.describe('completion status integrity: "Smaller Version" requires a real, c
     await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('0');
   });
 
+  // Weekly-target habits no longer surface in Home's Do This Next (see habits.js's
+  // isWeeklyTargetHabit/unloggedTodayHabitsInBlock) — they're logged from the Habits tab's
+  // This Week view instead, via the same quickCompleteHabit() path Home's Done button uses.
   test('9. weekly progress still counts a no-Goal-Plan habit\'s Done correctly', async ({page}) => {
-    await boot(page, {state: seedState({habits: [weeklyBareHabit]}), at: EVENING});
-    await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-weekly-bare']?.status).toBe('done');
+    await boot(page, {view: 'todayView', state: seedState({habits: [weeklyBareHabit]}), at: EVENING});
+    await page.evaluate(() => setHabitsView('week'));
+    await page.locator('#habitsWeekList .checklist-row', {hasText: 'Call a Friend'}).locator('.weekly-log-btn').click();
+    // quickCompleteHabit (the shared path This Week's "+ Log" reuses) writes the compact
+    // plain-string log shape when there's no tier to record, not the {status,tier,...}
+    // object shape Home's Done button writes for a bare habit — see setStatus in habits.js.
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-weekly-bare']).toBe('done');
     const progress = await page.evaluate(() => weeklyProgress(state.habits[0]));
     expect(progress).toBe(1);
   });

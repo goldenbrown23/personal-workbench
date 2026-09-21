@@ -517,6 +517,7 @@
     .later-row-copy{flex:1;min-width:0}
     .later-row-name{display:block;font-size:14px;font-weight:790;overflow-wrap:anywhere}
     .later-row-time{display:block;font-size:11px;color:var(--muted);margin-top:4px;line-height:1.4;overflow-wrap:anywhere}
+    .later-row-weekly-pill{display:inline-flex;align-items:center;margin-top:5px;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:740;background:var(--gray);color:var(--grayText)}
     .habits-add-link{display:block;text-align:center;margin-top:16px}
     .home-now-secondary-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:8px}
     .home-now-link{border:0;background:transparent;color:var(--muted);font-size:12px;font-weight:700;text-decoration:underline;text-underline-offset:2px;padding:11px 2px;min-height:44px}

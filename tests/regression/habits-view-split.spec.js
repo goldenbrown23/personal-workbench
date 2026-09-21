@@ -34,6 +34,13 @@ const laundryHabit = {
   timeBlock: 'morning', full: 'Laundry', small: '', small2: '',
   scheduleType: 'weekly', weekdays: [], weeklyTarget: 1, paused: false, category: 'home',
 };
+// timeBlock:"evening" so it's the block pickStartHereHabit reaches for at TUE_2AM (late-
+// night maps to the evening block — see currentBlockForPeriod in habits.js).
+const eveningDailyHabit = {
+  id: 'h-evening-daily', name: 'Wind down', icon: 'leaf', color: 'sage', goalType: 'practice',
+  timeBlock: 'evening', full: 'Wind down', small: '', small2: '',
+  scheduleType: 'daily', weekdays: [], weeklyTarget: 1, paused: false, category: 'wellbeing',
+};
 
 // 2026-09-15 is a Monday, 2026-09-16 a Tuesday, both inside the same Mon-start week.
 const MON = '2026-09-15';
@@ -181,5 +188,82 @@ test.describe('Habits screen: existing behavior preserved', () => {
   test('12. active habit day reset behavior still applies with the view split in place', async ({page}) => {
     await boot(page, {view: 'todayView', at: TUE_2AM, state: seedState({habits: [dailyHabit]})});
     expect(await page.evaluate(() => activeHabitDateKey())).toBe(MON);
+  });
+});
+
+// Follow-up: two remaining places weekly habits leaked into "today" style surfaces after
+// the Today/This Week split — Logged today (Habits tab) and Home's Do This Next.
+test.describe('Logged today: weekly habits stay visible but are distinguished from daily rows', () => {
+  test('1. Logged today still includes a weekly habit logged on the active habit date', async ({page}) => {
+    await boot(page, {view: 'todayView', at: MORNING, state: seedState({
+      habits: [dailyHabit, showerHabit],
+      logs: {[TUE]: {'h-daily': 'done', 'h-shower': 'done'}},
+    })});
+    await expect(page.locator('#habitsDoneCount')).toHaveText('2');
+    await expect(page.locator('#habitsDoneList')).toContainText('Morning walk');
+    await expect(page.locator('#habitsDoneList')).toContainText('Shower');
+  });
+
+  test('2. weekly logged rows carry a subtle "Weekly" pill; daily rows do not', async ({page}) => {
+    await boot(page, {view: 'todayView', at: MORNING, state: seedState({
+      habits: [dailyHabit, showerHabit],
+      logs: {[TUE]: {'h-daily': 'done', 'h-shower': 'done'}},
+    })});
+    const dailyRow = page.locator('#habitsDoneList .later-row', {hasText: 'Morning walk'});
+    const weeklyRow = page.locator('#habitsDoneList .later-row', {hasText: 'Shower'});
+    await expect(dailyRow.locator('.later-row-weekly-pill')).toHaveCount(0);
+    await expect(weeklyRow.locator('.later-row-weekly-pill')).toHaveCount(1);
+    await expect(weeklyRow.locator('.later-row-weekly-pill')).toHaveText('Weekly');
+  });
+
+  test('the log data model itself is untouched — a weekly entry is still a plain status/tier log', async ({page}) => {
+    await boot(page, {view: 'todayView', at: MORNING, state: seedState({
+      habits: [showerHabit],
+      logs: {[TUE]: {'h-shower': 'done'}},
+    })});
+    const saved = await readState(page);
+    expect(saved.logs[TUE]['h-shower']).toBe('done');
+  });
+});
+
+test.describe("Home: weekly-target habits no longer surface in Do This Next", () => {
+  test('3. Do This Next never surfaces a weekly habit, even when its timeBlock matches the current period', async ({page}) => {
+    await boot(page, {view: 'homeView', at: MORNING, state: seedState({habits: [poopHabit]})}); // poopHabit is morning+weekly
+    await expect(page.locator('#homeNow')).not.toContainText('Poop');
+  });
+
+  test('4. Home shows the existing calm empty state when only weekly habits remain due', async ({page}) => {
+    await boot(page, {view: 'homeView', at: MORNING, state: seedState({habits: [poopHabit]})});
+    await expect(page.locator('#homeNow')).toContainText('Nothing you need to do right now.');
+    await expect(page.locator('#homeNow .do-next-btn')).toHaveCount(0);
+  });
+
+  test('5. Home still surfaces a daily habit normally alongside a weekly one', async ({page}) => {
+    await boot(page, {view: 'homeView', at: MORNING, state: seedState({habits: [dailyHabit, poopHabit]})});
+    await expect(page.locator('#homeNow')).toContainText('Morning walk');
+    await expect(page.locator('#homeNow')).not.toContainText('Poop');
+  });
+
+  test('6. Home completion still logs a daily habit correctly', async ({page}) => {
+    await boot(page, {view: 'homeView', at: MORNING, state: seedState({habits: [dailyHabit]})});
+    await page.locator('#homeNow .do-next-btn.primary').click();
+    expect((await readState(page)).logs[TUE]?.['h-daily']).toBeTruthy();
+    await expect(page.locator('#homeNow')).not.toContainText('Morning walk');
+  });
+});
+
+test.describe('Active habit day reset stays consistent across Home and Logged today', () => {
+  test('8. a habit logged during the carryover window is excluded from Home and shown in Logged today under the same active habit date', async ({page}) => {
+    await boot(page, {view: 'todayView', at: TUE_2AM, state: seedState({
+      habits: [eveningDailyHabit],
+      logs: {[MON]: {'h-evening-daily': 'done'}},
+    })});
+    expect(await page.evaluate(() => activeHabitDateKey())).toBe(MON);
+    await expect(page.locator('#habitsDoneList')).toContainText('Wind down');
+
+    await page.evaluate(() => switchView('homeView'));
+    // At 2am, late-night maps to the evening block — the same block eveningDailyHabit is
+    // in — so this exercises the exact path Do This Next would otherwise surface it on.
+    await expect(page.locator('#homeNow')).not.toContainText('Wind down');
   });
 });

@@ -134,24 +134,28 @@ test.describe('Do This Next: empty state', () => {
   });
 });
 
-test.describe('Do This Next: weekly habits are never quota fallback material', () => {
-  test('8. a weekly habit completed once today does not reappear the same day even though progress is 1 of 2', async ({page}) => {
+test.describe('Do This Next: weekly-target habits are never surfaced (they live in This Week instead)', () => {
+  // Weekly-target habits used to be eligible in Do This Next whenever their preferred
+  // timeBlock matched the current period — that's inconsistent with the Habits tab's
+  // Today/This Week split (see habits.js's isWeeklyTargetHabit/habitsForWeekView), where
+  // weekly habits only ever live in This Week. unloggedTodayHabitsInBlock() now excludes
+  // them so Do This Next/Later and the "A little for today" Home widget agree with that
+  // split, rather than casually surfacing a weekly habit just because its block matches.
+  test('8. a weekly habit never appears in Do This Next, even in its own current-daypart block', async ({page}) => {
     await boot(page, {view: 'homeView', at: MORNING, state: seedState({habits: [weeklyMorningHabit]})});
-    await expect(doNextCard(page)).toContainText('Weekly Shower');
-
-    await page.evaluate(() => setStatus('h-weekly', 'done'));
-    expect(await page.evaluate(() => weeklyProgress(state.habits[0]))).toBe(1);
     await expect(doNextCard(page)).not.toContainText('Weekly Shower');
+    await expect(doNextCard(page)).toContainText('Nothing you need to do right now.');
     await expect(doNextCard(page).locator('.do-next-btn')).toHaveCount(0);
   });
 
-  test('9. a weekly habit under target becomes eligible again on a later appropriate day', async ({page}) => {
+  test('9. a weekly habit under target still never appears in Do This Next, even on a later appropriate day', async ({page}) => {
     await boot(page, {view: 'homeView', at: MORNING, state: seedState({
       habits: [weeklyMorningHabit],
       logs: {[MON]: {'h-weekly': 'done'}},
     })});
     expect(await page.evaluate(() => weeklyProgress(state.habits[0]))).toBe(1);
-    await expect(doNextCard(page)).toContainText('Weekly Shower');
+    await expect(doNextCard(page)).not.toContainText('Weekly Shower');
+    await expect(doNextCard(page)).toContainText('Nothing you need to do right now.');
   });
 
   test('10. a weekly habit with a preferred morning daypart is not pulled into the afternoon merely because its target is incomplete', async ({page}) => {

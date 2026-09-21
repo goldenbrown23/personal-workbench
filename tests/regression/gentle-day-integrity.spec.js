@@ -140,12 +140,20 @@ test.describe('Gentle Day must not falsify completion type', () => {
     await expect(overview.locator('.overview-legend-row', {hasText: 'Regular'})).toContainText('0');
   });
 
+  // Weekly-target habits no longer surface in Home's Do This Next (see habits.js's
+  // isWeeklyTargetHabit/unloggedTodayHabitsInBlock) — logged from This Week's "+ Log"
+  // instead, via the same quickCompleteHabit() path (and the same gentle-day check) Home's
+  // Done button uses.
   test('12. weekly progress for a Gentle Day completion is unchanged', async ({page}) => {
-    await boot(page, {state: seedState({habits: [weeklyBareHabit]}), at: EVENING});
+    await boot(page, {view: 'todayView', state: seedState({habits: [weeklyBareHabit]}), at: EVENING});
     await turnGentleDayOn(page);
     await page.reload();
-    await page.locator('#homeNow .do-next-btn.primary').click();
-    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-weekly-bare']?.status).toBe('done');
+    await page.evaluate(() => setHabitsView('week'));
+    await page.locator('#habitsWeekList .checklist-row', {hasText: 'Call a Friend'}).locator('.weekly-log-btn').click();
+    // quickCompleteHabit (the shared path This Week's "+ Log" reuses) writes the compact
+    // plain-string log shape when there's no tier to record, not the {status,tier,...}
+    // object shape Home's Done button writes for a bare habit — see setStatus in habits.js.
+    await expect.poll(async () => (await readState(page)).logs[TODAY]?.['h-weekly-bare']).toBe('done');
     const progress = await page.evaluate(() => weeklyProgress(state.habits[0]));
     expect(progress).toBe(1);
   });

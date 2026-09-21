@@ -263,7 +263,12 @@ const BLOCK_SEARCH_ORDER={
 // Late-night isn't one of the three habit blocks — it reads as a continuation of evening
 // (see home.js's homeDisplayBlock, which this mirrors) rather than its own bucket.
 function currentBlockForPeriod(period){ return period==="late-night"?"evening":period; }
-function unloggedTodayHabitsInBlock(block){return state.habits.filter(h=>habitAppliesToday(h)&&!h.paused&&timeBlockOf(h)===block&&habitStillNeedsAttentionToday(h))}
+// Weekly-target habits are excluded here (see isWeeklyTargetHabit below) so this block's
+// notion of "still needs attention" agrees with the Habits tab's Today/This Week split —
+// a weekly habit only ever surfaces in This Week, never casually pulled into Do This Next/
+// Later or the Home "A little for today" widget just because its preferred timeBlock
+// happens to match the current period.
+function unloggedTodayHabitsInBlock(block){return state.habits.filter(h=>!isWeeklyTargetHabit(h)&&habitAppliesToday(h)&&!h.paused&&timeBlockOf(h)===block&&habitStillNeedsAttentionToday(h))}
 // Shared "which one of these candidates do we actually lead with" priority: a return
 // (a missed expected opportunity) outranks everything since it's the one case where timing
 // itself is the point, then whichever habit has a smaller/easier version configured (the
@@ -593,8 +598,13 @@ document.getElementById("habitsSearchBtn").addEventListener("click",()=>{
 });
 document.getElementById("habitsSearchInput").addEventListener("input",e=>{habitsSearchQuery=e.target.value.trim().toLowerCase();renderHabitsChecklist();});
 document.getElementById("habitsSearchClear").addEventListener("click",closeHabitsSearch);
-function laterRowHTML(h,timeText){
-  return `<button type="button" class="later-row" onclick="openStatusModal('${jsEscape(h.id)}')">${visualHTML(h,"later-row-icon")}<span class="later-row-copy"><span class="later-row-name">${escapeHTML(h.name)}</span><span class="later-row-time">${escapeHTML(timeText)}</span></span></button>`;
+// weekly=true adds a subtle "Weekly" pill so a weekly-target habit's Logged today row
+// reads as its own kind of thing rather than blurring into the daily/daypart checklist it
+// no longer belongs to (see isWeeklyTargetHabit/renderHabitsDone) — deliberately neutral/
+// gray rather than a category tone, since it's schedule-type metadata, not a category.
+function laterRowHTML(h,timeText,weekly=false){
+  const weeklyPill=weekly?`<span class="later-row-weekly-pill">Weekly</span>`:"";
+  return `<button type="button" class="later-row" onclick="openStatusModal('${jsEscape(h.id)}')">${visualHTML(h,"later-row-icon")}<span class="later-row-copy"><span class="later-row-name">${escapeHTML(h.name)}</span><span class="later-row-time">${escapeHTML(timeText)}</span>${weeklyPill}</span></button>`;
 }
 function renderHabitsDone(){
   const details=document.getElementById("habitsDoneDetails");
@@ -608,7 +618,7 @@ function renderHabitsDone(){
   document.getElementById("habitsDoneList").innerHTML=done.map(h=>{
     const entry=getLogEntry(h.id);
     const label=statusLabel(entry.status)+(isReturnDay(entry,h,habitTodayKey())&&entry.status!=="returned"?" · Return":"");
-    return laterRowHTML(h,label);
+    return laterRowHTML(h,label,isWeeklyTargetHabit(h));
   }).join("");
 }
 function renderHabitsPaused(){
