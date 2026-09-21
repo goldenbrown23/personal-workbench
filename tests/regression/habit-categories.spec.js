@@ -153,11 +153,16 @@ test.describe('backup / import round trip', () => {
 });
 
 test.describe('category + daypart filters are additive', () => {
+  // weeklyWellbeingHabit is a scheduleType:"weekly" habit — it never appears in Today's
+  // count/checklist regardless of category or daypart (weekly-target habits live in This
+  // Week instead, see habitsForTodayView/habitsForWeekView in habits.js), so these counts
+  // only ever reflect wellbeingHabit/homeHabit.
   test('7. All + Morning shows every eligible Morning habit', async ({page}) => {
     await boot(page, {view: 'todayView', at: MORNING, state: seedState({
       habits: [wellbeingHabit, weeklyWellbeingHabit, homeHabit],
     })});
-    await expect(todayCount(page)).resolves.toBe('Today · 3');
+    await expect(todayCount(page)).resolves.toBe('Today · 2');
+    await expect(page.locator('#habitsChecklist')).not.toContainText('Weekly Shower');
   });
 
   test('8. Wellbeing + Morning shows only Wellbeing Morning habits', async ({page}) => {
@@ -165,8 +170,9 @@ test.describe('category + daypart filters are additive', () => {
       habits: [wellbeingHabit, weeklyWellbeingHabit, homeHabit],
     })});
     await chip(page, 'wellbeing').click();
-    await expect(todayCount(page)).resolves.toBe('Today · 2');
+    await expect(todayCount(page)).resolves.toBe('Today · 1');
     await expect(page.locator('#habitsChecklist')).not.toContainText('Tidy kitchen');
+    await expect(page.locator('#habitsChecklist')).not.toContainText('Weekly Shower');
   });
 
   test('9. Home + Morning shows only Home Morning habits', async ({page}) => {
@@ -206,11 +212,11 @@ test.describe('category + daypart filters are additive', () => {
     await boot(page, {view: 'todayView', at: MORNING, state: seedState({
       habits: [wellbeingHabit, weeklyWellbeingHabit, homeHabit],
     })});
-    await expect(todayCount(page)).resolves.toBe('Today · 3');
+    await expect(todayCount(page)).resolves.toBe('Today · 2');
     await chip(page, 'home').click();
     await expect(todayCount(page)).resolves.toBe('Today · 1');
     await chip(page, 'all').click();
-    await expect(todayCount(page)).resolves.toBe('Today · 3');
+    await expect(todayCount(page)).resolves.toBe('Today · 2');
   });
 
   test('16. an empty category/daypart combination renders an intentional, non-error empty state', async ({page}) => {

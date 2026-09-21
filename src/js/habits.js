@@ -348,6 +348,15 @@ function homeLogStatus(habitId,status,tier=null){
 // engine — Home's Start Here already owns "what's most useful right now" (habits.js's
 // pickStartHereHabit, presented by home.js's doNextHTML). This screen is for browsing/
 // logging any habit in a given block, morning/afternoon/evening, matching the switch.
+//
+// habitsSelectedView splits the tab into two modes so weekly-target habits ("shower
+// 2x/week") aren't buried behind having to guess the right category AND daypart tab —
+// Today (daily/specific-day, filtered by category+daypart same as always) vs This Week
+// (weekly-target habits, filtered by category only — a weekly habit has no "right"
+// daypart to hide behind). Session-only UI state, same as habitsSelectedBlock/Category
+// below, never persisted.
+let habitsSelectedView="today";
+function isWeeklyTargetHabit(h){ return h.scheduleType==="weekly"; }
 let habitsSelectedBlock=null;
 function defaultHabitsBlock(){
   const period=currentTimePeriod();
@@ -383,6 +392,7 @@ function setHabitsCategory(id){
   habitsSelectedCategory=id;
   renderHabitsCategoryFilter();
   renderHabitsChecklist();
+  renderHabitsWeekList();
   renderHabitsDone();
 }
 document.getElementById("habitsCategoryFilter").addEventListener("click",e=>{
@@ -393,12 +403,39 @@ function renderToday(){
   renderTabHeroCopy("habits","habitsHeroSupporting","habitsHeroAccent");
   if(!habitsSelectedBlock) habitsSelectedBlock=defaultHabitsBlock();
   renderHabitsCategoryFilter();
+  renderHabitsViewSwitch();
   renderHabitsPeriodSwitch();
   renderHabitsBanner();
   renderHabitsChecklist();
+  renderHabitsWeekList();
   renderHabitsDone();
   renderHabitsPaused();
 }
+// Toggles which half of the tab is visible — Today's daypart switch/banner/checklist vs
+// This Week's header/list — rather than re-rendering on switch: renderToday() already
+// computed both, so flipping the view is a pure visibility change, not a data refetch.
+function renderHabitsViewSwitch(){
+  document.querySelectorAll("#habitsViewSwitch [data-view]").forEach(btn=>{
+    const active=btn.dataset.view===habitsSelectedView;
+    btn.classList.toggle("active",active);
+    btn.setAttribute("aria-selected",String(active));
+  });
+  const isWeek=habitsSelectedView==="week";
+  document.getElementById("habitsPeriodSwitch").style.display=isWeek?"none":"";
+  document.getElementById("habitsBanner").style.display=isWeek?"none":"";
+  document.getElementById("habitsCountRow").style.display=isWeek?"none":"";
+  document.getElementById("habitsChecklist").style.display=isWeek?"none":"";
+  document.getElementById("habitsWeekHead").style.display=isWeek?"":"none";
+  document.getElementById("habitsWeekList").style.display=isWeek?"":"none";
+}
+function setHabitsView(view){
+  habitsSelectedView=view;
+  renderHabitsViewSwitch();
+}
+document.getElementById("habitsViewSwitch").addEventListener("click",e=>{
+  const btn=e.target.closest("[data-view]");
+  if(btn) setHabitsView(btn.dataset.view);
+});
 function renderHabitsPeriodSwitch(){
   document.querySelectorAll("#habitsPeriodSwitch [data-block]").forEach(btn=>{
     const active=btn.dataset.block===habitsSelectedBlock;
@@ -464,12 +501,24 @@ function habitDaypartLabel(h){
 function searchResultRowHTML(h){
   return checklistRowHTML(h,habitDaypartLabel(h));
 }
+// Weekly-target habits live in This Week instead (see habitsForWeekView) — a weekly
+// habit has no single "right" daypart to hide behind, so mixing it into Today's
+// category+daypart filter was exactly what made "shower 2x/week" hard to find.
+function habitsForTodayView(){
+  return state.habits.filter(h=>!h.paused&&!isWeeklyTargetHabit(h)&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock&&habitStillNeedsAttentionToday(h)&&(habitsSelectedCategory==="all"||h.category===habitsSelectedCategory));
+}
 function renderHabitsChecklist(){
   const wrap=document.getElementById("habitsChecklist");
   const countLabel=document.getElementById("habitsCountLabel");
-  const banner=document.getElementById("habitsBanner");
   if(habitsSearchQuery){
-    banner.style.display="none";
+    // Search overrides both view modes with one combined results list — see
+    // habitMatchesSearch's own comment for why it spans every habit regardless of
+    // schedule/daypart/paused state.
+    document.getElementById("habitsWeekHead").style.display="none";
+    document.getElementById("habitsWeekList").style.display="none";
+    document.getElementById("habitsBanner").style.display="none";
+    document.getElementById("habitsCountRow").style.display="none";
+    wrap.style.display="";
     countLabel.textContent="";
     const matches=state.habits.filter(h=>habitMatchesSearch(h,habitsSearchQuery));
     wrap.innerHTML=matches.length
@@ -477,21 +526,13 @@ function renderHabitsChecklist(){
       :`<div class="empty-card">No habits found. Try another name.</div>`;
     return;
   }
-  banner.style.display="";
+  renderHabitsViewSwitch();
   if(!state.habits.length){
     countLabel.textContent="";
     wrap.innerHTML=`<div class="empty-card">No habits yet.<button type="button" class="btn primary" style="margin-top:10px;width:100%" onclick="openHabitModal()">+ Add your first habit</button></div>`;
     return;
   }
-  // Shares habitStillNeedsAttentionToday with Home's Do This Next/Later so "already logged
-  // today" and "weekly rhythm already met" both pull a habit out of Today the same way here
-  // as everywhere else — it used to duplicate only the weekly-target half of that rule,
-  // which let an already-logged daily/specific-day habit stay in Today alongside Logged
-  // today. It stays reachable via Search, its own detail sheet, and history.
-  // Category and daypart are additive filters on the SAME list — never a grouping/
-  // hierarchy within Today (see habits.js's category-filter comment above) — so this is
-  // one combined predicate, not two passes.
-  const items=state.habits.filter(h=>!h.paused&&habitAppliesToday(h)&&timeBlockOf(h)===habitsSelectedBlock&&habitStillNeedsAttentionToday(h)&&(habitsSelectedCategory==="all"||h.category===habitsSelectedCategory));
+  const items=habitsForTodayView();
   countLabel.textContent=`Today · ${items.length}`;
   if(!items.length){
     const categoryTag=habitsSelectedCategory!=="all"?habitCategoryTag(habitsSelectedCategory):null;
@@ -500,6 +541,42 @@ function renderHabitsChecklist(){
     return;
   }
   wrap.innerHTML=items.map(h=>checklistRowHTML(h)).join("");
+}
+// This Week's own list — weekly-target habits, filtered by category only (never
+// daypart: see habitsForTodayView's comment). Incomplete habits ("Still open") sort
+// before ones that already met their weekly target ("Done enough"), so the ones still
+// needing attention are never buried below ones that don't.
+function habitsForWeekView(){
+  return state.habits.filter(h=>!h.paused&&isWeeklyTargetHabit(h)&&(habitsSelectedCategory==="all"||h.category===habitsSelectedCategory));
+}
+// Same card shell as checklistRowHTML (icon/name/sub inside checklist-row/-main/-copy)
+// with a progress bar in place of the version subtext and a "+ Log"/✓ action in place of
+// the quick-tap circle — reuses quickCompleteHabit() for logging so This Week's "+ Log"
+// is the exact same tier-aware/gentle-day-aware path as Today's status tap, never a
+// second logging rule.
+function weeklyRowHTML(h){
+  const progress=weeklyProgress(h),target=Number(h.weeklyTarget||1),met=progress>=target;
+  const pct=Math.min(100,Math.round((progress/target)*100));
+  const action=met
+    ?`<span class="weekly-done-check" aria-hidden="true" title="Enough this week">✓</span>`
+    :`<button type="button" class="weekly-log-btn" onclick="quickCompleteHabit('${jsEscape(h.id)}')">+ Log</button>`;
+  return `<div class="checklist-row"><button type="button" class="checklist-main" onclick="openHabitSheet('${jsEscape(h.id)}')">${visualHTML(h,"checklist-icon")}<span class="checklist-copy"><span class="checklist-name-row"><span class="checklist-name">${escapeHTML(h.name)}</span></span><span class="checklist-sub">${escapeHTML(weeklyProgressLabel(h))}</span><span class="progress-track"><span class="progress-fill" style="width:${pct}%"></span></span></span></button>${action}</div>`;
+}
+function renderHabitsWeekList(){
+  const wrap=document.getElementById("habitsWeekList");
+  if(!wrap) return;
+  const items=habitsForWeekView();
+  if(!items.length){
+    const message=habitsSelectedCategory==="all"?"No weekly target habits yet.":"No weekly habits in this category yet.";
+    wrap.innerHTML=`<div class="empty-card">${escapeHTML(message)}</div>`;
+    return;
+  }
+  const open=items.filter(h=>weeklyProgress(h)<Number(h.weeklyTarget||1));
+  const done=items.filter(h=>weeklyProgress(h)>=Number(h.weeklyTarget||1));
+  let html="";
+  if(open.length) html+=`<div class="habits-week-section-label">Still open</div><div class="checklist">${open.map(weeklyRowHTML).join("")}</div>`;
+  if(done.length) html+=`<div class="habits-week-section-label">Done enough</div><div class="checklist">${done.map(weeklyRowHTML).join("")}</div>`;
+  wrap.innerHTML=html;
 }
 function openHabitsSearch(){
   document.getElementById("habitsSearchRow").hidden=false;

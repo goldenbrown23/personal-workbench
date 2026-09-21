@@ -66,17 +66,18 @@ test.describe('weekly-target habits', () => {
   });
 
   // As of the "habit system update" (d3ad0d9), a weekly habit that already met its rhythm
-  // for the week steps out of the Habits checklist entirely, not just Start Here / Later —
-  // renderHabitsChecklist's own comment: "same 'enough attention for now' rule ... also
-  // applied here so it doesn't keep appearing in the main Today checklist. It stays
-  // reachable via Search, its own detail sheet, and history." This replaces the older
-  // "stays visible" expectation with the current, intentionally quieter one.
-  test('a weekly habit that already met its target drops out of Start Here / Later AND the Habits checklist, but stays visible before the target is met', async ({page}) => {
+  // for the week moves from This Week's "Still open" to "Done enough" — a weekly-target
+  // habit never appears in the Today checklist at all (see isWeeklyTargetHabit/
+  // habitsForTodayView/habitsForWeekView in habits.js: weekly habits live in This Week,
+  // filtered by category only, never the Today daypart checklist). This replaces the
+  // older "visible in the Today checklist" expectation with the current split.
+  test('a weekly habit that already met its target moves to This Week\'s Done enough, but stays in Still open before the target is met', async ({page}) => {
     await boot(page, {state: seedState({habits: [weeklyHabit]})});
 
     await page.locator('.tabbar .tab[data-view="todayView"]').click();
-    await page.locator('#habitsPeriodSwitch [data-block="morning"]').click();
-    await expect(page.locator('#habitsChecklist .checklist-name', {hasText: 'Call a friend'})).toBeVisible();
+    await page.evaluate(() => setHabitsView('week'));
+    await expect(page.locator('#habitsWeekList .checklist-name', {hasText: 'Call a friend'})).toBeVisible();
+    await expect(page.locator('#habitsWeekList')).toContainText('Still open');
 
     await page.evaluate(() => {
       state.logs['2026-09-14'] = {'h-weekly': 'done'};
@@ -87,8 +88,9 @@ test.describe('weekly-target habits', () => {
     const stillNeeds = await page.evaluate(() => habitStillNeedsAttentionToday(state.habits[0]));
     expect(stillNeeds).toBe(false);
 
-    await expect(page.locator('#habitsChecklist .checklist-name', {hasText: 'Call a friend'})).toHaveCount(0);
-    // Still reachable through the rest of the app — not deleted, just quieted for the week.
+    // Still reachable — moved to Done enough, not removed from the list.
+    await expect(page.locator('#habitsWeekList .checklist-name', {hasText: 'Call a friend'})).toBeVisible();
+    await expect(page.locator('#habitsWeekList')).toContainText('Done enough');
     await expect.poll(() => page.evaluate(() => weeklyProgress(state.habits[0]))).toBe(3);
   });
 

@@ -78,6 +78,11 @@
 
     <div class="filter-row" id="habitsCategoryFilter" role="tablist" aria-label="Category"></div>
 
+    <div class="segmented" id="habitsViewSwitch" role="tablist" aria-label="Habits view">
+      <button type="button" class="segmented-btn" data-view="today" role="tab">Today</button>
+      <button type="button" class="segmented-btn" data-view="week" role="tab">This Week</button>
+    </div>
+
     <div class="segmented" id="habitsPeriodSwitch" role="tablist" aria-label="Time of day">
       <button type="button" class="segmented-btn" data-block="morning" role="tab">Morning</button>
       <button type="button" class="segmented-btn" data-block="afternoon" role="tab">Afternoon</button>
@@ -86,8 +91,14 @@
 
     <div class="habits-banner" id="habitsBanner"></div>
 
-    <div class="habits-count-row"><span id="habitsCountLabel"></span></div>
+    <div class="habits-count-row" id="habitsCountRow"><span id="habitsCountLabel"></span></div>
     <div id="habitsChecklist" class="checklist"></div>
+
+    <div class="habits-week-head" id="habitsWeekHead" style="display:none">
+      <h2>This Week</h2>
+      <p>Things that just need enough attention.</p>
+    </div>
+    <div id="habitsWeekList" style="display:none"></div>
 
     <details class="goal-plan" id="habitsDoneDetails" style="display:none">
       <summary><span class="goal-plan-title">Logged today</span><span class="goal-plan-summary-note" id="habitsDoneCount">0</span></summary>
