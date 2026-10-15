@@ -90,49 +90,11 @@
     }
     h1{font-size:32px;line-height:1.05;margin:5px 0 6px;letter-spacing:-.03em}
     .sub{color:var(--muted);font-size:15px;line-height:1.45}
-    /* Home hero geometry is now controlled by prefixed Tailwind utilities in index.html.
-       These semantic rules retain only period/state colors and the asset treatment. */
-    .home-hero-banner{background:#faf5eb}
-    .home-hero-banner.period-morning{background:#faf5eb}
-    .home-hero-banner.period-afternoon{background:#edf5f6}
-    .home-hero-banner.period-evening{background:#343b61}
-    .home-hero-banner.period-lateNight{background:#343b61}
-    /* Shared text-safe atmospheric wash: rotating artwork varies a lot in brightness/
-       detail (a sunlit afternoon garden vs. a dark evening sky) behind the SAME fixed
-       text column, so contrast can't be guaranteed by the art alone. This sits between
-       the artwork (z-0) and the copy (z-10) on every daypart — never a per-period
-       override — and only gently dims the left text column, fading to fully transparent
-       well before the artwork's main subject so the illustration stays bright and the
-       fade never reads as a hard-edged box. .is-dark swaps the wash tint to match the
-       evening/late-night artwork instead of stamping a warm cream wash over a night sky. */
-    .home-hero-banner::before{content:"";position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(100deg,rgba(250,245,235,.86) 0%,rgba(250,245,235,.74) 30%,rgba(250,245,235,.46) 46%,rgba(250,245,235,.18) 60%,rgba(250,245,235,0) 72%)}
-    .home-hero-banner.is-dark::before{background:linear-gradient(100deg,rgba(24,22,40,.62) 0%,rgba(24,22,40,.48) 30%,rgba(24,22,40,.26) 46%,rgba(24,22,40,.1) 60%,rgba(24,22,40,0) 72%)}
-    /* Geometry borrows `.sibling-hero-scene`'s technique from the Habits/Circle/Trends
-       heroes (a fixed-px width well past the container, natural height, bottom-
-       anchored — see index.html) rather than object-fit:cover at the hero's own
-       height. Cover-at-full-height was rejected: the mobile hero box (~1.6 aspect)
-       is much boxier than the artwork's 2.69 canvas, so forcing the image to match
-       the box's height crops away most of the artwork's ~55% calm-negative-space
-       zone before it ever reaches the text. Fixing the render scale by WIDTH instead
-       means only a modest, controlled slice is cropped off the top (ceiling/wall —
-       no meaningful content) rather than a large slice off the side.
-       Unlike Habits' asset (whose cat sits well inland from its own right edge, so
-       Habits can bleed past the container on the right via -right-24), these four
-       assets place their cat right at the source canvas's true right edge — bleeding
-       past the container the same way crops the cat off. So this sits at right:0
-       (no bleed) with a narrower width than Habits' 650/700 to still keep a
-       reasonable share of the calm zone visible on the left. `.sibling-hero-scene`'s
-       existing mask (shared, not a new one) softens the top and left edges. */
-    .home-hero-bg{right:0;width:620px}
-    @media(min-width:420px){.home-hero-bg{width:660px}}
-    .home-hero-banner .eyebrow{color:rgba(42,29,18,.62)}
-    #homeView .home-hero-banner h1{color:#2a1d12}
-    .home-hero-banner .sub{color:rgba(42,29,18,.7)}
-    .home-hero-banner.is-dark .eyebrow{color:rgba(255,255,255,.78)}
-    #homeView .home-hero-banner.is-dark h1{color:#fff}
-    #homeView .home-hero-banner.is-dark .sub{color:rgba(255,255,255,.85)}
-    .home-hero-accent{font-family:"Bradley Hand","Segoe Print",cursive;font-style:italic;color:rgba(42,29,18,.76)}
-    .home-hero-banner.is-dark .home-hero-accent{color:rgba(255,255,255,.88)}
+    /* Home's old photographic hero (.home-hero-banner/.home-hero-bg/.is-dark) was
+       replaced by the illustrated, animated "Your Haven" room — see .haven-card below
+       and src/js/haven.js. The greeting header is now plain text above the room
+       (.home-head), not overlaid on artwork, so no text-safe wash/.is-dark variant
+       is needed any more. */
 
     /* ============ Compact tab hero system (Habits / My Circle / Trends) ============
        Shared pattern: a full-bleed pastel band with left-aligned copy and a
@@ -872,3 +834,179 @@
     .multi-date-summary{font-size:12px;color:var(--muted);margin-top:9px;line-height:1.4}
     .multi-date-controls{display:flex;gap:10px;margin-top:11px}
     .multi-date-controls .btn{flex:1;min-height:40px;padding:8px 10px;font-size:12px}
+
+    /* ===== Your Haven — the illustrated room on Home (src/js/haven.js) =====
+       Compact header above (no overlay/is-dark text mode needed, since the greeting no
+       longer sits on top of artwork — see home.js's renderHomeHero). */
+    .home-head{padding:2px 0 0}
+    .home-head h1{margin:4px 0 0;font-size:22px;font-weight:650;line-height:1.1;letter-spacing:-.01em}
+    .home-head .sub{margin-top:3px;font-size:13px;line-height:1.35}
+
+    .haven-card{background:#4b5940;box-shadow:var(--shadow)}
+    .haven-scene{position:relative;aspect-ratio:400/300;width:100%}
+    /* Decorative only (role="presentation"/aria-hidden in haven.js) — real interaction
+       targets are the .haven-hotspot buttons below, so the art must never win a hit-test
+       against them (observed in practice: a composited layer from an animated descendant
+       can intercept real pointer input even where paint order/elementFromPoint say the
+       button is on top — pointer-events:none sidesteps that ambiguity entirely). */
+    .haven-svg{position:absolute;inset:0;width:100%;height:100%;display:block;pointer-events:none}
+    .haven-accent{position:absolute;left:10px;bottom:10px;max-width:70%;padding:6px 12px;border-radius:999px;background:rgba(30,24,16,.55);color:#fdf6ea;font-family:"Bradley Hand","Segoe Print",cursive;font-style:italic;font-size:13px;line-height:1.2;pointer-events:none;backdrop-filter:blur(2px)}
+    .haven-calm-toggle{position:absolute;right:8px;top:8px;width:34px;height:34px;min-width:34px;min-height:34px;border-radius:50%;border:0;background:rgba(30,24,16,.4);color:#fdf6ea;display:grid;place-items:center}
+    .haven-calm-toggle svg{width:17px;height:17px}
+    .haven-calm-toggle.active{background:rgba(253,246,234,.9);color:#4b5940}
+    .haven-calm-toggle:focus-visible{outline:2px solid #fdf6ea;outline-offset:2px}
+
+    /* Invisible, keyboard-focusable hit targets layered over the SVG art — the SVG itself
+       stays aria-hidden/decorative (see role="presentation" in haven.js) so every
+       interaction has a real, labeled, 44px+ <button> rather than relying on SVG click
+       handlers alone (see "Accessibility principles" in CLAUDE.md). */
+    /* Centered on its left/top percentage point with a fixed negative margin, NOT
+       transform:translate(-50%,-50%) — a CSS transform on the hit target itself was
+       observed to break real click/tap hit-testing here (Chromium computes a correct
+       post-transform getBoundingClientRect/elementFromPoint, but real pointer input
+       still lands on whatever the PRE-transform box position overlaps), even though the
+       element is otherwise visible/enabled/stable. Fixed-px margins avoid the whole
+       class of bug since there's no transform on the target at all. */
+    .haven-hotspot{position:absolute;z-index:1;width:44px;height:44px;min-width:44px;min-height:44px;margin:-22px 0 0 -22px;border:0;background:transparent;border-radius:50%;padding:0;touch-action:manipulation}
+    .haven-hotspot:focus-visible{outline:2px solid #fdf6ea;outline-offset:2px;background:rgba(253,246,234,.18)}
+    .haven-hotspot:active{background:rgba(253,246,234,.14)}
+
+    .haven-wall{fill:#5c6b4e;transition:fill 1.4s ease}
+    .haven-floor{fill:#b98a5e}
+    .haven-planks line{stroke:#8a6440;stroke-opacity:.18;stroke-width:1.5}
+    .haven-rug{fill:#c97b5a}
+    .haven-rug-ring{fill:none;stroke:#fdf6ea;stroke-opacity:.35;stroke-width:2;stroke-dasharray:3 5}
+
+    .haven-sky{fill:#bfe0ea;transition:fill 1.4s ease}
+    .haven-sun{fill:#ffd98a;opacity:1;transition:opacity 1s ease}
+    .haven-moon{opacity:0;transition:opacity 1s ease}
+    .haven-moon-shadow{fill:#2a2440}
+    .haven-stars{opacity:0;transition:opacity 1.2s ease}
+    .haven-star{fill:#fdf6ea;animation:havenTwinkle 3.4s ease-in-out infinite}
+    .haven-star:nth-child(2){animation-delay:.6s}
+    .haven-star:nth-child(3){animation-delay:1.3s}
+    .haven-star:nth-child(4){animation-delay:2s}
+    .haven-cloud{opacity:.9;transition:opacity 1s ease}
+    .haven-cloud ellipse{fill:#fdf6ea}
+    .haven-cloud-a{animation:havenCloudDriftA 26s linear infinite}
+    .haven-cloud-b{animation:havenCloudDriftB 32s linear infinite}
+    .haven-hills{fill:#4a6150;transition:fill 1.4s ease}
+    .haven-hill-light{fill:#ffd98a;opacity:0;transition:opacity 1s ease}
+    .haven-window-frame{stroke:#ece1d1;stroke-width:6}
+    .haven-window-bar{stroke:#ece1d1;stroke-width:3.4}
+    .haven-window-sill{fill:#8a6440}
+    .haven-curtain{fill:#fdf6ea;opacity:.82;transform-box:fill-box;transform-origin:50% 0%;animation:havenCurtainSway 6s ease-in-out infinite}
+
+    .haven-scene[data-daypart="morning"] .haven-sky{fill:#cfe7ec}
+    .haven-scene[data-daypart="afternoon"] .haven-sky{fill:#bfe0ea}
+    .haven-scene[data-daypart="evening"] .haven-sky{fill:#5b4a72}
+    .haven-scene[data-daypart="evening"] .haven-wall,.haven-scene[data-daypart="evening"] .haven-hills{fill:#44523b}
+    .haven-scene[data-daypart="lateNight"] .haven-sky{fill:#232042}
+    .haven-scene[data-daypart="lateNight"] .haven-wall,.haven-scene[data-daypart="lateNight"] .haven-hills{fill:#3a4733}
+    .haven-scene[data-daypart="afternoon"] .haven-sun{opacity:1}
+    .haven-scene[data-daypart="morning"] .haven-sun{opacity:.9}
+    .haven-scene[data-daypart="evening"] .haven-sun,.haven-scene[data-daypart="lateNight"] .haven-sun{opacity:0}
+    .haven-scene[data-daypart="evening"] .haven-moon,.haven-scene[data-daypart="lateNight"] .haven-moon{opacity:1}
+    .haven-scene[data-daypart="lateNight"] .haven-stars{opacity:1}
+    .haven-scene[data-daypart="evening"] .haven-cloud,.haven-scene[data-daypart="lateNight"] .haven-cloud{opacity:0}
+    .haven-scene[data-daypart="evening"] .haven-hill-light,.haven-scene[data-daypart="lateNight"] .haven-hill-light{opacity:.9}
+
+    .haven-wood{fill:#8a6440}
+    .haven-wood-dark{fill:#6b4c30}
+    .haven-cabinet-split{stroke:#6b4c30;stroke-width:1.5;stroke-opacity:.5}
+    .haven-cabinet-handle{fill:#f5eddd}
+    .haven-book{fill:#9d5132}
+    .haven-book:nth-of-type(2){fill:#8fae92}
+    .haven-plant-leaf{fill:none;stroke:#5f7a55;stroke-width:4;stroke-linecap:round}
+    .haven-plant-leaf-big{stroke-width:5.5}
+    .haven-plant{transform-box:fill-box;transform-origin:50% 100%;animation:havenPlantSway 7s ease-in-out infinite}
+
+    .haven-lampshade{fill:#f5eddd;stroke:#d8c6a4;stroke-width:1}
+    .haven-lampshade.lamp-on{fill:#ffe9bd}
+    .haven-lamp-glow{opacity:0;transition:opacity .5s ease}
+    .haven-lamp-glow.lamp-on{opacity:.85}
+
+    .haven-bed-frame{fill:#c97b5a}
+    .haven-bed-mattress{fill:#fdf6ea}
+    .haven-bed-blanket{fill:#8fae92}
+    .haven-bed-pillow{fill:#fffcf6;stroke:#ece1d1;stroke-width:1}
+
+    .haven-chair-back,.haven-chair-seat,.haven-chair-arm{fill:#c97b5a}
+    .haven-chair-pillow{fill:#8fae92}
+
+    /* Cats — colors come entirely from the --cat-fur/--cat-patch/--cat-patch2 custom
+       properties set inline per cat in haven.js's HAVEN_CATS, so re-skinning a cat never
+       touches these rules. */
+    .haven-cat-body,.haven-cat-head,.haven-cat-tail{fill:var(--cat-fur)}
+    .haven-cat-patch{fill:var(--cat-patch)}
+    .haven-cat-ear{fill:var(--cat-patch2)}
+    .haven-cat-eye{fill:#2c2420;transform-box:fill-box;transform-origin:50% 50%;animation:havenBlink 5.2s ease-in-out infinite}
+    .haven-cat-eye-closed{fill:none;stroke:#2c2420;stroke-width:1;stroke-linecap:round}
+    .haven-cat-nose{fill:#caa98f}
+    .haven-cat:not(.is-sleeping){transform-box:fill-box;transform-origin:50% 50%;animation:havenBreathe 3.6s ease-in-out infinite}
+    .haven-cat.is-sleeping .haven-cat-body{transform:scaleY(.9);transform-box:fill-box;transform-origin:50% 100%}
+    .haven-cat-tail{transform-box:fill-box;transform-origin:0% 50%;animation:havenTailIdle 5s ease-in-out infinite}
+    .haven-cat.is-sleeping .haven-cat-tail{animation:havenTailSleep 7s ease-in-out infinite}
+    .haven-cat.is-happy .haven-cat-tail{animation:havenTailHappy .5s ease-in-out infinite}
+    .haven-cat.is-happy .haven-cat-ear{animation:havenEarFlick .6s ease-in-out infinite}
+
+    /* The character — torso/head/arms pivot at the hip (transform-origin 50% 100%),
+       legs/arms pivot at the hip/shoulder they hang from (50% 0%), so every rotation
+       reads as a believable joint rather than the whole limb sliding. */
+    .haven-character{transform-box:view-box}
+    .haven-leg,.haven-cardigan,.haven-arm{fill:#8fae92}
+    .haven-cardigan{fill:#c97b5a}
+    .haven-arm{fill:#c97b5a}
+    .haven-top{fill:#fffcf6}
+    .haven-head{fill:#e8c2a0}
+    .haven-hair-back,.haven-hair-fringe{fill:#3a2f27}
+    .haven-eye{fill:#3a2f27;transform-box:fill-box;transform-origin:50% 50%;animation:havenBlink 4.4s ease-in-out infinite .4s}
+    .haven-mouth{fill:none;stroke:#3a2f27;stroke-width:1.1;stroke-linecap:round}
+    .haven-torso{transform-box:fill-box;transform-origin:50% 100%;animation:havenBreathe 4s ease-in-out infinite}
+    .haven-leg{transform-box:fill-box;transform-origin:50% 0%;transition:transform .3s ease}
+    .haven-arm{transform-box:fill-box;transform-origin:50% 0%;transition:transform .3s ease}
+
+    .haven-character.is-walking .haven-leg-l{animation:havenStepL .56s ease-in-out infinite}
+    .haven-character.is-walking .haven-leg-r{animation:havenStepR .56s ease-in-out infinite}
+    .haven-character.is-walking .haven-arm-l{animation:havenStepR .56s ease-in-out infinite}
+    .haven-character.is-walking .haven-arm-r{animation:havenStepL .56s ease-in-out infinite}
+    .haven-character.is-sitting .haven-leg-l,.haven-character.is-sitting .haven-leg-r{transform:rotate(78deg)}
+    .haven-character.is-sitting .haven-torso{transform:translateY(6px)}
+    .haven-character.is-resting .haven-leg-l,.haven-character.is-resting .haven-leg-r{transform:rotate(2deg)}
+    .haven-character.is-petting .haven-torso{transform:rotate(-16deg)}
+    .haven-character.is-petting .haven-arm-r{animation:havenPet 1s ease-in-out infinite}
+
+    @keyframes havenBreathe{0%,100%{transform:scaleY(1)}50%{transform:scaleY(1.018)}}
+    @keyframes havenBlink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.12)}}
+    @keyframes havenStepL{0%,100%{transform:rotate(-16deg)}50%{transform:rotate(16deg)}}
+    @keyframes havenStepR{0%,100%{transform:rotate(16deg)}50%{transform:rotate(-16deg)}}
+    @keyframes havenPet{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-30deg)}}
+    @keyframes havenTailIdle{0%,100%{transform:rotate(0deg)}50%{transform:rotate(8deg)}}
+    @keyframes havenTailSleep{0%,100%{transform:rotate(0deg)}50%{transform:rotate(3deg)}}
+    @keyframes havenTailHappy{0%,100%{transform:rotate(-10deg)}50%{transform:rotate(14deg)}}
+    @keyframes havenEarFlick{0%,100%{transform:rotate(0deg)}50%{transform:rotate(-8deg)}}
+    @keyframes havenCurtainSway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(1.6deg)}}
+    @keyframes havenPlantSway{0%,100%{transform:rotate(0deg)}50%{transform:rotate(.8deg)}}
+    @keyframes havenCloudDriftA{0%{transform:translateX(-8px)}100%{transform:translateX(10px)}}
+    @keyframes havenCloudDriftB{0%{transform:translateX(6px)}100%{transform:translateX(-10px)}}
+    @keyframes havenTwinkle{0%,100%{opacity:.3}50%{opacity:1}}
+
+    .haven-scene.is-paused *{animation-play-state:paused!important}
+    .haven-scene.is-calm *{animation:none!important;transition:none!important}
+
+    .home-invite{margin:12px 2px 0;padding:12px 14px;border-radius:16px;background:linear-gradient(145deg,#f8ecdc,#fdf8f0);box-shadow:0 10px 24px rgba(120,75,40,.08);display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+    .home-invite[hidden]{display:none}
+    .home-invite-title{font-weight:780;font-size:14px}
+    .home-invite-actions{display:flex;gap:8px}
+    .home-invite-actions .do-next-btn{min-height:40px;padding:8px 14px;font-size:12.5px}
+    .home-now.haven-dismissed{display:none}
+
+    @media (prefers-reduced-motion: reduce){
+      .haven-star,.haven-cloud-a,.haven-cloud-b,.haven-plant,.haven-cat-eye,.haven-eye,.haven-torso,
+      .haven-cat-tail,.haven-curtain,.haven-character.is-walking .haven-leg-l,.haven-character.is-walking .haven-leg-r,
+      .haven-character.is-walking .haven-arm-l,.haven-character.is-walking .haven-arm-r,
+      .haven-character.is-petting .haven-arm-r{animation:none!important}
+    }
+    @media (min-width:900px){
+      .haven-scene{aspect-ratio:400/260}
+    }

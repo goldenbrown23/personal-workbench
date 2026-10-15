@@ -15,15 +15,10 @@ function getDaypart(date=new Date()){
   if(hour>=18&&hour<23) return "evening";
   return "lateNight";
 }
-// One config per daypart so the image, dark-text mode, and CSS crop class can never end
-// up mismatched (e.g. morning copy over the evening photo) — renderHome reads all of it
-// from whichever entry getDaypart() currently points at.
-const HOME_HERO_VARIANTS={
-  morning:{artwork:"assets/home-morning.png",isDark:false},
-  afternoon:{artwork:"assets/home-afternoon.png",isDark:false},
-  evening:{artwork:"assets/home-evening.png",isDark:true},
-  lateNight:{artwork:"assets/home-late-night.png",isDark:true}
-};
+// The four dayparts the Home hero (now "Your Haven", see haven.js) cycles through. Kept
+// here (not in haven.js) since getDaypart() is the one place hero timing is computed —
+// haven.js only reads whichever value this function currently points at.
+const HOME_HERO_DAYPARTS=["morning","afternoon","evening","lateNight"];
 
 // A curated, fixed pool — never generated. Keeps Home's voice consistent: warm, low-
 // pressure, slightly poetic, never coach-y ("crush today", "you got this"). Each period
@@ -152,28 +147,18 @@ function pickHomeCopy(period){
   return {greeting:pool.greetings[g],supportive:pool.supportive[s],accent:pool.accents[a]};
 }
 
-// The ONE place that touches the hero DOM. All four dayparts flow through this exact
-// same code path — nothing here branches on `daypart` except to look up which config
-// object to read from, so morning/afternoon/evening/lateNight are structurally
-// guaranteed identical geometry (container size, image wrapper, absolute positioning,
-// right/bottom offsets, object-fit/position, rounded clipping, fade mask, responsive
-// breakpoints all live as fixed classes on #homeHeroBanner/#homeIllustrationImg in
-// index.html and are never touched here). Only the artwork src, the is-dark theme
-// toggle, and the copy differ per variant — never add a per-daypart class, inline
-// style, or special-cased branch here; add another HOME_HERO_VARIANTS entry instead.
+// The ONE place that touches the hero/greeting DOM. All four dayparts flow through this
+// exact same code path — nothing here branches on `daypart` except to look up copy and
+// hand the daypart off to haven.js, so morning/afternoon/evening/lateNight are
+// structurally guaranteed identical geometry. The room itself (artwork, lighting,
+// animation) is owned entirely by haven.js/renderHavenScene — this function only ever
+// touches the greeting header and the handwritten accent line.
 function renderHomeHero(daypart,gentle){
-  const variant=HOME_HERO_VARIANTS[daypart];
   const copy=pickHomeCopy(daypart);
   document.getElementById("homeGreeting").textContent=copy.greeting;
   document.getElementById("homeSub").textContent=gentle?"Gentle day is on. Smaller still counts.":copy.supportive;
   document.getElementById("homeIllustrationAccent").textContent=copy.accent;
-
-  const img=document.getElementById("homeIllustrationImg");
-  if(!img.src.endsWith(variant.artwork)) img.src=variant.artwork; // avoid an unnecessary reload/flicker when nothing changed
-  const banner=document.getElementById("homeHeroBanner");
-  banner.classList.toggle("is-dark",variant.isDark);
-  banner.classList.remove(...Object.keys(HOME_HERO_VARIANTS).map(d=>"period-"+d));
-  banner.classList.add("period-"+daypart);
+  if(typeof renderHavenScene==="function") renderHavenScene(daypart);
 }
 
 function renderHome(){
@@ -192,7 +177,32 @@ function renderHome(){
   const nudges=state.people.map(p=>({person:p,timing:personTiming(p)})).filter(x=>x.timing.class==="due");
 
   renderStartHere(period,gentle,nudges);
+  renderHomeInvite();
   renderHomeWidgets(period,nudges);
+}
+// A light invitation that sits between the room and the existing Do This Next card
+// (renderStartHere, unchanged above) rather than replacing it — Do This Next keeps
+// surfacing automatically exactly as it always has (existing regression coverage in
+// tests/regression/do-this-next.spec.js pins that behavior), so this only ever ADDS a
+// "Just visiting" escape hatch for someone who opened the app purely to enjoy the room.
+// "Help me start" doesn't invent a second selection path — it just brings the existing
+// card into view, since pickStartHereHabit has already run by the time this renders.
+function renderHomeInvite(){
+  const invite=document.getElementById("homeInvite");
+  if(!invite) return;
+  document.getElementById("homeNow")?.classList.remove("haven-dismissed");
+  invite.hidden=false;
+  invite.innerHTML=`<div class="home-invite-title">One tiny thing?</div><div class="home-invite-actions"><button type="button" class="do-next-btn primary" onclick="homeInviteStart()">Help me start</button><button type="button" class="do-next-btn secondary" onclick="homeInviteVisit()">Just visiting</button></div>`;
+}
+function homeInviteStart(){
+  document.getElementById("homeInvite").hidden=true;
+  const homeNow=document.getElementById("homeNow");
+  homeNow.classList.remove("haven-dismissed");
+  homeNow.scrollIntoView({behavior:(typeof havenReducedMotion==="function"&&havenReducedMotion())?"auto":"smooth",block:"nearest"});
+}
+function homeInviteVisit(){
+  document.getElementById("homeInvite").hidden=true;
+  document.getElementById("homeNow")?.classList.add("haven-dismissed");
 }
 function homeViewActive(){ return document.getElementById("homeView")?.classList.contains("active"); }
 function refreshHomeIfActive(){ if(homeViewActive()) renderHome(); }
